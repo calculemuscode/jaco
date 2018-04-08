@@ -1,0 +1,52 @@
+{
+    "name": "@calculemus/jaco",
+    "version": "0.0.1",
+    "description": "JavaScript C0 Parser & Tools",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "scripts": {
+        "nearley": "mkdir -p lib && nearleyc expression.ne -o lib/expression-rules.js && nearleyc statement.ne -o lib/statement-rules.js && nearleyc program.ne -o lib/program-rules.js",
+        "tsc": "tsc",
+        "watch": "tsc -w",
+        "prettier": "prettier --write src/*.ts src/**/*.ts *.json",
+        "prepublishOnly": "rm -f *~ && npm run nearley && tsc",
+        "test": "tsc && nyc mocha -r ts-node/register src/**/test/*.ts",
+        "coveralls": "nyc report --reporter=text-lcov | coveralls"
+    },
+    "author": "Calculemus LLC",
+    "license": "ISC",
+    "repository": "https://github.com/calculemuscode/jaco",
+    "dependencies": {
+        "immutable": "^3.8.2",
+        "moo": "^0.4.3",
+        "nearley": "^2.13.0",
+        "request": "^2.85.0"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.1.2",
+        "@types/mocha": "^2.2.48",
+        "@types/moo": "^0.4.0",
+        "@types/nearley": "^2.11.0",
+        "@types/node": "^9.4.7",
+        "chai": "^4.1.2",
+        "coveralls": "^3.0.0",
+        "mocha": "^5.0.4",
+        "mocha-lcov-reporter": "^1.3.0",
+        "nyc": "^11.6.0",
+        "prettier": "^1.11.1",
+        "ts-node": "^5.0.1",
+        "typescript": "^2.7.2"
+    },
+    "nyc": {
+        "include": ["src/**/*.ts"],
+        "exclude": ["src/**/*.d.ts", "src/**/test/**/*.ts"],
+        "extension": [".ts"],
+        "require": ["ts-node/register"],
+        "sourcemap": true,
+        "instrument": true
+    },
+    "prettier": {
+        "printWidth": 110,
+        "tabWidth": 4
+    }
+}
