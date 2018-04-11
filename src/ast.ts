@@ -257,22 +257,30 @@ export interface DereferenceLValue extends UnaryExpression {
     argument: LValue;
 }
 
-export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement
+export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement;
 export type Statement = ForStatement;
 /*
 export type Statement = SimpleStatement | VariableDeclaration | ConditionalStatement | WhileStatement | ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement;
 */
 
+/** Intermediate form used in parsing */
+export interface AssignmentExpression extends Syn {
+    tag: "AssignmentExpression";
+    operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "^=" | "|=" | "<<=" | ">>=";
+    left: Expression;
+    right: Expression;
+}
+
 export interface AssignmentStatement extends Syn {
-    tag: "AssignStatement";
-    operator: "=";
+    tag: "AssignmentStatement";
+    operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "^=" | "|=" | "<<=" | ">>=";
     left: LValue;
     right: Expression;
 }
 
 export interface UpdateStatement extends Syn {
-    tag: 'UpdateStatement';
-    operator: '++' | '--';
+    tag: "UpdateStatement";
+    operator: "++" | "--";
     argument: Expression;
 }
 

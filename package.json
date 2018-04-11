@@ -5,7 +5,8 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "scripts": {
-        "nearley": "mkdir -p lib && nearleyc expression.ne -o lib/expression-rules.js && nearleyc statement.ne -o lib/statement-rules.js && nearleyc program.ne -o lib/program-rules.js",
+        "nearley":
+            "mkdir -p lib && nearleyc expression.ne -o lib/expression-rules.js && nearleyc statement.ne -o lib/statement-rules.js && nearleyc program.ne -o lib/program-rules.js && nearleyc test.ne -o lib/test/spec-rules.js",
         "tsc": "tsc",
         "watch": "tsc -w",
         "prettier": "prettier --write src/*.ts src/**/*.ts *.json",
