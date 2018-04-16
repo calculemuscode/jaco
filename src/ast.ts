@@ -26,18 +26,18 @@
 export interface Syn {
     readonly tag: string;
     readonly range?: [number, number];
-    loc?: SourceLocation;
+    readonly loc?: SourceLocation;
 }
 
 export interface Position {
-    line: number;
-    column: number;
+    readonly line: number;
+    readonly column: number;
 }
 
 export interface SourceLocation {
-    start: Position;
-    end: Position;
-    source?: string | null;
+    readonly start: Position;
+    readonly end: Position;
+    readonly source?: string | null;
 }
 
 export type Type = null;
@@ -65,44 +65,44 @@ export type Expression =
     | HasTagExpression;
 
 export interface Identifier extends Syn {
-    tag: "Identifier";
-    name: string;
+    readonly tag: "Identifier";
+    readonly name: string;
 }
 
 export interface IntLiteral extends Syn {
-    tag: "IntLiteral";
-    value: number;
-    raw: string;
+    readonly tag: "IntLiteral";
+    readonly value: number;
+    readonly raw: string;
 }
 
 export interface StringLiteral extends Syn {
-    tag: "StringLiteral";
-    value: string;
-    raw: string;
+    readonly tag: "StringLiteral";
+    readonly value: string;
+    readonly raw: string;
 }
 
 export interface CharLiteral extends Syn {
-    tag: "CharLiteral";
-    value: string;
-    raw: string;
+    readonly tag: "CharLiteral";
+    readonly value: string;
+    readonly raw: string;
 }
 
 export interface BoolLiteral extends Syn {
-    tag: "BoolLiteral";
-    value: boolean;
+    readonly tag: "BoolLiteral";
+    readonly value: boolean;
 }
 
 export interface NullLiteral extends Syn {
-    tag: "NullLiteral";
+    readonly tag: "NullLiteral";
 }
 
 /**
  * Array access `e[e]`
  */
 export interface ArrayMemberExpression extends Syn {
-    tag: "ArrayMemberExpression";
-    object: Expression;
-    index: Expression;
+    readonly tag: "ArrayMemberExpression";
+    readonly object: Expression;
+    readonly index: Expression;
 }
 
 /**
@@ -111,54 +111,54 @@ export interface ArrayMemberExpression extends Syn {
  *  - `e->f` (deref === true)
  */
 export interface StructMemberExpression extends Syn {
-    tag: "StructMemberExpression";
-    deref: boolean;
-    object: Expression;
-    field: Identifier;
+    readonly tag: "StructMemberExpression";
+    readonly deref: boolean;
+    readonly object: Expression;
+    readonly field: Identifier;
 }
 
 /**
  * Regular function calls `f(e1,e2,...,en)`
  */
 export interface CallExpression extends Syn {
-    tag: "CallExpression";
-    callee: Identifier;
-    arguments: Expression[];
+    readonly tag: "CallExpression";
+    readonly callee: Identifier;
+    readonly arguments: Expression[];
 }
 
 /**
  * Function pointer calls `(*e)(e1,e2,...,en)`
  */
 export interface IndirectCallExpression extends Syn {
-    tag: "IndirectCallExpression";
-    callee: Expression;
-    arguments: Expression[];
+    readonly tag: "IndirectCallExpression";
+    readonly callee: Expression;
+    readonly arguments: Expression[];
 }
 
 /**
  * Prefix cast operation `(ty)e`.
  */
 export interface CastExpression extends Syn {
-    tag: "CastExpression";
-    kind: Type;
-    argument: Expression;
+    readonly tag: "CastExpression";
+    readonly kind: Type;
+    readonly argument: Expression;
 }
 
 /**
  * Prefix unary operations `~e` and friends.
  */
 export interface UnaryExpression extends Syn {
-    tag: "UnaryExpression";
-    operator: "&" | "!" | "~" | "-" | "*";
-    argument: Expression;
+    readonly tag: "UnaryExpression";
+    readonly operator: "&" | "!" | "~" | "-" | "*";
+    readonly argument: Expression;
 }
 
 /**
  * Eager binary operations `e+e` and friends
  */
 export interface BinaryExpression extends Syn {
-    tag: "BinaryExpression";
-    operator:
+    readonly tag: "BinaryExpression";
+    readonly operator:
         | "*"
         | "/"
         | "%"
@@ -175,170 +175,179 @@ export interface BinaryExpression extends Syn {
         | "&"
         | "^"
         | "|";
-    left: Expression;
-    right: Expression;
+    readonly left: Expression;
+    readonly right: Expression;
 }
 
 /**
  * Short-circuiting binary operations `e && e` and `e || e`.
  */
 export interface LogicalExpression extends Syn {
-    tag: "LogicalExpression";
-    operator: "||" | "&&";
-    left: Expression;
-    right: Expression;
+    readonly tag: "LogicalExpression";
+    readonly operator: "||" | "&&";
+    readonly left: Expression;
+    readonly right: Expression;
 }
 
 /**
  * `e ? e : e`
  */
 export interface ConditionalExpression extends Syn {
-    tag: "ConditionalExpression";
-    test: Expression;
-    consequent: Expression;
-    alternate: Expression;
+    readonly tag: "ConditionalExpression";
+    readonly test: Expression;
+    readonly consequent: Expression;
+    readonly alternate: Expression;
 }
 
 /**
  * `alloc(ty)`
  */
 export interface AllocExpression extends Syn {
-    tag: "AllocExpression";
-    kind: Type;
+    readonly tag: "AllocExpression";
+    readonly kind: Type;
 }
 
 /**
  * `alloc(ty)`
  */
 export interface AllocArrayExpression extends Syn {
-    tag: "AllocArrayExpression";
-    kind: Type;
-    size: Expression;
+    readonly tag: "AllocArrayExpression";
+    readonly kind: Type;
+    readonly size: Expression;
 }
 
 /**
  * `\result`
  */
 export interface ResultExpression extends Syn {
-    tag: "ResultExpression";
+    readonly tag: "ResultExpression";
 }
 
 /**
  * `\length(e)`
  */
 export interface LengthExpression extends Syn {
-    tag: "LengthExpression";
-    argument: Expression;
+    readonly tag: "LengthExpression";
+    readonly argument: Expression;
 }
 
 /**
  * `\hastag(ty,e)`
  */
 export interface HasTagExpression extends Syn {
-    tag: "HasTagExpression";
-    kind: Type;
-    argument: Expression;
+    readonly tag: "HasTagExpression";
+    readonly kind: Type;
+    readonly argument: Expression;
 }
 
 /**
  * LValues are a refinement of Expressions
  */
-export type LValue = Identifier | ArrayMemberLValue | StructMemberLValue | DereferenceLValue;
-
-export interface ArrayMemberLValue extends ArrayMemberExpression {
-    object: LValue;
-}
+export type LValue = Identifier | StructMemberLValue | DereferenceLValue | ArrayMemberLValue;
 
 export interface StructMemberLValue extends StructMemberExpression {
-    object: LValue;
+    readonly object: LValue;
 }
 
 export interface DereferenceLValue extends UnaryExpression {
-    operator: "*";
-    argument: LValue;
+    readonly operator: "*";
+    readonly argument: LValue;
+}
+
+export interface ArrayMemberLValue extends ArrayMemberExpression {
+    readonly object: LValue;
 }
 
 export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement;
-export type Statement = SimpleStatement | VariableDeclaration | IfStatement | WhileStatement | 
- ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement 
- | BreakStatement | ContinueStatement;
+export type Statement =
+    | SimpleStatement
+    | VariableDeclaration
+    | IfStatement
+    | WhileStatement
+    | ForStatement
+    | ReturnStatement
+    | BlockStatement
+    | AssertStatement
+    | ErrorStatement
+    | BreakStatement
+    | ContinueStatement;
 /*
 export type Statement = SimpleStatement | VariableDeclaration | ConditionalStatement | WhileStatement | ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement;
 */
 
 export interface AssignmentStatement extends Syn {
-    tag: "AssignStatement";
-    operator: "=";
-    left: LValue;
-    right: Expression;
+    readonly tag: "AssignmentStatement";
+    readonly operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=";
+    readonly left: LValue;
+    readonly right: Expression;
 }
 
 export interface UpdateStatement extends Syn {
-    tag: "UpdateStatement";
-    operator: "++" | "--";
-    argument: Expression;
+    readonly tag: "UpdateStatement";
+    readonly operator: "++" | "--";
+    readonly argument: Expression;
 }
 
 export interface ExpressionStatement extends Syn {
-    tag: "ExpressionStatement";
-    expression: Expression;
+    readonly tag: "ExpressionStatement";
+    readonly expression: Expression;
 }
 
 export interface VariableDeclaration extends Syn {
-    tag: "VariableDeclaration";
-    kind: Type;
-    id: Identifier;
-    init: Expression | null;
+    readonly tag: "VariableDeclaration";
+    readonly kind: Type;
+    readonly id: Identifier;
+    readonly init: Expression | null;
 }
 
 export interface IfStatement extends Syn {
-    tag: "IfStatement";
-    test: Expression;
-    consequent: Statement;
-    alternate?: Statement;
+    readonly tag: "IfStatement";
+    readonly test: Expression;
+    readonly consequent: Statement;
+    readonly alternate?: Statement;
 }
 
 export interface WhileStatement extends Syn {
-    tag: "WhileStatement";
-    invariants: Expression[];
-    test: Expression;
-    body: Statement;
+    readonly tag: "WhileStatement";
+    readonly invariants: Expression[];
+    readonly test: Expression;
+    readonly body: Statement;
 }
 
 export interface ForStatement extends Syn {
-    tag: "ForStatement";
-    invariants: Expression[];
-    init: SimpleStatement | VariableDeclaration | null;
-    test: Expression;
-    update: SimpleStatement | null;
-    body: Statement;
+    readonly tag: "ForStatement";
+    readonly invariants: Expression[];
+    readonly init: SimpleStatement | VariableDeclaration | null;
+    readonly test: Expression;
+    readonly update: SimpleStatement | null;
+    readonly body: Statement;
 }
 
 export interface ReturnStatement extends Syn {
-    tag: "ReturnStatement";
-    argument: Expression | null;
+    readonly tag: "ReturnStatement";
+    readonly argument: Expression | null;
 }
 
 export interface BlockStatement extends Syn {
-    tag: "BlockStatement";
-    body: Statement[];
+    readonly tag: "BlockStatement";
+    readonly body: Statement[];
 }
 
 export interface AssertStatement extends Syn {
-    tag: "AssertStatement";
-    contract: boolean;
-    test: Expression;
+    readonly tag: "AssertStatement";
+    readonly contract: boolean;
+    readonly test: Expression;
 }
 
 export interface ErrorStatement extends Syn {
-    tag: "ErrorStatement";
-    argument: Expression;
+    readonly tag: "ErrorStatement";
+    readonly argument: Expression;
 }
 
 export interface BreakStatement extends Syn {
-    tag: "BreakStatement";
+    readonly tag: "BreakStatement";
 }
 
 export interface ContinueStatement extends Syn {
-    tag: "ContinueStatement";
+    readonly tag: "ContinueStatement";
 }
