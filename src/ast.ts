@@ -259,9 +259,7 @@ export interface ArrayMemberLValue extends ArrayMemberExpression {
 }
 
 export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement;
-<<<<<<< HEAD
-export type Statement = ForStatement;
-=======
+
 export type Statement =
     | SimpleStatement
     | VariableDeclaration
