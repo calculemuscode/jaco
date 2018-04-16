@@ -8,7 +8,7 @@
         "nearley": "mkdir -p lib && nearleyc expression.ne -o lib/expression-rules.js && nearleyc statement.ne -o lib/statement-rules.js && nearleyc program.ne -o lib/program-rules.js",
         "tsc": "tsc",
         "watch": "tsc -w",
-        "prettier": "prettier --write src/*.ts src/**/*.ts *.json",
+        "prettier": "prettier --write src/*.ts src/**/*.ts",
         "prepublishOnly": "rm -f *~ && npm run nearley && tsc",
         "test": "tsc && nyc mocha -r ts-node/register src/**/test/*.ts",
         "coveralls": "nyc report --reporter=text-lcov | coveralls"
