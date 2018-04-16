@@ -7,13 +7,14 @@
  * Exceptions:
  *  - Does not distinguish <sid>, <vid>, <fid>, and <aid> categories. These are used by the parser to
  *    disambiguate syntactic forms (especially the unfortunate <aid> vs. <tid> distinction needed to parse the
- *    statement `x * y;` as a binary expression or variable declaration). However, within a full syntax tree
+ *    statement `x * y;` as a binary expression or variable declaration). Within a full syntax tree
  *    they are unambiguous and can all be represented with Identifier.
  *  - The restrictions that a variable declaration not appear in the update of a ForStatement is expressed
  *    (this is a property of static semantics in the spec, see C0.23, "The step statement in a for loop may
  *    not be a declaration".).
- * - SimpleStatement does not include variable declarations, which facilitates the above exception.
- * - The placement restrictions on requires, ensures, loop_invariant, and assert contracts are
+ *  - SimpleStatement does not include variable declarations, which facilitates the above exception.
+ *
+ *  - The placement restrictions on requires, ensures, loop_invariant, and assert contracts are
  *    expressed. These are properties of static semantics in the spec, see C0.23, "@requires and @ensures can
  *    only annotate functions," etc.
  *
@@ -69,30 +70,30 @@ export interface Identifier extends Syn {
 }
 
 export interface IntLiteral extends Syn {
-    tag: "IntLiteralExpression";
+    tag: "IntLiteral";
     value: number;
     raw: string;
 }
 
 export interface StringLiteral extends Syn {
-    tag: "StringLiteralExpression";
+    tag: "StringLiteral";
     value: string;
     raw: string;
 }
 
 export interface CharLiteral extends Syn {
-    tag: "CharLiteralExpression";
+    tag: "CharLiteral";
     value: string;
     raw: string;
 }
 
 export interface BoolLiteral extends Syn {
-    tag: "BoolLiteralExpression";
+    tag: "BoolLiteral";
     value: boolean;
 }
 
 export interface NullLiteral extends Syn {
-    tag: "NullLiteralExpression";
+    tag: "NullLiteral";
 }
 
 /**
@@ -135,7 +136,7 @@ export interface IndirectCallExpression extends Syn {
 }
 
 /**
- * Prefix unary operations `~e` and friends.
+ * Prefix cast operation `(ty)e`.
  */
 export interface CastExpression extends Syn {
     tag: "CastExpression";
@@ -257,8 +258,10 @@ export interface DereferenceLValue extends UnaryExpression {
     argument: LValue;
 }
 
-export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement
-export type Statement = ForStatement;
+export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement;
+export type Statement = SimpleStatement | VariableDeclaration | IfStatement | WhileStatement | 
+ ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement 
+ | BreakStatement | ContinueStatement;
 /*
 export type Statement = SimpleStatement | VariableDeclaration | ConditionalStatement | WhileStatement | ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement;
 */
@@ -271,8 +274,8 @@ export interface AssignmentStatement extends Syn {
 }
 
 export interface UpdateStatement extends Syn {
-    tag: 'UpdateStatement';
-    operator: '++' | '--';
+    tag: "UpdateStatement";
+    operator: "++" | "--";
     argument: Expression;
 }
 
@@ -288,6 +291,20 @@ export interface VariableDeclaration extends Syn {
     init: Expression | null;
 }
 
+export interface IfStatement extends Syn {
+    tag: "IfStatement";
+    test: Expression;
+    consequent: Statement;
+    alternate?: Statement;
+}
+
+export interface WhileStatement extends Syn {
+    tag: "WhileStatement";
+    invariants: Expression[];
+    test: Expression;
+    body: Statement;
+}
+
 export interface ForStatement extends Syn {
     tag: "ForStatement";
     invariants: Expression[];
@@ -295,4 +312,33 @@ export interface ForStatement extends Syn {
     test: Expression;
     update: SimpleStatement | null;
     body: Statement;
+}
+
+export interface ReturnStatement extends Syn {
+    tag: "ReturnStatement";
+    argument: Expression | null;
+}
+
+export interface BlockStatement extends Syn {
+    tag: "BlockStatement";
+    body: Statement[];
+}
+
+export interface AssertStatement extends Syn {
+    tag: "AssertStatement";
+    contract: boolean;
+    test: Expression;
+}
+
+export interface ErrorStatement extends Syn {
+    tag: "ErrorStatement";
+    argument: Expression;
+}
+
+export interface BreakStatement extends Syn {
+    tag: "BreakStatement";
+}
+
+export interface ContinueStatement extends Syn {
+    tag: "ContinueStatement";
 }
