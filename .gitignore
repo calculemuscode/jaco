@@ -1,4 +1,4 @@
 .nyc_output
-lib/*
+lib/
 *~
-node_modules/*
+node_modules/
