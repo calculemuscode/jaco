@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync, lstatSync } from "fs";
 import { expect } from "chai";
 import { join, extname } from "path";
-import { coreLexer as lexer, pickyLexer, PickyLexer } from "../parser-util";
+import { coreLexer as lexer } from "../lex";
 import { Parser, Grammar } from "nearley";
+import { parseProgram } from "../parse"
 import "mocha";
-const grammar = require("../../lib/program-rules");
 const testSpecRules = require("../../lib/test/spec-rules");
 
+/*
 function parse(str: string) {
     grammar.lexer = pickyLexer;
     const parser = new Parser(Grammar.fromCompiled(grammar));
@@ -28,11 +29,11 @@ function parse(str: string) {
             lexer.addIdentifiers(typeIdentifier);
             parser.feed(" ");
         } else if (index !== segments.length - 1) {
-            //console.log("incomplete");
             parser.feed(";");
         }
     });
 }
+*/
 
 function testfile(filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
@@ -103,7 +104,7 @@ function testfile(filepath: string) {
         } else {
             it(`test file ${filepath} should ${condition_str}`, () => {
                 /* Step 1: Ensure the core lexer lexes everything */
-                /* (also ignore pragma-containing files for now) */
+                /* (also ignore pragma-containing files, for now) */
                 let hasPragmas = false;
                 lexer.reset(contents);
                 for (let tok of lexer) {
@@ -114,13 +115,13 @@ function testfile(filepath: string) {
                 /* Step 2: Try to parse */
                 let ast;
                 if (condition === "error_parse") {
-                    expect(() => parse(contents)).to.throw();
+                    expect(() => parseProgram(contents)).to.throw();
                     return;
                 } else if (condition !== "error") {
-                    expect(() => (ast = parse(contents))).not.to.throw();
+                    expect(() => (ast = parseProgram(contents))).not.to.throw();
                 } else {
                     try {
-                        ast = parse(contents);
+                        ast = parseProgram(contents);
                     } catch (e) {
                         return;
                     }

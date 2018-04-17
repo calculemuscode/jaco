@@ -4,13 +4,18 @@
 @include "./expression.ne"
 @include "./statement.ne"
 
-Program -> _ (GlobalDecl _):*
+Program     -> _ GlobalDecl_:* {% x => x[1] %}
 
-GlobalDecl -> %pragma
-            | "struct" _ StructName _ ";"
-            | "struct" _ StructName _ "{" _ (Tp _ FieldName _ ";" _):* "}" _ ";"
-            | Tp _ Identifier _ FunDeclArgs _Annos _ (";" | StatementBlock)
-            | "typedef" _ Tp _ Identifier        # Omits trailing semicolon
-            | "typedef" _ Tp _ Identifier _ FunDeclArgs _Annos
+GlobalDecl_ -> GlobalDecl _ {% x => x[0] %}
+GlobalDecl  -> %pragma
+             | "struct" _ StructName _ ";" {% x => `struct ${x[2].name} decl ` %}
+             | "struct" _ StructName _ "{" _ (Tp _ FieldName _ ";" _):* "}" _ ";"
+                                           {% x => `struct ${x[2].name} defn ` %}
+             | Tp _ Identifier _ FunDeclArgs _Annos _ (";" | StatementBlock)
+                                           {% util.FunctionDecl %}
+             | "typedef" _ Tp _ Identifier # Omits trailing semicolon
+                                           {% x => `define type ${x[4].name}` %}
+             | "typedef" _ Tp _ Identifier _ FunDeclArgs _Annos
+                                           {% x => `define function type ${x[4].name}` %}
 
 FunDeclArgs -> "(" _ (Tp _ Identifier _ ("," _ Tp _ Identifier _):*):? ")"
