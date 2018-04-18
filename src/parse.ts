@@ -2,6 +2,7 @@ import { List, Set } from "immutable";
 import { TypeLexer } from "./lex";
 import { Grammar, Parser } from "nearley";
 import { restrictStatement } from "./restrictsyntax";
+import { Lang } from "./lang";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 //const expressionRules = require("../lib/expression-rules");
@@ -12,8 +13,11 @@ export function parseExpression(str: string, options?: { types?: Set<string> }) 
     return;
 }
 
-export function parseStatement(str: string, options?: { types?: Set<string> }) {
-    return;
+export function parseStatement(str: string, options?: { types?: Set<string>, lang: Lang }) {
+    programRules.lexer = new TypeLexer(options ? options.types : undefined);
+    const parser = new Parser(Grammar.fromCompiled(programRules));
+    parser.feed(str);
+    return restrictStatement
 }
 
 export function parseProgram(str: string): List<string | ast.Statement> {

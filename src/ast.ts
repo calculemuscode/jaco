@@ -259,7 +259,6 @@ export interface ArrayMemberLValue extends ArrayMemberExpression {
 }
 
 export type SimpleStatement = AssignmentStatement | UpdateStatement | ExpressionStatement;
-
 export type Statement =
     | SimpleStatement
     | VariableDeclaration
@@ -272,6 +271,9 @@ export type Statement =
     | ErrorStatement
     | BreakStatement
     | ContinueStatement;
+/*
+export type Statement = SimpleStatement | VariableDeclaration | ConditionalStatement | WhileStatement | ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement;
+*/
 
 export interface AssignmentStatement extends Syn {
     readonly tag: "AssignmentStatement";
@@ -349,3 +351,4 @@ export interface BreakStatement extends Syn {
 export interface ContinueStatement extends Syn {
     readonly tag: "ContinueStatement";
 }
+ 

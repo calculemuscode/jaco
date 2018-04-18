@@ -40,7 +40,9 @@ function testfile(filepath: string) {
     let specs;
 
     try {
-        const spec = contents.match(/(\/\/test.*\n)*/);
+        const spec = contents.match(/(\/\/test.*\r?\n)*/);
+        console.log(filepath + "Hey")
+        console.log(spec);
         if (spec === null) throw new Error();
         const specParser = new Parser(Grammar.fromCompiled(testSpecRules));
         specParser.feed(spec[0]);
