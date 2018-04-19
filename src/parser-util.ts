@@ -2,22 +2,22 @@ import { Token } from "moo";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 
-export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Token[]) {
+export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Token[]): ast.Identifier {
     return {
         tag: "Identifier",
         name: text
     };
 }
 
-export function IntLiteral([{ value, text, offset, lineBreaks, line, col }]: Token[]) {
+export function IntLiteral([{ value, text, offset, lineBreaks, line, col }]: Token[]): ast.IntLiteral {
     return {
-        tag: "IntLiteralExpression",
+        tag: "IntLiteral",
         value: 0,
         raw: text
     };
 }
 
-export function CharLiteral([tokens]: [[Token, [Token], Token]]) {
+export function CharLiteral([tokens]: [[Token, [Token], Token]]): ast.CharLiteral {
     if (tokens.length !== 3) {
         throw new Error("Bad character literal");
     }
@@ -30,7 +30,7 @@ export function CharLiteral([tokens]: [[Token, [Token], Token]]) {
             throw new Error("Invalid character");
         }
         return {
-            tag: "CharLiteralExpression",
+            tag: "CharLiteral",
             value: char.value,
             raw: `'${char.value}'`
         };
@@ -39,7 +39,7 @@ export function CharLiteral([tokens]: [[Token, [Token], Token]]) {
             throw new Error("Invalid character escape sequence");
         }
         return {
-            tag: "CharLiteralExpression",
+            tag: "CharLiteral",
             value: char.value,
             raw: `'${char.value}'`
         };
@@ -69,10 +69,49 @@ export function NullLiteral(): ast.NullLiteral {
     }
 }
 
+export function ArrayMemberExpression([object, s1, l, s2, index, s3, r]: [parsed.Expression, any, Token, any, parsed.Expression, any, Token]): parsed.ArrayMemberExpression {
+    return {
+        tag: "ArrayMemberExpression",
+        object: object,
+        index: index
+    }
+}
+
+export type Arguments = [Token, any, null | [parsed.Expression, any, [Token, any, parsed.Expression][]],Token];
+export function Arguments([l, s1, args, r]: Arguments): parsed.Expression[] {
+    if (args === null) return [];
+    return [args[0]].concat(args[2].map(x => x[2]));
+}
+
+export function StructMemberExpression([object, s1, deref, s2, field]: [parsed.Expression, any, [Token, Token] | Token, any, ast.Identifier]): parsed.StructMemberExpression {
+    return {
+        tag: "StructMemberExpression",
+        deref: deref instanceof Array, // ["-", ">"] vs. "."
+        object: object,
+        field: field
+    }
+}
+
+export function CallExpression([f, ws, args]: [ast.Identifier, any, Arguments]): parsed.CallExpression {
+    return {
+        tag: "CallExpression",
+        callee: f,
+        arguments: Arguments(args)
+    }
+}
+
+export function IndirectCallExpression([l, s1, f, s2, r, s3, args]: [Token, any, parsed.Expression, any, Token, any, Arguments]): parsed.IndirectCallExpression {
+    return {
+        tag: "IndirectCallExpression",
+        callee: f,
+        arguments: Arguments(args)
+    }
+}
+
 export function UnaryExpression([operator, s, argument]: [any[], Token, parsed.Expression]):
     | parsed.UnaryExpression
     | parsed.CastExpression {
-    if (operator.length == 0) {
+    if (operator.length == 1) {
         switch (operator[0].value) {
             case "&":
             case "!":

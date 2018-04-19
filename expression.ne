@@ -38,10 +38,10 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | "false"                                             {% util.BoolLiteral %}
                 | "NULL"                                              {% util.NullLiteral %}
                 | Identifier                                          {% id %}
-                | Identifier _ Funargs                                {% util.NullLiteral %}
-                | ExpD _ "." _ FieldName                              {% util.NullLiteral %}
-                | ExpD _ "-" ">" _ FieldName                          {% util.NullLiteral %}
-                | ExpD _ "[" _ Expression _ "]"                       {% util.NullLiteral %}
+                | Identifier _ Funargs                                {% util.CallExpression %}
+                | ExpD _ "." _ FieldName                              {% util.StructMemberExpression %}
+                | ExpD _ ("-" ">") _ FieldName                        {% util.StructMemberExpression %}
+                | ExpD _ "[" _ Expression _ "]"                       {% util.ArrayMemberExpression %}
                 | ExpD _ "+" "+"                                      {% util.NullLiteral %}
                 | ExpD _ "-" "-"                                      {% util.NullLiteral %}
                 | "alloc" _ "(" _ Tp _ ")"                            {% util.NullLiteral %}
@@ -51,8 +51,8 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | "\\" "result"                                       {% util.NullLiteral %}
                 | "\\" "length" _ "(" _ Expression _ ")"              {% util.NullLiteral %}
                 | "\\" "hastag" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.NullLiteral %}
-                | "(" _ "*" _ Expression _ ")" _ Funargs              {% util.NullLiteral %}
-ExpC           -> ExpD {% id %} | Unop _ ExpC                         {% util.NullLiteral %}
+                | "(" _ "*" _ Expression _ ")" _ Funargs              {% util.IndirectCallExpression %}
+ExpC           -> ExpD {% id %} | Unop _ ExpC                         {% util.UnaryExpression %}
 ExpB           -> ExpC {% id %} | ExpC _ BinopB _ ExpB                {% util.BinaryExpression %}
 ExpA           -> ExpB {% id %} | ExpB _ BinopA _ ExpA                {% util.BinaryExpression %}
 Exp9           -> ExpA {% id %} | ExpA _ Binop9 _ Exp9                {% util.BinaryExpression %}

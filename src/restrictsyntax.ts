@@ -167,6 +167,10 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                     syn.operator
                 }' must be used as statements, and not inside of expressions.`
             );
+        case "AssertExpression":
+            throw new Error(`The 'assert()' function must be used as a statement, and not inside of expressions.`);
+            case "ErrorExpression":
+            throw new Error(`The 'error()' function must be used as a statement, and not inside of expressions.`)
         default:
             return impossible(syn);
     }
@@ -224,7 +228,9 @@ export function restrictLValue(lang: Lang, syn: parsed.Expression): ast.LValue {
         case "HasTagExpression":
         case "UpdateExpression":
         case "AssignmentExpression":
-            throw new Error(`Not a valid LValue`);
+        case "AssertExpression":
+        case "ErrorExpression":
+            throw new Error(`Not a valid LValue ${JSON.stringify(syn)}`);
         default:
             return impossible(syn);
     }
@@ -266,6 +272,25 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                         operator: syn.expression.operator,
                         argument: restrictExpression(lang, syn.expression.argument)
                     };
+                }
+                case "AssertExpression": {
+                    if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4") {
+                        throw new Error(`Assertions not a part of ${lang}`);
+                    }
+                    return {
+                        tag: "AssertStatement",
+                        contract: false,
+                        test: restrictExpression(lang, syn.expression.test)
+                    }
+                }
+                case "ErrorExpression": {
+                    if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4") {
+                        throw new Error(`The 'error()' function is not a part of ${lang}`);
+                    }
+                    return {
+                        tag: "ErrorStatement",
+                        argument: restrictExpression(lang, syn.expression.argument)
+                    }
                 }
                 default: {
                     return {
@@ -373,21 +398,6 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
             return {
                 tag: "BlockStatement",
                 body: syn.body.map(x => restrictStatement(lang, x))
-            };
-        }
-        case "AssertStatement": {
-            return {
-                tag: "AssertStatement",
-                contract: syn.contract,
-                test: restrictExpression(lang, syn.test)
-            };
-        }
-        case "ErrorStatement": {
-            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`The 'error()' statement is not a part of ${lang}`);
-            return {
-                tag: "ErrorStatement",
-                argument: restrictExpression(lang, syn.argument)
             };
         }
         case "BreakStatement":

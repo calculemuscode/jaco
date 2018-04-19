@@ -7,42 +7,12 @@ import { parseProgram } from "../parse"
 import "mocha";
 const testSpecRules = require("../../lib/test/spec-rules");
 
-/*
-function parse(str: string) {
-    grammar.lexer = pickyLexer;
-    const parser = new Parser(Grammar.fromCompiled(grammar));
-    const lexer: PickyLexer = parser.lexer as PickyLexer;
-    lexer.resetIdentifiers();
-    const segments = str.split(";");
-    segments.forEach((segment, index) => {
-        parser.feed(segment);
-        const parsed = parser.finish();
-        if (parsed.length > 1) {
-            console.log(JSON.stringify(parsed[0]));
-            console.log(JSON.stringify(parsed[parsed.length - 1]));
-            throw new Error(`Parse ambiguous (${parsed.length})`);
-        } else if (parsed.length === 1 && index !== segments.length - 1 && parsed[0][1].length > 0) {
-            const parsedGlobalDecls = parsed[0][1];
-            const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1][0];
-            // TODO: check that it's a typedef
-            const typeIdentifier = possibleTypedef[4].name;
-            lexer.addIdentifiers(typeIdentifier);
-            parser.feed(" ");
-        } else if (index !== segments.length - 1) {
-            parser.feed(";");
-        }
-    });
-}
-*/
-
 function testfile(filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
     let specs;
 
     try {
         const spec = contents.match(/(\/\/test.*\r?\n)*/);
-        console.log(filepath + "Hey")
-        console.log(spec);
         if (spec === null) throw new Error();
         const specParser = new Parser(Grammar.fromCompiled(testSpecRules));
         specParser.feed(spec[0]);
