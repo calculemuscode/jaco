@@ -120,24 +120,15 @@ export interface AllocArrayExpression extends ast.Syn {
     readonly size: Expression;
 }
 
-/**
- * `\result`
- */
 export interface ResultExpression extends ast.Syn {
     readonly tag: "ResultExpression";
 }
 
-/**
- * `\length(e)`
- */
 export interface LengthExpression extends ast.Syn {
     readonly tag: "LengthExpression";
     readonly argument: Expression;
 }
 
-/**
- * `\hastag(ty,e)`
- */
 export interface HasTagExpression extends ast.Syn {
     readonly tag: "HasTagExpression";
     readonly kind: Type;

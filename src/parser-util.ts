@@ -198,6 +198,59 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
     }
 }
 
+export function ConditionalExpression([test, s1, op1, s2, consequent, s3, op2, s4, alternate]: [parsed.Expression, any, any, any, parsed.Expression, any, any, any, parsed.Expression]): parsed.ConditionalExpression {
+    return {
+        tag: "ConditionalExpression",
+        test: test,
+        consequent: consequent,
+        alternate: alternate
+    }
+}
+
+export function AllocExpression([alloc, s1, l, s2, typ, s3, r]: [Token, any, Token, any, parsed.Type, any, Token]): parsed.AllocExpression {
+    return {
+        tag: "AllocExpression",
+        kind: typ
+    }
+}
+
+export function AllocArrayExpression([alloc, s1, l, s2, typ, s3, c, s4, size, sp, r]: [Token, any, Token, any, parsed.Type, any, Token, any, parsed.Expression, any, Token]): parsed.AllocArrayExpression {
+    return {
+        tag: "AllocArrayExpression",
+        kind: typ,
+        size: size
+    }
+}
+
+export function ResultExpression([b, res]: [Token, Token]): parsed.ResultExpression {
+    return {
+        tag: "ResultExpression"
+    }
+}
+
+export function LengthExpression([b, length, s1, l, s2, argument, s3, r]: [Token, Token, any, Token, any, parsed.Expression, any, Token]): parsed.LengthExpression {
+    return {
+        tag: "LengthExpression",
+        argument: argument
+    }
+}
+
+export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument, s5, r]: [Token, Token, any, Token, any, parsed.Type, any, Token, any, parsed.Expression, any, Token]): parsed.HasTagExpression {
+    return {
+        tag: "HasTagExpression",
+        kind: typ,
+        argument: argument
+    }
+}
+
+export function UpdateExpression([argument, s1, op1, op2]: [parsed.Expression, any, Token, Token]): parsed.UpdateExpression {
+    return {
+        tag: "UpdateExpression",
+        argument: argument,
+        operator: op1.value === "+" ? "++" : "--"
+    }
+}
+
 export function FunctionDecl([ty, s1, f, s2, args, annos, s3, def]: [parsed.Type, any, ast.Identifier, any, any, any, any, [Token | parsed.Statement]]): string | parsed.Statement {
     // This is quite inelegant Typescript
     if ((def[0] as Token).value === ";") return `define function ${f.name}`;
