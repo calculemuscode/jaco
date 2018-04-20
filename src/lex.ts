@@ -117,7 +117,7 @@ export class TypeLexer {
         this.typeIds = typeIds ? typeIds : Set();
     }
     addIdentifier(typeIdentifier: string) {
-        this.typeIds = this.typeIds.add(typeIdentifier)
+        this.typeIds = this.typeIds.add(typeIdentifier);
     }
     next(): Token | undefined {
         const tok = coreLexer.next();

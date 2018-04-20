@@ -13,11 +13,11 @@ export function parseExpression(str: string, options?: { types?: Set<string> }) 
     return;
 }
 
-export function parseStatement(str: string, options?: { types?: Set<string>, lang: Lang }) {
+export function parseStatement(str: string, options?: { types?: Set<string>; lang: Lang }) {
     programRules.lexer = new TypeLexer(options ? options.types : undefined);
     const parser = new Parser(Grammar.fromCompiled(programRules));
     parser.feed(str);
-    return restrictStatement
+    return restrictStatement;
 }
 
 export function parseProgram(str: string): List<string | ast.Statement> {
@@ -34,7 +34,7 @@ export function parseProgram(str: string): List<string | ast.Statement> {
             console.log(JSON.stringify(parsed[parsed.length - 1]));
             throw new Error(`Parse ambiguous (${parsed.length} parses)`);
         } else if (parsed.length === 1 && index !== segments.length - 1 && parsed[0][1].length > 0) {
-            console.log(` -- typedef`)
+            console.log(` -- typedef`);
             const parsedGlobalDecls = parsed[0];
             decls = decls.concat(parsedGlobalDecls);
             const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1];
@@ -43,14 +43,14 @@ export function parseProgram(str: string): List<string | ast.Statement> {
             lexer.addIdentifier(typeIdentifier);
             parser.feed(" ");
         } else if (index !== segments.length - 1) {
-            console.log(` -- cont`)
+            console.log(` -- cont`);
             parser.feed(";");
         } else if (parsed.length === 0) {
             // last segment, incomplete parse
             throw new Error(`Incomplete parse at end of file`);
         } else {
             // last segment, complete parse
-            console.log(` -- end`)
+            console.log(` -- end`);
             decls = decls.concat(parsed[0]);
         }
     });

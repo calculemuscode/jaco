@@ -214,5 +214,3 @@ export interface BlockStatement extends ast.Syn {
     readonly tag: "BlockStatement";
     readonly body: Statement[];
 }
-
-

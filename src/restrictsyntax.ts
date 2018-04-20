@@ -168,9 +168,13 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 }' must be used as statements, and not inside of expressions.`
             );
         case "AssertExpression":
-            throw new Error(`The 'assert()' function must be used as a statement, and not inside of expressions.`);
-            case "ErrorExpression":
-            throw new Error(`The 'error()' function must be used as a statement, and not inside of expressions.`)
+            throw new Error(
+                `The 'assert()' function must be used as a statement, and not inside of expressions.`
+            );
+        case "ErrorExpression":
+            throw new Error(
+                `The 'error()' function must be used as a statement, and not inside of expressions.`
+            );
         default:
             return impossible(syn);
     }
@@ -281,7 +285,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                         tag: "AssertStatement",
                         contract: false,
                         test: restrictExpression(lang, syn.expression.test)
-                    }
+                    };
                 }
                 case "ErrorExpression": {
                     if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4") {
@@ -290,7 +294,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                     return {
                         tag: "ErrorStatement",
                         argument: restrictExpression(lang, syn.expression.argument)
-                    }
+                    };
                 }
                 default: {
                     return {

@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { join, extname } from "path";
 import { coreLexer as lexer } from "../lex";
 import { Parser, Grammar } from "nearley";
-import { parseProgram } from "../parse"
+import { parseProgram } from "../parse";
 import "mocha";
 const testSpecRules = require("../../lib/test/spec-rules");
 
