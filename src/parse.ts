@@ -21,9 +21,8 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 
 export function parseProgram(str: string): List<string | ast.Statement> {
-    programRules.lexer = new TypeLexer(); // needed?
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = parser.lexer as TypeLexer; // needed?
+    const lexer: TypeLexer = parser.lexer = new TypeLexer();
     const segments = str.split(";");
     let decls: List<string | parsed.Statement> = List<any>();
     segments.forEach((segment, index) => {
