@@ -33,30 +33,35 @@ export function parseProgram(str: string): List<string | ast.Statement> {
             console.log(JSON.stringify(parsed[0]));
             console.log(JSON.stringify(parsed[parsed.length - 1]));
             throw new Error(`Parse ambiguous (${parsed.length} parses)`);
-        } else if (parsed.length === 1 && index !== segments.length - 1 && parsed[0][1].length > 0) {
-            console.log(` -- typedef`);
-            const parsedGlobalDecls = parsed[0];
-            decls = decls.concat(parsedGlobalDecls);
-            const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-            // TODO: check that it's a typedef
-            const typeIdentifier = possibleTypedef[4].name;
-            lexer.addIdentifier(typeIdentifier);
-            parser.feed(" ");
-        } else if (index !== segments.length - 1) {
-            console.log(` -- cont`);
-            parser.feed(";");
         } else if (parsed.length === 0) {
-            // last segment, incomplete parse
-            throw new Error(`Incomplete parse at end of file`);
+            if (index === segments.length - 1) {
+                throw new Error("Incomplete parse at the end of the file");
+            } else {
+                console.log(` -- continuing to parse`);
+                parser.feed(";");
+            }
         } else {
-            // last segment, complete parse
-            console.log(` -- end`);
-            decls = decls.concat(parsed[0]);
+            // parsed.length === 1
+            if (index === segments.length - 1) {
+                console.log(` -- end`);
+                decls = decls.concat(parsed[0]);    
+            } else {
+                const parsedGlobalDecls = parsed[0];
+                decls = decls.concat(parsedGlobalDecls);
+                const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1];
+                console.log(possibleTypedef);
+                // TODO: check that it's a typedef
+                console.log(` -- typedef ${possibleTypedef[1]}`);
+                const typeIdentifier = possibleTypedef[1];
+                lexer.addIdentifier(typeIdentifier);
+                parser.feed(" ");
+            }
         }
     });
 
     return decls.map(decl => {
         if (typeof decl === "string") return decl;
+        if (decl instanceof Array) return decl[0] as string;
         return restrictStatement("C1", decl);
     });
 }
