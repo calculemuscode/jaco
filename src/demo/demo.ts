@@ -1,4 +1,4 @@
-import { parse } from "../";
+import { parseProgramRaw, parseProgram } from "../parse";
 
 import * as CodeMirror from "codemirror";
 
@@ -12,14 +12,18 @@ const inputDoc = CodeMirror(document.getElementById("input")!, {
     value: "int main() {\n  return 17;\n}",
     lineNumbers: true
 });
+const rawDoc = CodeMirror(document.getElementById("output")!, {
+    readOnly: true,
+    lineNumbers: true
+});
 const outputDoc = CodeMirror(document.getElementById("output")!, {
     readOnly: true,
     lineNumbers: true
 })
 
 function draw(prog: string) {
-    const output = parse(prog);
-    outputDoc.setValue(JSON.stringify(output, null, 2)) 
+    rawDoc.setValue(JSON.stringify(parseProgramRaw(prog), null, 2))
+    outputDoc.setValue(JSON.stringify(parseProgram(prog), null, 2)) 
 }
 
 inputDoc.on("update", (x:any) => {

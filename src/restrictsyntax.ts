@@ -9,18 +9,66 @@ export function restrictType(lang: Lang, syn: parsed.Type): ast.Type {
 
 export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expression {
     switch (syn.tag) {
-        case "StringLiteral":
-        case "CharLiteral":
+        case "StringLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
                 throw new Error(`String and char literals are not a part of ${lang}`);
+            syn.raw.map(x => {
+                if (x.length === 1) {
+                    if (!x.match(/[ !#-~]/)) 
+                        throw new Error(`Invalid character '${x}' in string`)
+                } else {
+                    if (!x.match(/\\[ntvbrfa\\'"]/)) 
+                        throw new Error(`Invalid escape '${x}' in string`);
+                }
+            });
+            return {
+                tag: "StringLiteral",
+                value: syn.raw.join(""),
+                raw: `"${syn.raw.join("")}"`
+            }
+        }
+        case "CharLiteral": {
+            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
+                throw new Error(`String and char literals are not a part of ${lang}`);
+            if (syn.raw.length === 1) {
+                if (!syn.raw.match(/[ !#-~]/)) 
+                    throw new Error(`Invalid character '${syn.raw}'`);
+            } else {
+                if (!syn.raw.match(/\\[ntvbrfa\\'"0]/)) 
+                    throw new Error(`Invalid escape character '${syn.raw}'`)
+            }
+            return {
+                tag: "CharLiteral",
+                value: syn.raw,
+                raw: `'${syn.raw}'`
+            }
+        }
         case "BoolLiteral":
             if (lang === "L1") throw new Error(`Boolean literals 'true' and 'false' are not part of ${lang}`);
         case "NullLiteral":
             if (lang === "L1" || lang === "L2" || lang === "L3")
                 throw new Error(`'NULL' is not a part of ${lang}`);
         case "Identifier":
-        case "IntLiteral":
             return syn;
+        case "IntLiteral":
+            if (syn.raw.startsWith("0x") || syn.raw.startsWith("0X")) {
+                const hex = syn.raw.substring(2);
+                if (hex.length > 8) throw new Error(`Hex constant too large: ${syn.raw}`);
+                return {
+                    tag: "IntLiteral",
+                    raw: syn.raw,
+                    value: parseInt(hex, 16)
+                }
+            } else {
+                if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
+                const dec = parseInt(syn.raw, 10);
+                if (dec > 2147483648) throw new Error (`Decimal constant too large: ${syn.raw}`);
+                return {
+                    tag: "IntLiteral",
+                    raw: syn.raw,
+                    value: dec
+                }
+            }
         case "ArrayMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
                 throw new Error(`Array access is not a part of ${lang}`);

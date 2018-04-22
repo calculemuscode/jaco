@@ -20,7 +20,7 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
     return restrictStatement;
 }
 
-export function parseProgram(str: string): List<string | ast.Statement> {
+export function parseProgramRaw(str: string): List<string | parsed.Statement> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = parser.lexer = new TypeLexer();
     const segments = str.split(";");
@@ -36,21 +36,20 @@ export function parseProgram(str: string): List<string | ast.Statement> {
             if (index === segments.length - 1) {
                 throw new Error("Incomplete parse at the end of the file");
             } else {
-                console.log(` -- continuing to parse`);
+                //console.log(` -- continuing to parse`);
                 parser.feed(";");
             }
         } else {
             // parsed.length === 1
             if (index === segments.length - 1) {
-                console.log(` -- end`);
+                //console.log(` -- end`);
                 decls = decls.concat(parsed[0]);    
             } else {
                 const parsedGlobalDecls = parsed[0];
                 decls = decls.concat(parsedGlobalDecls);
                 const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                console.log(possibleTypedef);
                 // TODO: check that it's a typedef
-                console.log(` -- typedef ${possibleTypedef[1]}`);
+                //console.log(` -- typedef ${possibleTypedef[1]}`);
                 const typeIdentifier = possibleTypedef[1];
                 lexer.addIdentifier(typeIdentifier);
                 parser.feed(" ");
@@ -58,7 +57,11 @@ export function parseProgram(str: string): List<string | ast.Statement> {
         }
     });
 
-    return decls.map(decl => {
+    return decls;
+}
+
+export function parseProgram(str: string): List<string | ast.Statement> {
+    return parseProgramRaw(str).map(decl => {
         if (typeof decl === "string") return decl;
         if (decl instanceof Array) return decl[0] as string;
         return restrictStatement("C1", decl);

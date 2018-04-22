@@ -16,6 +16,6 @@ GlobalDecl  -> %pragma
              | "typedef" _ Tp _ Identifier # Omits trailing semicolon
                                            {% x => [`define type ${x[4].name}`, x[4].name] %}
              | "typedef" _ Tp _ Identifier _ FunDeclArgs _Annos # Also omits trailing semicolon
-                                           {% x => `define function type ${x[4].name}` %}
+                                           {% x => [`define function type ${x[4].name}`, x[4].name] %}
 
 FunDeclArgs -> "(" _ (Tp _ Identifier _ ("," _ Tp _ Identifier _):*):? ")"

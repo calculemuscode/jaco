@@ -1,3 +1,9 @@
+/**
+ * Consumes (and documents) the messy output produced by the parser, and turns it into parsedsyntax.ts types. This file could easily produce garbage output if there's a mismatch between the documented types and the types that the parser produces. This file should only throw errors to document invariants of the parser; user errors should be thrown in restrictsyntax.ts.
+ * 
+ * The structure of this file should match parsedsyntax.ts as much as practical.
+ */
+
 import { Token } from "moo";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
@@ -9,50 +15,24 @@ export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Tok
     };
 }
 
-export function IntLiteral([{ value, text, offset, lineBreaks, line, col }]: Token[]): ast.IntLiteral {
+export function IntLiteral([{ value, text, offset, lineBreaks, line, col }]: Token[]): parsed.IntLiteral {
     return {
         tag: "IntLiteral",
-        value: 0,
         raw: text
     };
 }
 
-export function CharLiteral([tokens]: [[Token, [Token], Token]]): ast.CharLiteral {
-    if (tokens.length !== 3) {
-        throw new Error("Bad character literal");
-    }
-    if (tokens[0]["type"] !== "char_delimiter" || tokens[2]["type"] !== "char_delimiter") {
-        throw new Error("Invalid char terminator");
-    }
-    const char = tokens[1][0];
-    if (char["type"] === "character") {
-        if (!char.value.match(/[ !#-~]/)) {
-            throw new Error("Invalid character");
-        }
-        return {
-            tag: "CharLiteral",
-            value: char.value,
-            raw: `'${char.value}'`
-        };
-    } else if (char["type"] === "special_character") {
-        if (!char.value.match(/\\[ntvbrfa\\'"0]/)) {
-            throw new Error("Invalid character escape sequence");
-        }
-        return {
-            tag: "CharLiteral",
-            value: char.value,
-            raw: `'${char.value}'`
-        };
-    } else {
-        throw new Error("Bad character literal");
+export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): parsed.CharLiteral {
+    return {
+        tag: "CharLiteral",
+        raw: tok.value
     }
 }
 
-export function StringLiteral([start, toks, end]: [Token, [Token][], Token]): ast.StringLiteral {
+export function StringLiteral([[start, toks, end]]: [[Token, Token[], Token]]): parsed.StringLiteral {
     return {
         tag: "StringLiteral",
-        value: "Hello, World!",
-        raw: '"Hello, World!"'
+        raw: toks.map(x => x.value)
     };
 }
 
@@ -91,6 +71,7 @@ export type Arguments = [
     null | [parsed.Expression, any, [Token, any, parsed.Expression][]],
     Token
 ];
+
 export function Arguments([l, s1, args, r]: Arguments): parsed.Expression[] {
     if (args === null) return [];
     return [args[0]].concat(args[2].map(x => x[2]));
@@ -119,7 +100,9 @@ export function CallExpression([f, ws, args]: [ast.Identifier, any, Arguments]):
     };
 }
 
-export function IndirectCallExpression([l, s1, f, s2, r, s3, args]: [
+export function IndirectCallExpression([l, s1, s, s2, f, s3, r, s4, args]: [
+    Token,
+    any,
     Token,
     any,
     parsed.Expression,
