@@ -23,7 +23,7 @@ const outputDoc = CodeMirror(document.getElementById("output")!, {
 
 function draw(prog: string) {
     rawDoc.setValue(JSON.stringify(parseProgramRaw(prog), null, 2))
-    outputDoc.setValue(JSON.stringify(parseProgram(prog), null, 2)) 
+    outputDoc.setValue(JSON.stringify(parseProgram("C1", prog), null, 2)) 
 }
 
 inputDoc.on("update", (x:any) => {

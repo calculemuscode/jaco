@@ -29,14 +29,14 @@ export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): p
     }
 }
 
-export function StringLiteral([[start, toks, end]]: [[Token, Token[], Token]]): parsed.StringLiteral {
+export function StringLiteral([[start, toks, end]]: [[Token, [Token][], Token]]): parsed.StringLiteral {
     return {
         tag: "StringLiteral",
-        raw: toks.map(x => x.value)
+        raw: toks.map(x => x[0].value)
     };
 }
 
-export function BoolLiteral(t: Token): ast.BoolLiteral {
+export function BoolLiteral([t]: [Token]): ast.BoolLiteral {
     return {
         tag: "BoolLiteral",
         value: t.value === "true"
@@ -340,8 +340,6 @@ export function SimpleStatement([stm, s1, semi]: [
 ]): parsed.VariableDeclaration | parsed.ExpressionStatement {
     if (stm instanceof Array) {
         const init = stm[3];
-        console.log("Hi");
-        console.log(init);
         return {
             tag: "VariableDeclaration",
             kind: stm[0],
@@ -405,7 +403,6 @@ export function BlockStatement([l, stms, annos, s, r]: [
     any,
     Token
 ]): parsed.BlockStatement {
-    console.log(stms);
     const stms1: parsed.Statement[][] = stms.map(x => x[1][0].map((y): parsed.Statement => ({ tag: "AnnoStatement", anno: y })).concat([x[1][1]]));
     const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({ tag: "AnnoStatement", anno: x[1][0] }))
     const stmsAll: parsed.Statement[] = stms1.concat([stms2]).reduce((collect, stms) => collect.concat(stms), []);

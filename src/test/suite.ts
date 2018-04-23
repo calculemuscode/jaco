@@ -4,10 +4,11 @@ import { join, extname } from "path";
 import { coreLexer as lexer } from "../lex";
 import { Parser, Grammar } from "nearley";
 import { parseProgram } from "../parse";
+import { Lang } from "../lang";
 import "mocha";
 const testSpecRules = require("../../lib/test/spec-rules");
 
-function testfile(filepath: string) {
+function testfile(lang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
     let specs;
 
@@ -87,13 +88,13 @@ function testfile(filepath: string) {
                 /* Step 2: Try to parse */
                 let ast;
                 if (condition === "error_parse") {
-                    expect(() => parseProgram(contents)).to.throw();
+                    expect(() => parseProgram(lang, contents)).to.throw();
                     return;
                 } else if (condition !== "error") {
-                    expect(() => (ast = parseProgram(contents))).not.to.throw();
+                    expect(() => (ast = parseProgram(lang, contents))).not.to.throw();
                 } else {
                     try {
-                        ast = parseProgram(contents);
+                        ast = parseProgram(lang, contents);
                     } catch (e) {
                         return;
                     }
@@ -109,16 +110,19 @@ readdirSync(dir).forEach(subdir => {
         describe(`Tests in suite ${subdir}`, () => {
             readdirSync(join(dir, subdir)).forEach(file => {
                 const ext = extname(file);
+                let lang: Lang | null;
                 switch (ext) {
-                    case ".l1":
-                    case ".l2":
-                    case ".l3":
-                    case ".l4":
-                    case ".c0":
-                    case ".c1":
-                        if (!file.endsWith(`_aux${ext}`)) {
-                            testfile(join(dir, subdir, file));
-                        }
+                    case ".l1": lang = "L1"; break;
+                    case ".l2": lang = "L2"; break;
+                    case ".l3": lang = "L3"; break;
+                    case ".l4": lang = "L4"; break;
+                    case ".c0": lang = "C0"; break;
+                    case ".c1": lang = "C1"; break;
+                    default: lang = null;
+                }
+
+                if (lang !== null && !file.endsWith(`_aux${ext}`)) {
+                    testfile(lang, join(dir, subdir, file));
                 }
             });
         });

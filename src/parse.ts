@@ -60,10 +60,10 @@ export function parseProgramRaw(str: string): List<string | parsed.Statement> {
     return decls;
 }
 
-export function parseProgram(str: string): List<string | ast.Statement> {
+export function parseProgram(lang: Lang, str: string): List<string | ast.Statement> {
     return parseProgramRaw(str).map(decl => {
         if (typeof decl === "string") return decl;
         if (decl instanceof Array) return decl[0] as string;
-        return restrictStatement("C1", decl);
+        return restrictStatement(lang, decl);
     });
 }
