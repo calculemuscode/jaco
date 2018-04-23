@@ -46,11 +46,11 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | ExpD _ "-" "-"                                      {% util.UpdateExpression %}
                 | "alloc" _ "(" _ Tp _ ")"                            {% util.AllocExpression %}
                 | "alloc_array" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.AllocArrayExpression %}
-                | "assert" _ "(" _ Expression _ ")"                   {% util.NullLiteral %}
-                | "error" _ "(" _ Expression _ ")"                    {% util.NullLiteral %}
+                | "assert" _ "(" _ Expression _ ")"                   {% util.AssertExpression %}
+                | "error" _ "(" _ Expression _ ")"                    {% util.ErrorExpression %}
                 | "\\" "result"                                       {% util.ResultExpression %}
                 | "\\" "length" _ "(" _ Expression _ ")"              {% util.LengthExpression %}
-                | "\\" "hastag" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.NullLiteral %}
+                | "\\" "hastag" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.HasTagExpression %}
                 | "(" _ "*" _ Expression _ ")" _ Funargs              {% util.IndirectCallExpression %}
 ExpC           -> ExpD {% id %} | Unop _ ExpC                         {% util.UnaryExpression %}
 ExpB           -> ExpC {% id %} | ExpC _ BinopB _ ExpB                {% util.BinaryExpression %}

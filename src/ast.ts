@@ -13,7 +13,6 @@
  *    (this is a property of static semantics in the spec, see C0.23, "The step statement in a for loop may
  *    not be a declaration".).
  *  - SimpleStatement does not include variable declarations, which facilitates the above exception.
- *
  *  - The placement restrictions on requires, ensures, loop_invariant, and assert contracts are
  *    expressed. These are properties of static semantics in the spec, see C0.23, "@requires and @ensures can
  *    only annotate functions," etc.

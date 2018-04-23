@@ -169,7 +169,6 @@ export interface UpdateExpression extends ast.Syn {
 
 export interface AssertExpression extends ast.Syn {
     readonly tag: "AssertExpression";
-    readonly contract: boolean;
     readonly test: Expression;
 }
 
@@ -179,6 +178,7 @@ export interface ErrorExpression extends ast.Syn {
 }
 
 export type Statement =
+    | AnnoStatement
     | ExpressionStatement
     | VariableDeclaration
     | IfStatement
@@ -188,6 +188,16 @@ export type Statement =
     | BlockStatement
     | ast.BreakStatement
     | ast.ContinueStatement;
+
+export interface Anno {
+    readonly tag: "requires" | "ensuires" | "loop_invariant" | "assert";
+    readonly test: Expression;
+}
+
+export interface AnnoStatement extends ast.Syn {
+    readonly tag: "AnnoStatement";
+    readonly anno: Anno;
+}
 
 export interface ExpressionStatement extends ast.Syn {
     readonly tag: "ExpressionStatement";
@@ -204,24 +214,22 @@ export interface VariableDeclaration extends ast.Syn {
 export interface IfStatement extends ast.Syn {
     readonly tag: "IfStatement";
     readonly test: Expression;
-    readonly consequent: Statement;
-    readonly alternate?: Statement;
+    readonly consequent: [Anno[], Statement];
+    readonly alternate?: [Anno[], Statement];
 }
 
 export interface WhileStatement extends ast.Syn {
     readonly tag: "WhileStatement";
-    readonly invariants: Expression[];
     readonly test: Expression;
-    readonly body: Statement;
+    readonly body: [Anno[], Statement];
 }
 
 export interface ForStatement extends ast.Syn {
     readonly tag: "ForStatement";
-    readonly invariants: Expression[];
-    readonly init: Statement | null;
-    readonly test: Statement;
-    readonly update: Statement | null;
-    readonly body: Statement;
+    readonly init: VariableDeclaration | ExpressionStatement | null;
+    readonly test: Expression;
+    readonly update: Expression | null;
+    readonly body: [Anno[], Statement];
 }
 
 export interface ReturnStatement extends ast.Syn {

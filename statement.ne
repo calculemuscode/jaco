@@ -19,7 +19,7 @@ NoDanglingIf   -> Simple _ ";"                              {% util.SimpleStatem
                 | "for" _ "(" (_ Simple):? _ ";" _ Expression _ ";" (_ Expression):? _ ")" _Annos _ NoDanglingIf
                                                             {% util.ForStatement %}
                 | "if" _ "(" _ Expression _ ")" _Annos _ NoDanglingIf _ "else" _Annos _ NoDanglingIf
-                                                            {% util.IfStatement %}
+                                                            {% util.IfElseStatement %}
                 | "return" (_ Expression):? _ ";"           {% util.ReturnStatement %}
                 | StatementBlock                            {% id %}
                 | "break" _ ";"                             {% util.BreakStatement %}
@@ -31,7 +31,7 @@ DanglingIf     -> "while" _ "(" _ Expression _ ")" _Annos _ DanglingIf
                                                             {% util.ForStatement %}
                 | "if" _ "(" _ Expression _ ")" _ Statement {% util.IfStatement %}
                 | "if" _ "(" _ Expression _ ")" _Annos _ NoDanglingIf _ "else" _Annos _ DanglingIf
-                                                            {% util.IfStatement %}
+                                                            {% util.IfElseStatement %}
 
 Simple         -> Tp _ Identifier (_ "=" _ Expression):?
                 | Expression                                {% id %}
@@ -39,8 +39,10 @@ Simple         -> Tp _ Identifier (_ "=" _ Expression):?
 StatementBlock -> "{" (_ Statement):* (_ Anno1):* _ "}"     {% util.BlockStatement %}
 
 Anno           -> ("loop_invariant" | "assert" | "requires" | "ensures") _ Expression _ ";"
-Anno1          -> %anno_start _ Anno:+ _ %anno_end
-                | %anno_line_start _ Anno:+ _ %anno_end
+                                                            {% x => ({ tag: x[0][0].value, test: x[2] }) %}
+Anno1          -> %anno_start _ Anno:+ _ %anno_end          {% x => x[2] %}
+                | %anno_line_start _ Anno:+ _ %anno_end     {% x => x[2] %}
                 | %anno_line_start _ Anno:+ _ %comment_line_start %comment:* %comment_line_end
-Annos_         -> (Anno1 _):*
-_Annos         -> (_ Anno1):*
+                                                            {% x => x[2] %}
+Annos_         -> (Anno1 _):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[0][0]), []) %}
+_Annos         -> (_ Anno1):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[0][1]), []) %}

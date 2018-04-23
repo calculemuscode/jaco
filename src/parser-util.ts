@@ -318,32 +318,33 @@ export function UpdateExpression([argument, s1, op1, op2]: [
     };
 }
 
-export function FunctionDecl([ty, s1, f, s2, args, annos, s3, def]: [
-    parsed.Type,
-    any,
-    ast.Identifier,
-    any,
-    any,
-    any,
-    any,
-    [Token | parsed.Statement]
-]): string | parsed.Statement {
-    // This is quite inelegant Typescript
-    if ((def[0] as Token).value === ";") return `define function ${f.name}`;
-    return def[0] as parsed.Statement;
+export function AssertExpression([assert, s1, l, s2, test, s3, r]: [Token, any, Token, any, parsed.Expression, any, Token]): parsed.AssertExpression {
+    return {
+        tag: "AssertExpression",
+        test: test
+    }
 }
 
+export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [Token, any, Token, any, parsed.Expression, any, Token]): parsed.ErrorExpression {
+    return {
+        tag: "ErrorExpression",
+        argument: argument
+    }
+}
+
+export type SimpleParsed = parsed.Expression | [parsed.Type, any, ast.Identifier, null | [any, Token, any, parsed.Expression]];
 export function SimpleStatement([stm, s1, semi]: [
-    parsed.Expression | [parsed.Type, any, ast.Identifier, any],
+    SimpleParsed,
     any,
     Token
 ]): parsed.VariableDeclaration | parsed.ExpressionStatement {
     if (stm instanceof Array) {
+        const init = stm[3];
         return {
             tag: "VariableDeclaration",
             kind: stm[0],
             id: stm[2],
-            init: stm[3] === null ? null : stm[3][4]
+            init: init === null ? null : init[4]
         };
     } else {
         return {
@@ -353,32 +354,63 @@ export function SimpleStatement([stm, s1, semi]: [
     }
 }
 
-export function WhileStatement() {
-    return { tag: "BreakStatement" };
+export function IfStatement([i, s1, l, s2, test, s3, r, s4, [annos, consequent]]: [Token, any, Token, any, parsed.Expression, any, Token, any, [parsed.Anno[], parsed.Statement]]): parsed.IfStatement {
+    return {
+        tag: "IfStatement",
+        test: test,
+        consequent: [annos, consequent]
+    }
 }
 
-export function ForStatement() {
-    return { tag: "BreakStatement" };
+export function IfElseStatement([i, s1, l1, s2, test, s3, r, annos1, s4, consequent, s5, e, annos2, s6, alternate]: [Token, any, Token, any, parsed.Expression, any, Token, parsed.Anno[], any, parsed.Statement, any, Token, parsed.Anno[], any, parsed.Statement]): parsed.IfStatement {
+    return { 
+        tag: "IfStatement",
+        test: test,
+        consequent: [annos1, consequent],
+        alternate: [annos2, alternate]
+    }
 }
 
-export function IfStatement() {
-    return { tag: "BreakStatement" };
+export function WhileStatement([w, s1, l, s2, test, s3, r, annos, s4, body]: [Token, any, Token, any, parsed.Expression, any, Token, parsed.Anno[], any, parsed.Statement]): parsed.WhileStatement {
+    return { 
+        tag: "WhileStatement" ,
+        test: test,
+        body: [annos, body]
+    };
 }
 
-export function ReturnStatement() {
-    return { tag: "BreakStatement" };
+export function ForStatement([f, s1, l, init, s2, semi1, s3, test, s4, semi2, update, s5, r, annos, s6, body]: [Token, any, Token, null | [any, SimpleParsed], any, Token, any, parsed.Expression, any, Token, null | [any, parsed.Expression], any, Token, parsed.Anno[], any, parsed.Statement]): parsed.ForStatement {
+    return {
+        tag: "ForStatement",
+        init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
+        test: test,
+        update: update === null ? null : update[1],
+        body: [annos, body] 
+    };
+}
+
+export function ReturnStatement([r, argument, s1, semi]: [Token, null | [any, parsed.Expression], any, Token]): parsed.ReturnStatement {
+    return { 
+        tag: "ReturnStatement",
+        argument: argument === null ? null : argument[1]
+    };
 }
 
 export function BlockStatement([l, stms, annos, s, r]: [
     Token,
-    [any, any][],
-    any[],
+    [any, [parsed.Anno[], parsed.Statement]][],
+    [any, parsed.Anno][],
     any,
     Token
 ]): parsed.BlockStatement {
+    console.log(stms);
+    const stms1: parsed.Statement[][] = stms.map(x => x[1][0].map((y): parsed.Statement => ({ tag: "AnnoStatement", anno: y })).concat([x[1][1]]));
+    const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({ tag: "AnnoStatement", anno: x[1] }))
+    const stmsAll: parsed.Statement[] = stms1.concat([stms2]).reduce((collect, stms) => collect.concat(stms), []);
+
     return {
         tag: "BlockStatement",
-        body: stms.map(x => x[1][1])
+        body: stmsAll
     };
 }
 
@@ -389,3 +421,19 @@ export function BreakStatement([stm, s1, semi]: [Token, any, Token]): ast.BreakS
 export function ContinueStatement([stm, s1, semi]: [Token, any, Token]): ast.ContinueStatement {
     return { tag: "ContinueStatement" };
 }
+
+export function FunctionDecl([ty, s1, f, s2, args, annos, s3, def]: [
+    parsed.Type,
+    any,
+    ast.Identifier,
+    any,
+    any,
+    parsed.Anno[],
+    any,
+    [Token | parsed.Statement]
+]): string | parsed.Statement {
+    // This is quite inelegant Typescript
+    if ((def[0] as Token).value === ";") return `define function ${f.name}`;
+    return def[0] as parsed.Statement;
+}
+

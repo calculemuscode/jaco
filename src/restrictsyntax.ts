@@ -290,6 +290,14 @@ export function restrictLValue(lang: Lang, syn: parsed.Expression): ast.LValue {
 
 export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statement {
     switch (syn.tag) {
+        case "AnnoStatement": {
+            if (syn.anno.tag !== "assert") throw new Error(`Only assert annotations are allowed here, ${syn.anno.tag} is not permitted.`)
+            return {
+                tag: "AssertStatement",
+                contract: true,
+                test: restrictExpression(lang, syn.anno.test)
+            }
+        }
         case "ExpressionStatement": {
             switch (syn.expression.tag) {
                 case "AssignmentExpression": {
@@ -362,25 +370,33 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
         }
         case "IfStatement": {
             if (lang === "L1") throw new Error(`Conditionals not a part of ${lang}`);
-            return {
-                tag: "IfStatement",
-                test: restrictExpression(lang, syn.test),
-                consequent: restrictStatement(lang, syn.consequent)
-            };
+            if (!syn.alternate) {
+                return {
+                    tag: "IfStatement",
+                    test: restrictExpression(lang, syn.test),
+                    consequent: restrictAssert(lang, syn.consequent)
+                };
+            } else {
+                return {
+                    tag: "IfStatement",
+                    test: restrictExpression(lang, syn.test),
+                    consequent: restrictAssert(lang, syn.consequent),
+                    alternate: restrictAssert(lang, syn.consequent)
+                }
+            }
         }
         case "WhileStatement": {
             if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
             return {
                 tag: "WhileStatement",
-                invariants: syn.invariants.map(x => restrictExpression(lang, x)),
+                invariants: restrictLoopInvariants(lang, syn.body[0]),
                 test: restrictExpression(lang, syn.test),
-                body: restrictStatement(lang, syn.body)
+                body: restrictStatement(lang, syn.body[1])
             };
         }
         case "ForStatement": {
             if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
             let init: ast.SimpleStatement | ast.VariableDeclaration | null;
-            let test: ast.ExpressionStatement;
             let update: ast.SimpleStatement | null;
 
             if (syn.init === null) {
@@ -401,23 +417,10 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                 }
             }
 
-            {
-                const candidate = restrictStatement(lang, syn.test);
-                switch (candidate.tag) {
-                    case "ExpressionStatement":
-                        test = candidate;
-                        break;
-                    default:
-                        throw new Error(
-                            `A ${candidate.tag} is not allowed as the second argument of a for statement`
-                        );
-                }
-            }
-
             if (syn.update === null) {
                 update = null;
             } else {
-                const candidate = restrictStatement(lang, syn.update);
+                const candidate = restrictStatement(lang, { tag: "ExpressionStatement", expression: syn.update });
                 switch (candidate.tag) {
                     case "AssignmentStatement":
                     case "UpdateStatement":
@@ -433,11 +436,11 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
 
             return {
                 tag: "ForStatement",
-                invariants: syn.invariants.map(x => restrictExpression(lang, x)),
+                invariants: restrictLoopInvariants(lang, syn.body[0]),
                 init: init,
-                test: test.expression,
+                test: restrictExpression(lang, syn.test),
                 update: update,
-                body: restrictStatement(lang, syn.body)
+                body: restrictStatement(lang, syn.body[1])
             };
         }
         case "ReturnStatement": {
@@ -460,4 +463,27 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
         default:
             return impossible(syn);
     }
+}
+
+function restrictAssert(lang: Lang, [annos, stm]: [parsed.Anno[], parsed.Statement]): ast.Statement {
+    if (annos.length === 0) return restrictStatement(lang, stm);
+    const asserts: ast.Statement[] = annos.map((x): ast.Statement => {
+        if (x.tag !== "assert") throw new Error(`The only annotations allowed with if-statements are assertions, ${x.tag} is not permitted`);
+        return {
+            tag: "AssertStatement",
+            contract: true,
+            test: restrictExpression(lang, x.test)
+        }
+    });
+    return {
+        tag: "BlockStatement",
+        body: asserts.concat([restrictStatement(lang, stm)])
+    }
+}
+
+function restrictLoopInvariants(lang: Lang, annos: parsed.Anno[]): ast.Expression[] {
+    return annos.map(x => {
+        if (x.tag !== "loop_invariant") throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
+        return restrictExpression(lang, x.test)
+    });
 }
