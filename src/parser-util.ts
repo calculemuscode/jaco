@@ -340,11 +340,13 @@ export function SimpleStatement([stm, s1, semi]: [
 ]): parsed.VariableDeclaration | parsed.ExpressionStatement {
     if (stm instanceof Array) {
         const init = stm[3];
+        console.log("Hi");
+        console.log(init);
         return {
             tag: "VariableDeclaration",
             kind: stm[0],
             id: stm[2],
-            init: init === null ? null : init[4]
+            init: init === null ? null : init[3]
         };
     } else {
         return {
