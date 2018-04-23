@@ -399,13 +399,13 @@ export function ReturnStatement([r, argument, s1, semi]: [Token, null | [any, pa
 export function BlockStatement([l, stms, annos, s, r]: [
     Token,
     [any, [parsed.Anno[], parsed.Statement]][],
-    [any, parsed.Anno][],
+    [any, [parsed.Anno]][],
     any,
     Token
 ]): parsed.BlockStatement {
     console.log(stms);
     const stms1: parsed.Statement[][] = stms.map(x => x[1][0].map((y): parsed.Statement => ({ tag: "AnnoStatement", anno: y })).concat([x[1][1]]));
-    const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({ tag: "AnnoStatement", anno: x[1] }))
+    const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({ tag: "AnnoStatement", anno: x[1][0] }))
     const stmsAll: parsed.Statement[] = stms1.concat([stms2]).reduce((collect, stms) => collect.concat(stms), []);
 
     return {
