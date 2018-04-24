@@ -14,7 +14,6 @@ import * as parsed from "./parsedsyntax";
  *  3. Contain characters outside of the UTF-8 range.
  */
 const basicLexing = {
-    whitespace: { match: /[ \t\n\v\f\r]+/, lineBreaks: true },
     identifier: {
         match: /[A-Za-z_][A-Za-z0-9_]*/,
         keywords: {
@@ -48,8 +47,8 @@ const basicLexing = {
     string_delimiter: { match: /\"/, push: "stringComponents" },
     logical_and: "&&",
     symbol: /[!$%&\(\)*+,\-.\/:;<=>?\[\\\]^{\|}~]/,
-    unexpected_unicode_character: { match: /[\x00-\u{10FFFF}]/, lineBreaks: true },
-    invalid_character: { match: /./, lineBreaks: true },
+    unexpected_unicode_character: { match: /[\x00-\u{10FFFF}]/, lineBreaks: true }, // ugh linebreaks
+    invalid_character: { match: /./, lineBreaks: true }, // ugh linebreaks
     type_identifier: "<placeholder>",
     space: "<placeholder>"
 };
@@ -58,6 +57,8 @@ export const coreLexer: Lexer = states(
     {
         main: Object.assign(
             {
+                newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                whitespace: { match: /[ \t\v\f]+/ },
                 anno_start: { match: "/*@", push: "multiLineAnno" },
                 comment_start: { match: "/*", push: "multiLineComment" },
                 anno_line_start: { match: "//@", push: "lineAnno" },
@@ -68,28 +69,29 @@ export const coreLexer: Lexer = states(
         ),
         multiLineAnno: Object.assign(
             {
+                newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                whitespace: { match: /[ \t\v\f]+/ },
                 anno_end: { match: "@*/", pop: 1 },
                 comment_start: { match: "/*", push: "multiLineComment" },
                 comment_line_start: { match: "//", push: "lineComment" },
-                whitespace: { match: /[ \t\n\v\f\r]+/, lineBreaks: true },
                 annospace: { match: "@" }
             },
             basicLexing
         ),
         lineAnno: Object.assign(
             {
-                anno_end: { match: "\n", pop: 1, lineBreaks: true },
+                anno_end: { match: /\r\n|\r|\n/, pop: 1, lineBreaks: true },
+                whitespace: { match: /[ \t\v\f]+/ },
                 comment_start: { match: "/*", push: "multiLineComment" },
                 comment_line_start: { match: "//", next: "lineComment" },
-                whitespace: { match: /[ \t\v\f\r]+/ },
                 annospace: { match: "@" }
             },
             basicLexing
         ),
         stringComponents: {
             string_delimiter: { match: /"/, pop: 1 },
-            characters: { match: /[^\\\n"]+/, lineBreaks: false },
-            special_character: { match: /\\./, lineBreaks: true },
+            characters: { match: /[^\\\n\r"]+/, lineBreaks: false },
+            special_character: { match: /\\[^\n\r]/, lineBreaks: false },
             invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true }
         },
         charComponents: {
@@ -101,11 +103,12 @@ export const coreLexer: Lexer = states(
         multiLineComment: {
             comment_start: { match: "/*", push: "multiLineComment" },
             comment_end: { match: "*/", pop: 1 },
-            comment: { match: /\*|\/|[^*\/]+/, lineBreaks: true }
+            comment: { match: /\*|\/|[^*\/\r\n]+/, lineBreaks: false },
+            newline: { match: /\n|\r|\r\n/, lineBreaks: true }
         },
         lineComment: {
-            comment: { match: /[^\n]/, lineBreaks: false },
-            comment_line_end: { match: /\n/, lineBreaks: true, pop: 1 }
+            comment: { match: /[^\n\r]/, lineBreaks: false },
+            comment_line_end: { match: /\n|\r|\r\n/, lineBreaks: true, pop: 1 }
         }
     },
     "main"

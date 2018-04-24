@@ -44,5 +44,5 @@ Anno1          -> %anno_start _ Anno:+ _ %anno_end          {% x => x[2] %}
                 | %anno_line_start _ Anno:+ _ %anno_end     {% x => x[2] %}
                 | %anno_line_start _ Anno:+ _ %comment_line_start %comment:* %comment_line_end
                                                             {% x => x[2] %}
-Annos_         -> (Anno1 _):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[0][0]), []) %}
-_Annos         -> (_ Anno1):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[0][1]), []) %}
+Annos_         -> (Anno1 _):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[0]), []) %}
+_Annos         -> (_ Anno1):*                               {% x => x[0].reduce((xs, y) => xs.concat(y[1]), []) %}

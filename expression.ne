@@ -77,6 +77,6 @@ Tp             -> "int" | "bool" | "string" | "char" | "void"
 StringLiteral  -> %string_delimiter (%special_character | %characters):* %string_delimiter
 CharLiteral    -> %char_delimiter (%special_character | %character) %char_delimiter
 
-_              -> (%whitespace | %annospace | LineComment | MultiComment):*
+_              -> (%whitespace | %newline | %annospace | LineComment | MultiComment):*
 LineComment    -> %comment_line_start %comment:* %comment_line_end
-MultiComment   -> %comment_start (%comment | MultiComment):* %comment_end
+MultiComment   -> %comment_start (%comment | %newline | MultiComment):* %comment_end

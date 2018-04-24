@@ -12,7 +12,6 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
         case "StringLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
                 throw new Error(`String and char literals are not a part of ${lang}`);
-            console.log(syn);
             syn.raw.map(x => {
                 if (x.length === 2 && x[0] === "\\") {
                     if (!x.match(/\\[ntvbrfa\\'"]/)) 
