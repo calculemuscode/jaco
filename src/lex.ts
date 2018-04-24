@@ -145,3 +145,5 @@ export class TypeLexer {
         return coreLexer.has(tokenType);
     }
 }
+
+export const lexer = new TypeLexer();
