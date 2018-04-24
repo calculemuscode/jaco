@@ -1,0 +1,15 @@
+node_modules
+.gitignore
+.gitmodules
+.travis.yml
+.npmignore
+.nyc_output/
+demo/
+tests/
+src/
+lib/**/test
+lib/**/demo
+tsconfig.json
+webpack.config.js
+*.ne
+CONTRIBUTING.md

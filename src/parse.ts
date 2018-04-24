@@ -1,16 +1,27 @@
 import { List, Set } from "immutable";
 import { TypeLexer } from "./lex";
 import { Grammar, Parser } from "nearley";
-import { restrictStatement } from "./restrictsyntax";
+import { restrictStatement, restrictExpression } from "./restrictsyntax";
 import { Lang } from "./lang";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
-//const expressionRules = require("../lib/expression-rules");
+const expressionRules = require("../lib/expression-rules");
 //const statementRules = require("../lib/statement-rules");
 const programRules = require("../lib/program-rules");
 
-export function parseExpression(str: string, options?: { types?: Set<string> }) {
-    return;
+export function parseExpression(str: string, options?: { lang?: Lang, types?: Set<string> }): ast.Expression {
+    const opt = options ? options : {};
+    const parser = new Parser(Grammar.fromCompiled(expressionRules));
+    parser.lexer = new TypeLexer(opt.types);
+    parser.feed(str);
+    const parsed: parsed.Expression[] = parser.finish();
+    if (parsed.length > 1) {
+        throw new Error("Ambiguous parse!");       
+    } else if (parsed.length === 0) {
+        throw new Error("Incomplete parse");
+    } else {
+        return restrictExpression(opt.lang || "C1", parsed[0]);
+    }
 }
 
 export function parseStatement(str: string, options?: { types?: Set<string>; lang: Lang }) {

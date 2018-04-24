@@ -1,6 +1,6 @@
 {
     "name": "@calculemus/jaco",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "JavaScript C0 Parser & Tools",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -14,7 +14,9 @@
         "prewebpack": "tsc",
         "webpack": "webpack",
         "prettier": "prettier --write src/*.ts src/**/*.ts",
-        "prepublishOnly": "rm -f *~ && npm run nearley && tsc",
+        "prebuild": "npm run nearley",
+        "build": "npm run tsc",
+        "prepublishOnly": "npm run build",
         "pretest": "tsc",
         "test": "nyc mocha -r ts-node/register src/**/test/*.ts",
         "coveralls": "nyc report --reporter=text-lcov | coveralls"
