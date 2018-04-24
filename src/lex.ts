@@ -1,7 +1,5 @@
 import { states, Token, Lexer, LexerState } from "moo";
 import { Set } from "immutable";
-import * as ast from "./ast";
-import * as parsed from "./parsedsyntax";
 
 /**
  * Ambitious Goal: "invalid syntax" errors from the lexer are unclear. Can we take errors out of the lexer to
