@@ -8,7 +8,6 @@ import * as parsed from "./parsedsyntax";
 const expressionRules = require("../lib/expression-rules");
 //const statementRules = require("../lib/statement-rules");
 const programRules = require("../lib/program-rules");
-
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(expressionRules));

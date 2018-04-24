@@ -1,3 +1,1 @@
-import { parseProgram } from "./parse";
-
-export const parse = parseProgram;
+export { parseExpression, parseStatement, parseProgram } from "./parse";
