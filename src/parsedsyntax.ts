@@ -1,8 +1,8 @@
 /**
  * Internal representation: the parsed syntax for C0/C1
- * 
+ *
  * This file describes exactly the syntax that gets parsed by the parser. It is therefore very sensitive to changes in the parser, and so should not be relied upon.
- * 
+ *
  * The only producer of these types is parse-util.ts. The only consumer of these types is restrictsyntax.ts. The structure of this file should match ast.ts as much as practical.
  */
 
@@ -38,12 +38,12 @@ export type Expression =
 
 export interface IntLiteral extends ast.Syn {
     readonly tag: "IntLiteral";
-    readonly raw: string;    
+    readonly raw: string;
 }
 
 export interface StringLiteral extends ast.Syn {
     readonly tag: "StringLiteral";
-    readonly raw: string[];    
+    readonly raw: string[];
 }
 
 export interface CharLiteral extends ast.Syn {

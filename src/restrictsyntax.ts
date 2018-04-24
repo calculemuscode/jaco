@@ -14,34 +14,31 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 throw new Error(`String and char literals are not a part of ${lang}`);
             syn.raw.map(x => {
                 if (x.length === 2 && x[0] === "\\") {
-                    if (!x.match(/\\[ntvbrfa\\'"]/)) 
-                        throw new Error(`Invalid escape '${x}' in string`);
+                    if (!x.match(/\\[ntvbrfa\\'"]/)) throw new Error(`Invalid escape '${x}' in string`);
                 } else if (!x.match(/\\[ntvbrfa\\'"]+/)) {
-                    if (!x.match(/[ !#-~]+/))
-                        throw new Error(`Invalid character in string '${x}'`)                    
+                    if (!x.match(/[ !#-~]+/)) throw new Error(`Invalid character in string '${x}'`);
                 }
             });
             return {
                 tag: "StringLiteral",
                 value: syn.raw.join(""),
                 raw: `"${syn.raw.join("")}"`
-            }
+            };
         }
         case "CharLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
                 throw new Error(`String and char literals are not a part of ${lang}`);
             if (syn.raw.length === 1) {
-                if (!syn.raw.match(/[ !#-~]/)) 
-                    throw new Error(`Invalid character '${syn.raw}'`);
+                if (!syn.raw.match(/[ !#-~]/)) throw new Error(`Invalid character '${syn.raw}'`);
             } else {
-                if (!syn.raw.match(/\\[ntvbrfa\\'"0]/)) 
-                    throw new Error(`Invalid escape character '${syn.raw}'`)
+                if (!syn.raw.match(/\\[ntvbrfa\\'"0]/))
+                    throw new Error(`Invalid escape character '${syn.raw}'`);
             }
             return {
                 tag: "CharLiteral",
                 value: syn.raw,
                 raw: `'${syn.raw}'`
-            }
+            };
         }
         case "BoolLiteral":
             if (lang === "L1") throw new Error(`Boolean literals 'true' and 'false' are not part of ${lang}`);
@@ -58,16 +55,16 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                     tag: "IntLiteral",
                     raw: syn.raw,
                     value: parseInt(hex, 16)
-                }
+                };
             } else {
                 if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
                 const dec = parseInt(syn.raw, 10);
-                if (dec > 2147483648) throw new Error (`Decimal constant too large: ${syn.raw}`);
+                if (dec > 2147483648) throw new Error(`Decimal constant too large: ${syn.raw}`);
                 return {
                     tag: "IntLiteral",
                     raw: syn.raw,
                     value: dec
-                }
+                };
             }
         case "ArrayMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
@@ -291,12 +288,15 @@ export function restrictLValue(lang: Lang, syn: parsed.Expression): ast.LValue {
 export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statement {
     switch (syn.tag) {
         case "AnnoStatement": {
-            if (syn.anno.tag !== "assert") throw new Error(`Only assert annotations are allowed here, ${syn.anno.tag} is not permitted.`)
+            if (syn.anno.tag !== "assert")
+                throw new Error(
+                    `Only assert annotations are allowed here, ${syn.anno.tag} is not permitted.`
+                );
             return {
                 tag: "AssertStatement",
                 contract: true,
                 test: restrictExpression(lang, syn.anno.test)
-            }
+            };
         }
         case "ExpressionStatement": {
             switch (syn.expression.tag) {
@@ -382,7 +382,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                     test: restrictExpression(lang, syn.test),
                     consequent: restrictAssert(lang, syn.consequent),
                     alternate: restrictAssert(lang, syn.consequent)
-                }
+                };
             }
         }
         case "WhileStatement": {
@@ -420,7 +420,10 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
             if (syn.update === null) {
                 update = null;
             } else {
-                const candidate = restrictStatement(lang, { tag: "ExpressionStatement", expression: syn.update });
+                const candidate = restrictStatement(lang, {
+                    tag: "ExpressionStatement",
+                    expression: syn.update
+                });
                 switch (candidate.tag) {
                     case "AssignmentStatement":
                     case "UpdateStatement":
@@ -468,22 +471,26 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
 function restrictAssert(lang: Lang, [annos, stm]: [parsed.Anno[], parsed.Statement]): ast.Statement {
     if (annos.length === 0) return restrictStatement(lang, stm);
     const asserts: ast.Statement[] = annos.map((x): ast.Statement => {
-        if (x.tag !== "assert") throw new Error(`The only annotations allowed with if-statements are assertions, ${x.tag} is not permitted`);
+        if (x.tag !== "assert")
+            throw new Error(
+                `The only annotations allowed with if-statements are assertions, ${x.tag} is not permitted`
+            );
         return {
             tag: "AssertStatement",
             contract: true,
             test: restrictExpression(lang, x.test)
-        }
+        };
     });
     return {
         tag: "BlockStatement",
         body: asserts.concat([restrictStatement(lang, stm)])
-    }
+    };
 }
 
 function restrictLoopInvariants(lang: Lang, annos: parsed.Anno[]): ast.Expression[] {
     return annos.map(x => {
-        if (x.tag !== "loop_invariant") throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
-        return restrictExpression(lang, x.test)
+        if (x.tag !== "loop_invariant")
+            throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
+        return restrictExpression(lang, x.test);
     });
 }

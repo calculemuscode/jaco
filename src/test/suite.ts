@@ -112,13 +112,26 @@ readdirSync(dir).forEach(subdir => {
                 const ext = extname(file);
                 let lang: Lang | null;
                 switch (ext) {
-                    case ".l1": lang = "L1"; break;
-                    case ".l2": lang = "L2"; break;
-                    case ".l3": lang = "L3"; break;
-                    case ".l4": lang = "L4"; break;
-                    case ".c0": lang = "C0"; break;
-                    case ".c1": lang = "C1"; break;
-                    default: lang = null;
+                    case ".l1":
+                        lang = "L1";
+                        break;
+                    case ".l2":
+                        lang = "L2";
+                        break;
+                    case ".l3":
+                        lang = "L3";
+                        break;
+                    case ".l4":
+                        lang = "L4";
+                        break;
+                    case ".c0":
+                        lang = "C0";
+                        break;
+                    case ".c1":
+                        lang = "C1";
+                        break;
+                    default:
+                        lang = null;
                 }
 
                 if (lang !== null && !file.endsWith(`_aux${ext}`)) {

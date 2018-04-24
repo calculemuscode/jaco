@@ -22,7 +22,7 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 
 export function parseProgramRaw(str: string): List<string | parsed.Statement> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = parser.lexer = new TypeLexer();
+    const lexer: TypeLexer = (parser.lexer = new TypeLexer());
     const segments = str.split(";");
     let decls: List<string | parsed.Statement> = List<any>();
     segments.forEach((segment, index) => {
@@ -43,7 +43,7 @@ export function parseProgramRaw(str: string): List<string | parsed.Statement> {
             // parsed.length === 1
             if (index === segments.length - 1) {
                 //console.log(` -- end`);
-                decls = decls.concat(parsed[0]);    
+                decls = decls.concat(parsed[0]);
             } else {
                 const parsedGlobalDecls = parsed[0];
                 decls = decls.concat(parsedGlobalDecls);

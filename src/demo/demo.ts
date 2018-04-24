@@ -4,10 +4,10 @@ import * as CodeMirror from "codemirror";
 
 declare global {
     interface Window {
-      jaco: any
+        jaco: any;
     }
-  }
-  
+}
+
 const inputDoc = CodeMirror(document.getElementById("input")!, {
     value: "int main() {\n  return 17;\n}",
     lineNumbers: true
@@ -19,14 +19,14 @@ const rawDoc = CodeMirror(document.getElementById("output")!, {
 const outputDoc = CodeMirror(document.getElementById("output")!, {
     readOnly: true,
     lineNumbers: true
-})
+});
 
 function draw(prog: string) {
-    rawDoc.setValue(JSON.stringify(parseProgramRaw(prog), null, 2))
-    outputDoc.setValue(JSON.stringify(parseProgram("C1", prog), null, 2)) 
+    rawDoc.setValue(JSON.stringify(parseProgramRaw(prog), null, 2));
+    outputDoc.setValue(JSON.stringify(parseProgram("C1", prog), null, 2));
 }
 
-inputDoc.on("update", (x:any) => {
-    draw(inputDoc.getValue())
+inputDoc.on("update", (x: any) => {
+    draw(inputDoc.getValue());
 });
-draw(inputDoc.getValue())
+draw(inputDoc.getValue());
