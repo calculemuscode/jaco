@@ -1,0 +1,13 @@
+---
+
+language: node_js
+
+node_js:
+ - 9
+ - 8
+ - 6
+
+script:
+ - npm run nearley
+ - npm test
+ - npm run coveralls
