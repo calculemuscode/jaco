@@ -1,6 +1,6 @@
 {
     "name": "@calculemus/jaco",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "JavaScript C0 Parser & Tools",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -34,7 +34,7 @@
     "devDependencies": {
         "@types/chai": "^4.1.2",
         "@types/codemirror": "0.0.56",
-        "@types/mocha": "^2.2.48",
+        "@types/mocha": "^5.2.0",
         "@types/moo": "^0.4.0",
         "@types/nearley": "^2.11.0",
         "@types/node": "^9.4.7",
@@ -47,7 +47,7 @@
         "nyc": "^11.6.0",
         "prettier": "^1.11.1",
         "ts-loader": "^4.2.0",
-        "ts-node": "^5.0.1",
+        "ts-node": "^6.0.2",
         "tslint": "^5.9.1",
         "typescript": "^2.7.2",
         "webpack": "^4.6.0",
