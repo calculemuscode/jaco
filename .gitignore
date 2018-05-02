@@ -1,6 +1,8 @@
 .nyc_output
 lib/
 *~
+\#*\#
+.\#*
 node_modules/
 demo/jaco.js
 demo/lib
