@@ -8,8 +8,6 @@
 
 import * as ast from "./ast";
 
-export type Type = ast.Identifier;
-
 export type Expression =
     | ast.Identifier
     | IntLiteral
@@ -78,7 +76,7 @@ export interface IndirectCallExpression extends ast.Syn {
 
 export interface CastExpression extends ast.Syn {
     readonly tag: "CastExpression";
-    readonly kind: Type;
+    readonly kind: ast.Type;
     readonly argument: Expression;
 }
 
@@ -130,12 +128,12 @@ export interface ConditionalExpression extends ast.Syn {
 
 export interface AllocExpression extends ast.Syn {
     readonly tag: "AllocExpression";
-    readonly kind: Type;
+    readonly kind: ast.Type;
 }
 
 export interface AllocArrayExpression extends ast.Syn {
     readonly tag: "AllocArrayExpression";
-    readonly kind: Type;
+    readonly kind: ast.Type;
     readonly size: Expression;
 }
 
@@ -150,7 +148,7 @@ export interface LengthExpression extends ast.Syn {
 
 export interface HasTagExpression extends ast.Syn {
     readonly tag: "HasTagExpression";
-    readonly kind: Type;
+    readonly kind: ast.Type;
     readonly argument: Expression;
 }
 
@@ -190,7 +188,7 @@ export type Statement =
     | ast.ContinueStatement;
 
 export interface Anno {
-    readonly tag: "requires" | "ensuires" | "loop_invariant" | "assert";
+    readonly tag: "requires" | "ensures" | "loop_invariant" | "assert";
     readonly test: Expression;
 }
 
@@ -206,7 +204,7 @@ export interface ExpressionStatement extends ast.Syn {
 
 export interface VariableDeclaration extends ast.Syn {
     readonly tag: "VariableDeclaration";
-    readonly kind: Type;
+    readonly kind: ast.Type;
     readonly id: ast.Identifier;
     readonly init: Expression | null;
 }
@@ -221,7 +219,8 @@ export interface IfStatement extends ast.Syn {
 export interface WhileStatement extends ast.Syn {
     readonly tag: "WhileStatement";
     readonly test: Expression;
-    readonly body: [Anno[], Statement];
+    readonly annos: Anno[];
+    readonly body: Statement;
 }
 
 export interface ForStatement extends ast.Syn {
@@ -229,7 +228,8 @@ export interface ForStatement extends ast.Syn {
     readonly init: VariableDeclaration | ExpressionStatement | null;
     readonly test: Expression;
     readonly update: Expression | null;
-    readonly body: [Anno[], Statement];
+    readonly annos: Anno[];
+    readonly body: Statement;
 }
 
 export interface ReturnStatement extends ast.Syn {
@@ -240,4 +240,20 @@ export interface ReturnStatement extends ast.Syn {
 export interface BlockStatement extends ast.Syn {
     readonly tag: "BlockStatement";
     readonly body: Statement[];
+}
+
+export type Declaration = FunctionDeclaration | BlockStatement;
+
+export interface VariableDeclarationOnly extends ast.Syn {
+    readonly kind: ast.Type;
+    readonly id: ast.Identifier;
+}
+
+export interface FunctionDeclaration extends ast.Syn {
+    readonly tag: "FunctionDeclaration";
+    readonly returns: ast.Type;
+    readonly id: ast.Identifier;
+    readonly params: ast.VariableDeclarationOnly[];
+    readonly annos: Anno[];
+    readonly body: null | BlockStatement;
 }

@@ -68,11 +68,15 @@ Exp0           -> Exp1 {% id %} | Exp1 _ Binop0 _ Exp0                {% util.Bi
 
 Funargs        -> "(" _ (Expression _ ("," _ Expression):*):? ")"
 
-Tp             -> "int" | "bool" | "string" | "char" | "void"
-                | Tp _ "*"
-                | Tp _ "[" _ "]"
-                | "struct" _ StructName
-                | TypeIdentifier
+Tp             -> "int"                                               {% util.IntType %}
+                | "bool"                                              {% util.BoolType %}  
+                | "string"                                            {% util.StringType %}  
+                | "char"                                              {% util.CharType %}  
+                | "void"                                              {% util.VoidType %}
+                | Tp _ "*"                                            {% util.PointerType %}
+                | Tp _ "[" _ "]"                                      {% util.ArrayType %}
+                | "struct" _ StructName                               {% util.StructType %}
+                | TypeIdentifier                                      {% id %}
 
 StringLiteral  -> %string_delimiter (%special_character | %characters):* %string_delimiter
 CharLiteral    -> %char_delimiter (%special_character | %character) %char_delimiter

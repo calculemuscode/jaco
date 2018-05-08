@@ -15,6 +15,57 @@ export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Tok
     };
 }
 
+export function IntType([tok]: [Token]): ast.IntType {
+    return {
+        tag: "IntType"
+    };
+}
+
+export function BoolType([tok]: [Token]): ast.BoolType {
+    return {
+        tag: "BoolType"
+    };
+}
+
+export function StringType([tok]: [Token]): ast.StringType {
+    return {
+        tag: "StringType"
+    };
+}
+
+export function CharType([tok]: [Token]): ast.CharType {
+    return {
+        tag: "CharType"
+    };
+}
+
+export function VoidType([tok]: [Token]): ast.VoidType {
+    return {
+        tag: "VoidType"
+    };
+}
+
+export function PointerType([tp, s, tok]: [ast.Type, any, Token]): ast.PointerType {
+    return {
+        tag: "PointerType",
+        argument: tp
+    };
+}
+
+export function ArrayType([tp, s1, l, s2, r]: [ast.Type, any, Token, any, Token]): ast.ArrayType {
+    return {
+        tag: "ArrayType",
+        argument: tp
+    };
+}
+
+export function StructType([str, s, id]: [Token, any, ast.Identifier]): ast.StructType {
+    return {
+        tag: "StructType",
+        id: id
+    };
+}
+
 export function IntLiteral([{ value, text, offset, lineBreaks, line, col }]: Token[]): parsed.IntLiteral {
     return {
         tag: "IntLiteral",
@@ -232,7 +283,7 @@ export function AllocExpression([alloc, s1, l, s2, typ, s3, r]: [
     any,
     Token,
     any,
-    parsed.Type,
+    ast.Type,
     any,
     Token
 ]): parsed.AllocExpression {
@@ -247,7 +298,7 @@ export function AllocArrayExpression([alloc, s1, l, s2, typ, s3, c, s4, size, sp
     any,
     Token,
     any,
-    parsed.Type,
+    ast.Type,
     any,
     Token,
     any,
@@ -290,7 +341,7 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
     any,
     Token,
     any,
-    parsed.Type,
+    ast.Type,
     any,
     Token,
     any,
@@ -350,7 +401,7 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
 
 export type SimpleParsed =
     | parsed.Expression
-    | [parsed.Type, any, ast.Identifier, null | [any, Token, any, parsed.Expression]];
+    | [ast.Type, any, ast.Identifier, null | [any, Token, any, parsed.Expression]];
 export function SimpleStatement([stm, s1, semi]: [SimpleParsed, any, Token]):
     | parsed.VariableDeclaration
     | parsed.ExpressionStatement {
@@ -444,7 +495,8 @@ export function WhileStatement([w, s1, l, s2, test, s3, r, annos, s4, body]: [
     return {
         tag: "WhileStatement",
         test: test,
-        body: [annos, body]
+        annos: annos,
+        body: body
     };
 }
 
@@ -488,7 +540,8 @@ export function ForStatement([
         init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
         test: test,
         update: update === null ? null : update[1],
-        body: [annos, body]
+        annos: annos,
+        body: body
     };
 }
 
@@ -548,17 +601,43 @@ export function Anno1(
     return annos[2];
 }
 
-export function FunctionDecl([ty, s1, f, s2, args, annos, s3, def]: [
-    parsed.Type,
+export function FunctionDeclarationArgs([l, s1, params, r]: [
+    Token,
+    any,
+    null | [ast.Type, any, ast.Identifier, any, [Token, any, ast.Type, any, ast.Identifier, any][]],
+    Token
+]): parsed.VariableDeclarationOnly[] {
+    if (params === null) return [];
+    const first: parsed.VariableDeclarationOnly = {
+        tag: "VariableDeclaration",
+        kind: params[0],
+        id: params[2]
+    };
+    return [first].concat(
+        params[4].map(x => ({
+            tag: "VariableDeclaration",
+            kind: x[2],
+            id: x[4]
+        }))
+    );
+}
+
+export function FunctionDeclaration([ty, s1, f, s2, args, annos, s3, def]: [
+    ast.Type,
     any,
     ast.Identifier,
     any,
-    any,
+    ast.VariableDeclarationOnly[],
     parsed.Anno[],
     any,
-    [Token | parsed.Statement]
-]): string | parsed.Statement {
-    // This is quite inelegant Typescript
-    if ((def[0] as Token).value === ";") return `define function ${f.name}`;
-    return def[0] as parsed.Statement;
+    null | parsed.BlockStatement
+]): parsed.FunctionDeclaration {
+    return {
+        tag: "FunctionDeclaration",
+        returns: ty,
+        id: f,
+        params: args,
+        annos: annos,
+        body: def
+    };
 }

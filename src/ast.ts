@@ -16,6 +16,8 @@
  *  - The placement restrictions on requires, ensures, loop_invariant, and assert contracts are
  *    expressed. These are properties of static semantics in the spec, see C0.23, "@requires and @ensures can
  *    only annotate functions," etc.
+ *  - Arbitrary pragmas are accepted (this matches the actual behavior of the C0 compiler, which only warns on
+ *    unknown pragmas)
  *
  * Loosely based on Esprima, with the notable and stubborn distinction of using "tag" instead of "type."
  * Esprima Spec: https://esprima.readthedocs.io/en/latest/syntax-tree-format.html
@@ -39,7 +41,56 @@ export interface SourceLocation {
     readonly source?: string | null;
 }
 
-export type Type = null;
+export interface Identifier extends Syn {
+    readonly tag: "Identifier";
+    readonly name: string;
+}
+
+export type Type =
+    | IntType
+    | BoolType
+    | StringType
+    | CharType
+    | VoidType
+    | PointerType
+    | ArrayType
+    | StructType
+    | Identifier;
+
+export interface IntType extends Syn {
+    readonly tag: "IntType";
+}
+
+export interface BoolType extends Syn {
+    readonly tag: "BoolType";
+}
+
+export interface StringType extends Syn {
+    readonly tag: "StringType";
+}
+
+export interface CharType extends Syn {
+    readonly tag: "CharType";
+}
+
+export interface VoidType extends Syn {
+    readonly tag: "VoidType";
+}
+
+export interface PointerType extends Syn {
+    readonly tag: "PointerType";
+    readonly argument: Type;
+}
+
+export interface ArrayType extends Syn {
+    readonly tag: "ArrayType";
+    readonly argument: Type;
+}
+
+export interface StructType extends Syn {
+    readonly tag: "StructType";
+    readonly id: Identifier;
+}
 
 export type Expression =
     | Identifier
@@ -62,11 +113,6 @@ export type Expression =
     | ResultExpression
     | LengthExpression
     | HasTagExpression;
-
-export interface Identifier extends Syn {
-    readonly tag: "Identifier";
-    readonly name: string;
-}
 
 export interface IntLiteral extends Syn {
     readonly tag: "IntLiteral";
@@ -270,9 +316,6 @@ export type Statement =
     | ErrorStatement
     | BreakStatement
     | ContinueStatement;
-/*
-export type Statement = SimpleStatement | VariableDeclaration | ConditionalStatement | WhileStatement | ForStatement | ReturnStatement | BlockStatement | AssertStatement | ErrorStatement;
-*/
 
 export interface AssignmentStatement extends Syn {
     readonly tag: "AssignmentStatement";
@@ -349,4 +392,47 @@ export interface BreakStatement extends Syn {
 
 export interface ContinueStatement extends Syn {
     readonly tag: "ContinueStatement";
+}
+
+export type Declaration =
+    | StructDeclaration
+    | FunctionDeclaration
+    | TypeDefinition
+    | FunctionTypeDefinition
+    | Pragma;
+
+export interface StructDeclaration {
+    readonly tag: "StructDeclaration";
+    readonly id: Identifier;
+    readonly definitions: VariableDeclarationOnly[];
+}
+
+export interface VariableDeclarationOnly extends Syn {
+    readonly kind: Type;
+    readonly id: Identifier;
+}
+
+export interface FunctionDeclaration {
+    readonly tag: "FunctionDeclaration";
+    readonly returns: Type;
+    readonly id: Identifier;
+    readonly params: VariableDeclarationOnly[];
+    readonly preconditions: Expression[];
+    readonly postconditions: Expression[];
+    readonly body: null | BlockStatement;
+}
+
+export interface TypeDefinition {
+    readonly tag: "TypeDefinition";
+    readonly definition: VariableDeclarationOnly;
+}
+
+export interface FunctionTypeDefinition {
+    readonly tag: "FunctionTypeDefinition";
+    readonly definition: FunctionDeclaration;
+}
+
+export interface Pragma {
+    readonly pragma: string;
+    readonly contents: string;
 }

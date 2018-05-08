@@ -1,7 +1,7 @@
 import { List, Set } from "immutable";
 import { TypeLexer } from "./lex";
 import { Grammar, Parser } from "nearley";
-import { restrictStatement, restrictExpression } from "./restrictsyntax";
+import { restrictStatement, restrictExpression, restrictDeclaration } from "./restrictsyntax";
 import { Lang } from "./lang";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
@@ -30,11 +30,11 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
     return restrictStatement;
 }
 
-export function parseProgramRaw(str: string): List<string | parsed.Statement> {
+export function parseProgramRaw(str: string): List<string | parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = (parser.lexer = new TypeLexer());
     const segments = str.split(";");
-    let decls: List<string | parsed.Statement> = List<any>();
+    let decls: List<string | parsed.Declaration> = List<string | parsed.Declaration>();
     segments.forEach((segment, index) => {
         parser.feed(segment);
         const parsed = parser.finish();
@@ -70,10 +70,10 @@ export function parseProgramRaw(str: string): List<string | parsed.Statement> {
     return decls;
 }
 
-export function parseProgram(lang: Lang, str: string): List<string | ast.Statement> {
+export function parseProgram(lang: Lang, str: string): List<string | ast.Declaration> {
     return parseProgramRaw(str).map(decl => {
         if (typeof decl === "string") return decl;
         if (decl instanceof Array) return decl[0] as string;
-        return restrictStatement(lang, decl);
+        return restrictDeclaration(lang, decl);
     });
 }

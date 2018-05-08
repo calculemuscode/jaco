@@ -3,18 +3,15 @@
         "target": "es6",
         "moduleResolution": "node",
         "declaration": true,
-        "sourceMap": true,
         "outDir": "lib",
+        "module": "commonjs",
+        "sourceMap": true,
+
         "strict": true,
-        "noImplicitAny": true,
-        "noImplicitThis": true,
-        "noImplicitReturns": true,
-        "noUnusedLocals": true,
-        "strictNullChecks": true,
         "allowUnreachableCode": false,
         "allowUnusedLabels": false,
-        "module": "commonjs",
-        "sourceMap": true
+        "noImplicitReturns": true,
+        "noUnusedLocals": true
     },
     "include": ["src/**/*.ts"]
 }

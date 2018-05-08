@@ -3,8 +3,47 @@ import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 import { impossible } from "@calculemus/impossible";
 
-export function restrictType(lang: Lang, syn: parsed.Type): ast.Type {
-    return null;
+export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
+    switch (syn.tag) {
+        case "IntType":
+            return syn;
+        case "BoolType":
+            if (lang === "L1") throw new Error(`The type 'bool' is not a part of ${lang}`);
+            return syn;
+        case "StringType":
+            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
+                throw new Error(`The type 'string' is not a part of ${lang}`);
+            return syn;
+        case "CharType":
+            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
+                throw new Error(`The type 'char' is not a part of ${lang}`);
+        case "VoidType":
+            if (lang === "L1") throw new Error(`The type 'void' is not a part of ${lang}`);
+            return syn;
+        case "PointerType":
+            if (lang === "L1" || lang === "L2" || lang === "L3")
+                throw new Error(`Pointer types are not a part of ${lang}`);
+            return {
+                tag: "PointerType",
+                argument: restrictType(lang, syn.argument)
+            };
+        case "ArrayType":
+            if (lang === "L1" || lang === "L2" || lang === "L3")
+                throw new Error(`Array types are not a part of ${lang}`);
+            return {
+                tag: "ArrayType",
+                argument: restrictType(lang, syn.argument)
+            };
+        case "StructType":
+            if (lang === "L1" || lang === "L2" || lang === "L3")
+                throw new Error(`Struct types are not a part of ${lang}`);
+            return syn;
+        case "Identifier":
+            if (lang === "L1" || lang === "L2") throw new Error(`Defined types are not a part of ${lang}`);
+            return syn;
+        default:
+            return impossible(syn);
+    }
 }
 
 export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expression {
@@ -389,9 +428,9 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
             if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
             return {
                 tag: "WhileStatement",
-                invariants: restrictLoopInvariants(lang, syn.body[0]),
+                invariants: restrictLoopInvariants(lang, syn.annos),
                 test: restrictExpression(lang, syn.test),
-                body: restrictStatement(lang, syn.body[1])
+                body: restrictStatement(lang, syn.body)
             };
         }
         case "ForStatement": {
@@ -439,11 +478,11 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
 
             return {
                 tag: "ForStatement",
-                invariants: restrictLoopInvariants(lang, syn.body[0]),
+                invariants: restrictLoopInvariants(lang, syn.annos),
                 init: init,
                 test: restrictExpression(lang, syn.test),
                 update: update,
-                body: restrictStatement(lang, syn.body[1])
+                body: restrictStatement(lang, syn.body)
             };
         }
         case "ReturnStatement": {
@@ -493,4 +532,52 @@ function restrictLoopInvariants(lang: Lang, annos: parsed.Anno[]): ast.Expressio
             throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
         return restrictExpression(lang, x.test);
     });
+}
+
+function restrictFunctionAnnos(
+    lang: Lang,
+    annos: parsed.Anno[]
+): { pre: ast.Expression[]; post: ast.Expression[] } {
+    const preconditions: ast.Expression[] = [];
+    const postconditions: ast.Expression[] = [];
+    annos.map(x => {
+        if (x.tag === "requires") {
+            preconditions.push(restrictExpression(lang, x.test));
+        } else if (x.tag === "ensures") {
+            postconditions.push(restrictExpression(lang, x.test));
+        } else {
+            throw new Error(
+                `The only annotations allowed are requires and ensures, ${x.tag} is not permitted`
+            );
+        }
+    });
+    return { pre: preconditions, post: postconditions };
+}
+
+export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | string): string | ast.Declaration {
+    if (typeof decl === "string") return decl;
+    switch (decl.tag) {
+        case "FunctionDeclaration": {
+            const annos = restrictFunctionAnnos(lang, decl.annos);
+            return {
+                tag: "FunctionDeclaration",
+                returns: restrictType(lang, decl.returns),
+                id: decl.id,
+                params: decl.params,
+                preconditions: annos.pre,
+                postconditions: annos.post,
+                body:
+                    decl.body === null
+                        ? null
+                        : {
+                              tag: "BlockStatement",
+                              body: decl.body.body.map(x => restrictStatement(lang, x))
+                          }
+            };
+        }
+        case "BlockStatement":
+            throw new Error("Fake case");
+        default:
+            return impossible(decl);
+    }
 }
