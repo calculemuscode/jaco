@@ -433,6 +433,7 @@ export interface FunctionTypeDefinition {
 }
 
 export interface Pragma {
+    readonly tag: "Pragma";
     readonly pragma: string;
     readonly contents: string;
 }
