@@ -90,10 +90,11 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
             if (syn.raw.startsWith("0x") || syn.raw.startsWith("0X")) {
                 const hex = syn.raw.substring(2);
                 if (hex.length > 8) throw new Error(`Hex constant too large: ${syn.raw}`);
+                const value = parseInt(hex, 16);
                 return {
                     tag: "IntLiteral",
                     raw: syn.raw,
-                    value: parseInt(hex, 16)
+                    value: value < 0x8000000 ? value : value - 0x100000000
                 };
             } else {
                 if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
