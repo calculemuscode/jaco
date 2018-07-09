@@ -38,12 +38,9 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
     }
 
     if (specs.length === 0) throw new Error(`No test spec found`);
+    /* istanbul ignore next */
     if (specs.length > 1) {
-        console.log(specs);
-        console.log(specs.length);
-        console.log(specs[0]);
-        console.log(specs[1]);
-        throw new Error(`Test spec parsing ambiguous`);
+        throw new Error(`Test spec parsing ambiguous (should be impossible, please report)`);
     }
 
     return specs[0][0].map((spec: any) => {
@@ -51,8 +48,6 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
             switch (cond) {
                 case "return": {
                     const retVal = (spec[3][2] ? "-" : "") + spec[3][3].join("");
-                    console.log(spec[3]);
-                    console.log(retVal);
                     return [parseInt(retVal), `return ${retVal}`];
                 }
                 case "error_parse":

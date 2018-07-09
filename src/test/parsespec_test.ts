@@ -20,6 +20,10 @@ describe("The spec parser", () => {
         expect(() => parseSpec("C0", "//test error\n// blah")).to.throw();
     });
 
+    it("Should reject garbage commands", () => {
+        expect(() => parseSpec("C0", "//test win\n")).to.throw();
+    })
+
     it("Should capture return conditions as numbers", () => {
         expect(parseSpec("C0", "//test return 4\n")[0].key).to.equal(4);
         expect(parseSpec("C0", "//test return 0\n")[0].key).to.equal(0);
