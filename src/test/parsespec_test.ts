@@ -3,34 +3,35 @@ import "mocha";
 import { parseSpec } from "./parsespec";
 
 describe("The spec parser", () => {
-    it("Should accept all line formats", () => {
+    it("should accept all line formats", () => {
         expect(parseSpec("C0", "//test error\n").length).to.equal(1);
         expect(parseSpec("C0", "//test error\r").length).to.equal(1);
         expect(parseSpec("C0", "//test error\r\n").length).to.equal(1);
         expect(parseSpec("C0", "//test error\n\r").length).to.equal(1);
     });
 
-    it("Should accept empty input", () => {
+    it("should accept empty input", () => {
         expect(parseSpec("C0", "").length).to.equal(0);
     });
 
-    it("Should reject without newliens", () => {
+    it("should reject without newliens", () => {
         expect(() => parseSpec("C0", "//test error")).to.throw();
         expect(() => parseSpec("C0", "//test error\n//test error")).to.throw();
         expect(() => parseSpec("C0", "//test error\n// blah")).to.throw();
     });
 
-    it("Should reject garbage commands", () => {
+    it("should reject garbage commands", () => {
         expect(() => parseSpec("C0", "//test win\n")).to.throw();
+        expect(() => parseSpec("C0", "//test nonsense\n")).to.throw();
     })
 
-    it("Should capture return conditions as numbers", () => {
+    it("should capture return conditions as numbers", () => {
         expect(parseSpec("C0", "//test return 4\n")[0].key).to.equal(4);
         expect(parseSpec("C0", "//test return 0\n")[0].key).to.equal(0);
         expect(parseSpec("C0", "//test return -123\n")[0].key).to.equal(-123);
     });
 
-    it("Should capture non-return conditions as strings", () => {
+    it("should capture non-return conditions as strings", () => {
         expect(parseSpec("C0", "//test error_parse\n")[0].key).to.equal("error_parse");
         expect(parseSpec("C0", "//test error_typecheck\n")[0].key).to.equal("error_typecheck");
         expect(parseSpec("C0", "//test error_static\n")[0].key).to.equal("error_static");
@@ -44,4 +45,37 @@ describe("The spec parser", () => {
         expect(parseSpec("C0", "//test memerror\n")[0].key).to.equal("memerror");
         expect(parseSpec("C0", "//test typecheck\n")[0].key).to.equal("typecheck");
     });
+
+    it("has correct defaults without flags", () => {
+        expect(parseSpec("C0", "//test return 4\n")[0].lang).to.equal("C0");
+        expect(parseSpec("L2", "//test return 4\n")[0].lang).to.equal("L2");
+        expect(parseSpec("C0", "//test return 4\n")[0].debug).to.equal(false);
+        expect(parseSpec("C0", "//test return 4\n")[0].purity).to.equal(true);
+        expect(parseSpec("C0", "//test return 4\n")[0].libs).to.deep.equal([]);
+    });
+
+    it("has correct results with flags", () => {
+        expect(parseSpec("C0", "//test --standard=L1 => return 4\n")[0].key).to.equal(4);
+        expect(parseSpec("C0", "//test --standard=L1 => error\n")[0].key).to.equal("error");
+        expect(parseSpec("C0", "//test --standard=L1 => return 4\n")[0].lang).to.equal("L1");
+        expect(parseSpec("C0", "//test --standard=l2 => return 4\n")[0].lang).to.equal("L2");
+        expect(parseSpec("C0", "//test --standard=L3 => return 4\n")[0].lang).to.equal("L3");
+        expect(parseSpec("C0", "//test --standard=l4 => return 4\n")[0].lang).to.equal("L4");
+        expect(parseSpec("C0", "//test --standard=C0 => return 4\n")[0].lang).to.equal("C0");
+        expect(parseSpec("C0", "//test --standard=c1 => return 4\n")[0].lang).to.equal("C1");
+        expect(parseSpec("C0", "//test -d => return 4\n")[0].debug).to.equal(true);
+        expect(parseSpec("C0", "//test --no-purity-check => return 4\n")[0].purity).to.equal(false);
+        expect(parseSpec("C0", "//test -lfoo => return 4\n")[0].libs).to.deep.equal(["foo"]);
+        expect(parseSpec("C0", "//test -lfoo -d -lbar => return 4\n")[0].libs).to.deep.equal(["foo", "bar"]);
+        expect(parseSpec("C0", "//test -lfoo -d -lbar => return 4\n")[0].debug).to.equal(true);
+    })
+
+    it("should reject redundant or conflicting flags", () => {
+        expect(() => parseSpec("C0", "//test -lfoo -lfoo => error\n")).to.throw();
+        expect(() => parseSpec("C0", "//test -lfoo -d -lfoo => error\n")).to.throw();
+        expect(() => parseSpec("C0", "//test -d -d => error\n")).to.throw();
+        expect(() => parseSpec("C0", "//test --no-purity-check --no-purity-check => error\n")).to.throw();
+        expect(() => parseSpec("C0", "//test --standard=c0 --standard=c0 => error\n")).to.throw();
+        expect(() => parseSpec("C0", "//test --standard=c0 --standard=c1 => error\n")).to.throw();
+    })
 });

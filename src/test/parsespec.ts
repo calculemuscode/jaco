@@ -2,7 +2,8 @@
  * Parse spec according to the grammar in tests/README.md
  */
 
- import Lang from "../lang";
+import Lang, { parse as parseLang } from "../lang";
+import { Set } from "immutable";
 import { Parser, Grammar } from "nearley";
 const testSpecRules = require("../../lib/test/spec-rules");
 
@@ -74,18 +75,49 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                     return [cond, "fail an assertion at runtime"];
                 case "typecheck":
                     return [cond, "successfully typecheck"];
+                /* istanbul ignore next */    
                 default:
-                    throw new Error(`Unexpected condition ${cond}`);
+                    throw new Error(`Unexpected condition ${cond} (should be impossible, please report)`);
             }
         })(spec[3][0]);
+
+        let debug = false;
+        let purity = true;
+        let libs: string[] = [];
+        let libSet: Set<string> = Set();
+        let lang: Lang | null = null;
+
+        const flags = spec[1] ? spec[1][1] : [];
+        flags.forEach((flag: any) => {
+            if (flag[0][0] === "-l") {
+                const lib = flag[0][1].join("");
+                if (libSet.has(lib)) throw new Error(`-l${lib} declared twice`);
+                libs.push(lib);
+                libSet = libSet.add(lib);
+            } else if (flag[0][0] === "-d") {
+                if (debug) throw new Error(`-d declared twice`);
+                debug = true;
+            } else if (flag[0][0] === "--no-purity-check") {
+                if (!purity) throw new Error(`--no-purity-check declared twice`)
+                purity = false;
+            } else if (flag[0][0] === "--standard") {
+                const std = flag[0][4].join("");
+                if (lang !== null) throw new Error(`Multiple language standards ${lang} and ${std}`);
+                lang = parseLang(std);
+                /* istanbul ignore next */
+                if (lang === null) throw new Error(`Unknown language standard ${std} (should be impossible, please report)`);
+            } /* istanbul ignore next */ else {
+                throw new Error(`Unknown directive ${flag[0][0]} (should be impossible, please report)`)
+            }
+        })
 
         return {
             key: outcome[0],
             description: outcome[1],
-            debug: false,
-            purity: true,
-            libs: [],
-            lang: defaultLang
+            debug: debug,
+            purity: purity,
+            libs: libs,
+            lang: lang ? lang : defaultLang
         };
     });
 }
