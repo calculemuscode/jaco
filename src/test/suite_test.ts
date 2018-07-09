@@ -4,7 +4,7 @@ import { join, extname } from "path";
 import { coreLexer as lexer } from "../lex";
 import { Parser, Grammar } from "nearley";
 import { parseProgram } from "../parse";
-import { Lang } from "../lang";
+import Lang from "../lang";
 import "mocha";
 const testSpecRules = require("../../lib/test/spec-rules");
 
@@ -18,14 +18,17 @@ function testfile(lang: Lang, filepath: string) {
         const specParser = new Parser(Grammar.fromCompiled(testSpecRules));
         specParser.feed(spec[0]);
         specs = specParser.finish();
-    } catch (e) {
-        throw new Error(`Error parsing test spec for ${filepath}`);
+    } catch (err) {
+        throw new Error(`Error parsing test spec for ${filepath}:\n${err}`);
     }
     if (specs.length === 0) throw new Error(`Could not parse test spec in ${filepath}`);
-    if (specs.length > 1) throw new Error(`Test spec parsing ambiguous in ${filepath}`);
+    if (specs.length > 1) {
+        throw new Error(`Test spec parsing ambiguous in ${filepath}`);
+    }
 
     specs[0][0].forEach((spec: any) => {
         const flags = spec[1] !== null ? spec[1][1] : null;
+        console.log(flags);
         let condition = spec[3][0];
 
         // Parse condition statement
@@ -105,7 +108,8 @@ function testfile(lang: Lang, filepath: string) {
 }
 
 const dir = "./tests";
-readdirSync(dir).forEach(subdir => {
+//readdirSync(dir)
+["coverage"].forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {
             readdirSync(join(dir, subdir)).forEach(file => {

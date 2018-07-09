@@ -1,4 +1,4 @@
-import { Lang } from "./lang";
+import Lang from "./lang";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 import { impossible } from "@calculemus/impossible";
@@ -94,7 +94,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 return {
                     tag: "IntLiteral",
                     raw: syn.raw,
-                    value: value < 0x8000000 ? value : value - 0x100000000
+                    value: value < 0x80000000 ? value : value - 0x100000000
                 };
             } else {
                 if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
@@ -103,7 +103,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 return {
                     tag: "IntLiteral",
                     raw: syn.raw,
-                    value: dec
+                    value: dec < 2147483648 ? dec : -2147483648
                 };
             }
         case "ArrayMemberExpression": {

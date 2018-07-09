@@ -6,6 +6,7 @@ import { Set } from "immutable";
  * the point we can clearly enumerate all files that will _not_ be accepted by the lexer? This would also
  * facilitate.
  *
+ * Desired spec:
  * All UTF-8 strings should lex, unless they:
  *  1. Contain non-printable characters.
  *  2. Contain the character ` outside of a string/char/comment.
@@ -114,8 +115,8 @@ export const coreLexer: Lexer = states(
 
 export class TypeLexer {
     private typeIds = Set<string>();
-    constructor(typeIds?: Set<string>) {
-        this.typeIds = typeIds ? typeIds : Set();
+    constructor(typeIds: Set<string>) {
+        this.typeIds = typeIds;
     }
     addIdentifier(typeIdentifier: string) {
         this.typeIds = this.typeIds.add(typeIdentifier);
@@ -146,4 +147,4 @@ export class TypeLexer {
     }
 }
 
-export const lexer = new TypeLexer();
+export const lexer = new TypeLexer(Set());

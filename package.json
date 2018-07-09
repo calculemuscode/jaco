@@ -1,6 +1,6 @@
 {
     "name": "@calculemus/jaco",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "description": "JavaScript C0 Parser & Tools",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -18,7 +18,7 @@
         "build": "npm run tsc",
         "prepublishOnly": "npm run build",
         "pretest": "tsc",
-        "test": "nyc mocha -r ts-node/register src/**/test/*.ts",
+        "test": "nyc mocha -r ts-node/register src/**/*_test.ts",
         "coveralls": "nyc report --reporter=text-lcov | coveralls"
     },
     "author": "Calculemus LLC",
@@ -60,7 +60,7 @@
         ],
         "exclude": [
             "src/**/*.d.ts",
-            "src/**/test/**/*.ts"
+            "src/**/*_test.ts"
         ],
         "extension": [
             ".ts"

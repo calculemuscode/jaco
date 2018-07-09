@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import { TypeLexer } from "./lex";
 import { Grammar, Parser } from "nearley";
 import { restrictStatement, restrictExpression, restrictDeclaration } from "./restrictsyntax";
-import { Lang } from "./lang";
+import Lang from "./lang";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 const expressionRules = require("../lib/expression-rules");
@@ -11,7 +11,7 @@ const programRules = require("../lib/program-rules");
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(expressionRules));
-    parser.lexer = new TypeLexer(opt.types);
+    parser.lexer = new TypeLexer(opt.types || Set());
     parser.feed(str);
     const parsed: parsed.Expression[] = parser.finish();
     if (parsed.length > 1) {
@@ -24,7 +24,7 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
 }
 
 export function parseStatement(str: string, options?: { types?: Set<string>; lang: Lang }) {
-    programRules.lexer = new TypeLexer(options ? options.types : undefined);
+    programRules.lexer = new TypeLexer(options && options.types ? options.types : Set<string>());
     const parser = new Parser(Grammar.fromCompiled(programRules));
     parser.feed(str);
     return restrictStatement;
@@ -32,7 +32,7 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 
 export function parseProgramRaw(str: string): List<string | parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = (parser.lexer = new TypeLexer());
+    const lexer: TypeLexer = (parser.lexer = new TypeLexer(Set()));
     const segments = str.split(";");
     let decls: List<string | parsed.Declaration> = List<string | parsed.Declaration>();
     segments.forEach((segment, index) => {
@@ -41,7 +41,9 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
         if (parsed.length > 1) {
             console.log(JSON.stringify(parsed[0]));
             console.log(JSON.stringify(parsed[parsed.length - 1]));
-            throw new Error(`Parse ambiguous (${parsed.length} parses)`);
+            throw new Error(
+                `Internal error, parse ambiguous (${parsed.length} parses) (this should not happen)`
+            );
         } else if (parsed.length === 0) {
             if (index === segments.length - 1) {
                 throw new Error("Incomplete parse at the end of the file");
