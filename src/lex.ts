@@ -52,7 +52,8 @@ const basicLexing = {
     space: "<placeholder>"
 };
 
-export const coreLexer: Lexer = states(
+export function createCoreLexer(): Lexer {
+    return states(
     {
         main: Object.assign(
             {
@@ -111,20 +112,28 @@ export const coreLexer: Lexer = states(
         }
     },
     "main"
-);
+    );
+}
 
 export class TypeLexer {
-    private typeIds = Set<string>();
-    constructor(typeIds: Set<string>) {
+    private typeIds: Set<string>;
+    private coreLexer: Lexer;
+    private parsePragma: (pragma: string) => Set<string>;
+    constructor(typeIds: Set<string>, parsePragma?: (pragma: string) => Set<string>) {
         this.typeIds = typeIds;
+        this.coreLexer = createCoreLexer();
+        this.parsePragma = parsePragma || (() => Set());
     }
     addIdentifier(typeIdentifier: string) {
         this.typeIds = this.typeIds.add(typeIdentifier);
     }
     next(): Token | undefined {
-        const tok = coreLexer.next();
+        const tok = this.coreLexer.next();
         if (!tok) return undefined;
-        else if (tok["type"] === "identifier" && this.typeIds.has(tok.value)) {
+        else if (tok["type"] === "pragma") {
+            this.typeIds = this.typeIds.union(this.parsePragma(tok.text));
+            return tok;
+        } else if (tok["type"] === "identifier" && this.typeIds.has(tok.value)) {
             tok["type"] = "type_identifier";
             return tok;
         } else if (tok["type"] === "identifier") {
@@ -134,16 +143,16 @@ export class TypeLexer {
         }
     }
     save(): LexerState {
-        return coreLexer.save();
+        return this.coreLexer.save();
     }
     reset(chunk?: string, state?: LexerState): void {
-        coreLexer.reset(chunk, state);
+        this.coreLexer.reset(chunk, state);
     }
     formatError(token: Token, message?: string): string {
-        return coreLexer.formatError(token, message);
+        return this.coreLexer.formatError(token, message);
     }
     has(tokenType: string): boolean {
-        return coreLexer.has(tokenType);
+        return this.coreLexer.has(tokenType);
     }
 }
 
