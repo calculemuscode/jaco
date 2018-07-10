@@ -20,7 +20,7 @@ export type Outcome =
     | "abort"
     | "typecheck";
 export interface Spec {
-    key: Outcome;
+    outcome: Outcome;
     description: string;
     debug: boolean;
     purity: boolean;
@@ -68,7 +68,7 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                 case "segfault":
                     return ["memerror", "throw an memory access error at runtime"];
                 case "memerror":
-                    return ["memerror", "throw an memory access error at runtime"];
+                    return [cond, "throw an memory access error at runtime"];
                 case "infloop":
                     return [cond, "never terminate"];
                 case "abort":
@@ -89,30 +89,41 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
 
         const flags = spec[1] ? spec[1][1] : [];
         flags.forEach((flag: any) => {
-            if (flag[0][0] === "-l") {
-                const lib = flag[0][1].join("");
-                if (libSet.has(lib)) throw new Error(`-l${lib} declared twice`);
-                libs.push(lib);
-                libSet = libSet.add(lib);
-            } else if (flag[0][0] === "-d") {
-                if (debug) throw new Error(`-d declared twice`);
-                debug = true;
-            } else if (flag[0][0] === "--no-purity-check") {
-                if (!purity) throw new Error(`--no-purity-check declared twice`)
-                purity = false;
-            } else if (flag[0][0] === "--standard") {
-                const std = flag[0][4].join("");
-                if (lang !== null) throw new Error(`Multiple language standards ${lang} and ${std}`);
-                lang = parseLang(std);
+            switch (flag[0][0]) {
+                case "-l": {
+                    const lib = flag[0][1].join("");
+                    if (libSet.has(lib)) throw new Error(`-l${lib} declared twice`);
+                    libs.push(lib);
+                    libSet = libSet.add(lib);
+                    break;
+                }
+                case "-d": {
+                    if (debug) throw new Error(`-d declared twice`);
+                    debug = true;
+                    break;
+                }
+                case "--no-purity-check": {
+                    if (!purity) throw new Error(`--no-purity-check declared twice`)
+                    purity = false;
+                    break;
+                }
+                case "--standard": {
+                    const std = flag[0][4].join("");
+                    if (lang !== null) throw new Error(`Multiple language standards ${lang} and ${std}`);
+                    lang = parseLang(std);
+                    /* istanbul ignore next */
+                    if (lang === null) throw new Error(`Unknown language standard ${std} (should be impossible, please report)`);
+                    break;
+                }
                 /* istanbul ignore next */
-                if (lang === null) throw new Error(`Unknown language standard ${std} (should be impossible, please report)`);
-            } /* istanbul ignore next */ else {
-                throw new Error(`Unknown directive ${flag[0][0]} (should be impossible, please report)`)
+                default: {
+                    throw new Error(`Unknown directive ${flag[0][0]} (should be impossible, please report)`)
+                }
             }
         })
 
         return {
-            key: outcome[0],
+            outcome: outcome[0],
             description: outcome[1],
             debug: debug,
             purity: purity,

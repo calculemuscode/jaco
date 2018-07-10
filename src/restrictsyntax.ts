@@ -81,9 +81,11 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
         }
         case "BoolLiteral":
             if (lang === "L1") throw new Error(`Boolean literals 'true' and 'false' are not part of ${lang}`);
+            return { tag: "BoolLiteral", value: syn.value };
         case "NullLiteral":
             if (lang === "L1" || lang === "L2" || lang === "L3")
                 throw new Error(`'NULL' is not a part of ${lang}`);
+            return { tag: "NullLiteral" };
         case "Identifier":
             return syn;
         case "IntLiteral":
