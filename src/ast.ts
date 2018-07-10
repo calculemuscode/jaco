@@ -408,6 +408,7 @@ export interface StructDeclaration {
 }
 
 export interface VariableDeclarationOnly extends Syn {
+    readonly tag: "VariableDeclaration";
     readonly kind: Type;
     readonly id: Identifier;
 }

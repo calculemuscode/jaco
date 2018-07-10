@@ -18,7 +18,7 @@ export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
                 throw new Error(`The type 'char' is not a part of ${lang}`);
         case "VoidType":
-            if (lang === "L1") throw new Error(`The type 'void' is not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2") throw new Error(`The type 'void' is not a part of ${lang}`);
             return syn;
         case "PointerType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
@@ -557,6 +557,14 @@ function restrictFunctionAnnos(
     return { pre: preconditions, post: postconditions };
 }
 
+export function restrictParams(lang: Lang, params: ast.VariableDeclarationOnly[]): ast.VariableDeclarationOnly[] {
+    return params.map(param => ({
+        tag: param.tag,
+        kind: restrictType(lang, param.kind),
+        id: param.id
+    }))
+}
+
 export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | string): string | ast.Declaration {
     if (typeof decl === "string") return decl;
     switch (decl.tag) {
@@ -566,7 +574,7 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | strin
                 tag: "FunctionDeclaration",
                 returns: restrictType(lang, decl.returns),
                 id: decl.id,
-                params: decl.params,
+                params: restrictParams(lang, decl.params),
                 preconditions: annos.pre,
                 postconditions: annos.post,
                 body:
