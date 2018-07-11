@@ -1,8 +1,8 @@
 import * as ast from "./ast";
 import { Map, List } from "immutable";
 import { impossible } from "@calculemus/impossible";
+import { GlobalEnv, expandTypeDef } from "./typecheck/globalenv";
 
-type GlobalEnv = ast.Declaration[];
 type Env = Map<string, ast.Type>;
 type mode =
     | null
@@ -14,18 +14,6 @@ type mode =
 function error(s1: string, s2?: string): never {
     if (s2 === undefined) throw new Error(s1);
     throw new Error(`${s1}\n[Hint: ${s2}]`);
-}
-
-function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.Type {
-    let s: ast.Type | undefined = undefined as ast.Type | undefined;
-    /* instanbul ignore if */
-    if (s === undefined) {
-        throw new Error(`Could not lookup ${s} (this should be impossible, please report)`);
-    } else if (s.tag === "Identifier") {
-        return expandTypeDef(genv, s);
-    } else {
-        return s;
-    }
 }
 
 function checkTypeIsNotVoid(genv: GlobalEnv, t: ast.Type): void {
