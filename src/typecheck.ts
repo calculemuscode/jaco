@@ -41,13 +41,27 @@ function checkTypeIsNotVoid(genv: GlobalEnv, t: ast.Type): void {
     }
 }
 
-function checkTypeInDeclaration(genv: GlobalEnv, t: ast.Type, isFunctionArg?: boolean) {
-    switch (t.tag) {
+/** Asserts type mentioned in variable declaration or function argument has small type */
+function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunctionArg?: boolean): void {
+    if (tp.tag === "Identifier") tp = expandTypeDef(genv, tp);
+    switch (tp.tag) {
         case "StructType": {
-            error(`type struct ${t.id.name} not small`,
+            error(`type struct ${tp.id.name} not small`,
             isFunctionArg ? "cannot pass structs to or from functions; use pointers": "cannot store structs as locals; use pointers")
         }
-        default: return checkTypeIsNotVoid(genv, t);
+        default: return checkTypeIsNotVoid(genv, tp);
+    }
+}
+
+/** Asserts that a synthesized type has small type */
+function synthSmallExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Expression, place: string): Synthed {
+    let tp = synthExpression(genv, env, mode, exp);
+    if (tp.tag === "Identifier") tp = expandTypeDef(genv, tp);
+    switch (tp.tag) {
+        case "StructType": {
+            return error(`expression has struct type`, `a ${place} cannot contain structs; consider using pointers`); // todo name type
+        }
+        default: return tp;
     }
 }
 
@@ -236,6 +250,7 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
     }
 }
 
+
 function checkExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Expression, tp: ast.Type): void {
     const synthed = synthExpression(genv, env, mode, exp);
     if (!isSubtype(genv, synthed, tp)) {
@@ -246,6 +261,26 @@ function checkExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
 function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], returning: ast.Type | null, inLoop: boolean) {
     stms.reduce((env, stm) => {
         switch (stm.tag) {
+            case "AssignmentStatement": {
+                const left = synthExpression(genv, env, null, stm.left);
+                const right = synthSmallExpression(genv, env, null, stm.right, "assignment statement");
+                /* istanbul ignore if */
+                if (left.tag === "AmbiguousPointer") {
+                    throw new Error("LValue cannot have ambiguous pointer type (should be impossible, please report)")
+                } else if (!isSubtype(genv, right, left)) {
+                    return error("sides of assignment have different type"); // TODO: types
+                } else {
+                    return env;
+                }
+            }
+            case "UpdateStatement": {
+                checkExpression(genv, env, null, stm.argument, { tag: "IntType" });
+                return env;
+            }
+            case "ExpressionStatement": {
+                synthExpression(genv, env, null, stm.expression);
+                return env;
+            }
             case "VariableDeclaration": {
                 checkTypeInDeclaration(genv, stm.kind);
                 if (env.has(stm.id.name)) {
@@ -254,6 +289,26 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
                     checkExpression(genv, env, null, stm.init, stm.kind);
                 }
                 return env.set(stm.id.name, stm.kind);
+            }
+            case "IfStatement": {
+                checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
+                checkStatements(genv, env, [stm.consequent], returning, inLoop);
+                if (stm.alternate) checkStatements(genv, env, [stm.alternate], returning, inLoop);
+                return env;
+            }
+            case "WhileStatement": {
+                checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
+                stm.invariants.forEach(anno => checkExpression(genv, env, { tag: "@loop_invariant" }, anno, {tag: "BoolType"}));
+                checkStatements(genv, env, [stm.body], returning, true);
+                return env;
+            }
+            case "ForStatement": {
+                // xxx fix
+                const env0 = stm.init ? checkStatements(genv, env, [stm.init], null, false) : env;
+                env0;
+                checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
+                // XXX FIISH
+                return env;
             }
             case "ReturnStatement": {
                 if (returning === null) {
@@ -271,6 +326,7 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
                 }
             }
             default: {
+                stm;
                 return env;
             }
         }
