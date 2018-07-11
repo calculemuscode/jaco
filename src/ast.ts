@@ -401,6 +401,14 @@ export type Declaration =
     | FunctionTypeDefinition
     | Pragma;
 
+/**
+ * Struct definitions must have 1 or more definitions.
+ * `struct id {};`
+ * is not allowed.
+ * 
+ * If definitions.length === 0, this represents a struct declaration
+ * `struct id;`
+ */
 export interface StructDeclaration {
     readonly tag: "StructDeclaration";
     readonly id: Identifier;

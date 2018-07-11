@@ -622,6 +622,54 @@ export function FunctionDeclarationArgs([l, s1, params, r]: [
     );
 }
 
+export function StructDeclaration([struct, s1, s, s2, semi]: [
+    any,
+    any,
+    ast.Identifier,
+    any,
+    any
+]): ast.StructDeclaration {
+    return {
+        tag: "StructDeclaration",
+        id: s,
+        definitions: []
+    }
+}
+
+export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: [
+    any,
+    any,
+    ast.Identifier,
+    any,
+    any,
+    any,
+    [ast.Type, any, ast.Identifier, any, any, any][],
+    any,
+    any,
+    any
+]): ast.StructDeclaration {
+    return {
+        tag: "StructDeclaration",
+        id: s,
+        definitions: defs.map((value): ast.VariableDeclarationOnly => ({
+            tag: "VariableDeclaration",
+            id: value[2],
+            kind: value[0]
+        }))
+    }
+}
+
+export function TypeDefinition([typedef, s1, tp, s2, id]: [any, any, ast.Type, any, ast.Identifier]): ast.TypeDefinition {
+    return {
+        tag: "TypeDefinition",
+        definition: {
+            tag: "VariableDeclaration",
+            id: id,
+            kind: tp
+        }
+    }
+}
+
 export function FunctionDeclaration([ty, s1, f, s2, args, annos, s3, def]: [
     ast.Type,
     any,

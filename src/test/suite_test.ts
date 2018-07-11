@@ -6,7 +6,7 @@ import { createCoreLexer } from "../lex";
 import { parseProgram } from "../parse";
 import Lang, { parse as parseLang } from "../lang";
 import { parseSpec } from "./parsespec";
-import { check } from "../typecheck";
+import { check } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
 

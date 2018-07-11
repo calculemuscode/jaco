@@ -242,7 +242,7 @@ export interface BlockStatement extends ast.Syn {
     readonly body: Statement[];
 }
 
-export type Declaration = FunctionDeclaration | BlockStatement;
+export type Declaration = FunctionDeclaration | ast.StructDeclaration | ast.TypeDefinition;
 
 export interface VariableDeclarationOnly extends ast.Syn {
     readonly kind: ast.Type;

@@ -589,8 +589,10 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | strin
                           }
             };
         }
-        case "BlockStatement":
-            throw new Error("Fake case");
+        case "StructDeclaration": 
+            return decl;
+            case "TypeDefinition": 
+            return decl;
         default:
             return impossible(decl);
     }
