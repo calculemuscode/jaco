@@ -4,18 +4,23 @@ import { impossible } from "@calculemus/impossible";
 
 type GlobalEnv = ast.Declaration[];
 type Env = Map<string, ast.Type>;
-type mode = null | { tag: "@requires" } | { tag: "@ensures", returns: ast.Type } | { tag: "@loop_invariant" } | { tag: "@assert" };
+type mode =
+    | null
+    | { tag: "@requires" }
+    | { tag: "@ensures"; returns: ast.Type }
+    | { tag: "@loop_invariant" }
+    | { tag: "@assert" };
 
 function error(s1: string, s2?: string): never {
     if (s2 === undefined) throw new Error(s1);
-    throw new Error(`${s1}\n[Hint: ${s2}]`)
+    throw new Error(`${s1}\n[Hint: ${s2}]`);
 }
 
 function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.Type {
-    let s: ast.Type | undefined = undefined as (ast.Type | undefined);
+    let s: ast.Type | undefined = undefined as ast.Type | undefined;
     /* instanbul ignore if */
     if (s === undefined) {
-        throw new Error(`Could not lookup ${s} (this should be impossible, please report)`)
+        throw new Error(`Could not lookup ${s} (this should be impossible, please report)`);
     } else if (s.tag === "Identifier") {
         return expandTypeDef(genv, s);
     } else {
@@ -25,19 +30,31 @@ function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.Type {
 
 function checkTypeIsNotVoid(genv: GlobalEnv, t: ast.Type): void {
     switch (t.tag) {
-        case "Identifier": return checkTypeIsNotVoid(genv, expandTypeDef(genv, t));
-        case "VoidType": return error("illegal use of type 'void'", "'void' can only be used as a return type for functions");
-        case "IntType": return;
-        case "BoolType": return;
-        case "StringType": return;
-        case "CharType": return;
+        case "Identifier":
+            return checkTypeIsNotVoid(genv, expandTypeDef(genv, t));
+        case "VoidType":
+            return error(
+                "illegal use of type 'void'",
+                "'void' can only be used as a return type for functions"
+            );
+        case "IntType":
+            return;
+        case "BoolType":
+            return;
+        case "StringType":
+            return;
+        case "CharType":
+            return;
         case "PointerType": {
             if (t.argument.tag === "VoidType") return;
             checkTypeIsNotVoid(genv, t.argument);
         }
-        case "ArrayType": return checkTypeIsNotVoid(genv, t.argument);
-        case "StructType": return; // Always okay, even if not defined
-        default: return impossible(t);
+        case "ArrayType":
+            return checkTypeIsNotVoid(genv, t.argument);
+        case "StructType":
+            return; // Always okay, even if not defined
+        default:
+            return impossible(t);
     }
 }
 
@@ -46,33 +63,50 @@ function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunctionArg?: b
     if (tp.tag === "Identifier") tp = expandTypeDef(genv, tp);
     switch (tp.tag) {
         case "StructType": {
-            error(`type struct ${tp.id.name} not small`,
-            isFunctionArg ? "cannot pass structs to or from functions; use pointers": "cannot store structs as locals; use pointers")
+            error(
+                `type struct ${tp.id.name} not small`,
+                isFunctionArg
+                    ? "cannot pass structs to or from functions; use pointers"
+                    : "cannot store structs as locals; use pointers"
+            );
         }
-        default: return checkTypeIsNotVoid(genv, tp);
+        default:
+            return checkTypeIsNotVoid(genv, tp);
     }
 }
 
 /** Asserts that a synthesized type has small type */
-function synthSmallExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Expression, place: string): Synthed {
+function synthSmallExpression(
+    genv: GlobalEnv,
+    env: Env,
+    mode: mode,
+    exp: ast.Expression,
+    place: string
+): Synthed {
     let tp = synthExpression(genv, env, mode, exp);
     if (tp.tag === "Identifier") tp = expandTypeDef(genv, tp);
     switch (tp.tag) {
         case "StructType": {
-            return error(`expression has struct type`, `a ${place} cannot contain structs; consider using pointers`); // todo name type
+            return error(
+                `expression has struct type`,
+                `a ${place} cannot contain structs; consider using pointers`
+            ); // todo name type
         }
-        default: return tp;
+        default:
+            return tp;
     }
 }
 
 function checkFunctionReturnType(genv: GlobalEnv, t: ast.Type) {
     switch (t.tag) {
-        case "VoidType": return;
-        default: return checkTypeInDeclaration(genv, t, true);
+        case "VoidType":
+            return;
+        default:
+            return checkTypeInDeclaration(genv, t, true);
     }
 }
 
-type Synthed = ast.Type | { tag: "AmbiguousPointer" }
+type Synthed = ast.Type | { tag: "AmbiguousPointer" };
 
 function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type): boolean {
     if (abstract.tag === "Identifier") return isSubtype(genv, expandTypeDef(genv, abstract), concrete);
@@ -85,11 +119,16 @@ function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type): bool
         case "BoolType":
         case "StringType":
         case "CharType":
-        case "VoidType": return abstract.tag === concrete.tag;
-        case "PointerType": return concrete.tag === "PointerType" && isSubtype(genv, abstract.argument, concrete.argument)
-        case "ArrayType": return concrete.tag === "ArrayType" && isSubtype(genv, abstract.argument, concrete.argument);
-        case "StructType": return concrete.tag === "StructType" && abstract.id.name === concrete.id.name;
-        default: return impossible(abstract);
+        case "VoidType":
+            return abstract.tag === concrete.tag;
+        case "PointerType":
+            return concrete.tag === "PointerType" && isSubtype(genv, abstract.argument, concrete.argument);
+        case "ArrayType":
+            return concrete.tag === "ArrayType" && isSubtype(genv, abstract.argument, concrete.argument);
+        case "StructType":
+            return concrete.tag === "StructType" && abstract.id.name === concrete.id.name;
+        default:
+            return impossible(abstract);
     }
 }
 
@@ -103,11 +142,16 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                 return t;
             }
         }
-        case "IntLiteral": return { tag: "IntType" };
-        case "StringLiteral": return { tag: "StringType" };
-        case "CharLiteral": return { tag: "CharType" };
-        case "BoolLiteral": return { tag: "BoolType" };
-        case "NullLiteral": return { tag: "AmbiguousPointer" };
+        case "IntLiteral":
+            return { tag: "IntType" };
+        case "StringLiteral":
+            return { tag: "StringType" };
+        case "CharLiteral":
+            return { tag: "CharType" };
+        case "BoolLiteral":
+            return { tag: "BoolType" };
+        case "NullLiteral":
+            return { tag: "AmbiguousPointer" };
         case "ArrayMemberExpression": {
             const objectType = synthExpression(genv, env, mode, exp.object);
             if (objectType.tag !== "ArrayType") {
@@ -141,21 +185,27 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                     checkExpression(genv, env, mode, exp.argument, { tag: "IntType" });
                     return { tag: "IntType" };
                 }
-                case "*": { 
+                case "*": {
                     const tp = synthExpression(genv, env, mode, exp.argument);
                     switch (tp.tag) {
-                        case "AmbiguousPointer": return error("cannot dereference NULL");
+                        case "AmbiguousPointer":
+                            return error("cannot dereference NULL");
                         case "PointerType": {
                             if (tp.argument.tag === "VoidType") {
-                                return error("cannot dereference value of type 'void*'", "cast to another pointer type with '(t*)'");
+                                return error(
+                                    "cannot dereference value of type 'void*'",
+                                    "cast to another pointer type with '(t*)'"
+                                );
                             } else {
                                 return tp.argument;
                             }
                         }
-                        default: return error("subject of '*' not a pointer"); // TODO: inferred type
+                        default:
+                            return error("subject of '*' not a pointer"); // TODO: inferred type
                     }
                 }
-                default: return impossible(exp.operator);
+                default:
+                    return impossible(exp.operator);
             }
         }
         case "BinaryExpression": {
@@ -170,8 +220,8 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                 case "&":
                 case "^":
                 case "|": {
-                    checkExpression(genv, env, mode, exp.left, { tag: "IntType"});
-                    checkExpression(genv, env, mode, exp.left, { tag: "IntType"});
+                    checkExpression(genv, env, mode, exp.left, { tag: "IntType" });
+                    checkExpression(genv, env, mode, exp.left, { tag: "IntType" });
                     return { tag: "IntType" };
                 }
 
@@ -192,11 +242,12 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                     right;
                     return { tag: "BoolType" }; // Bogus
                 }
-                default: return impossible(exp.operator)
+                default:
+                    return impossible(exp.operator);
             }
         }
         case "LogicalExpression": {
-            checkExpression(genv, env, mode, exp.left, { tag: "BoolType"} );
+            checkExpression(genv, env, mode, exp.left, { tag: "BoolType" });
             checkExpression(genv, env, mode, exp.right, { tag: "BoolType" });
             return { tag: "BoolType" };
         }
@@ -217,7 +268,8 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
             return { tag: "ArrayType", argument: exp.kind };
         }
         case "ResultExpression": {
-            if (mode === null) return error("\\result illegal in ordinary expressions", "use only in @ensures annotations")
+            if (mode === null)
+                return error("\\result illegal in ordinary expressions", "use only in @ensures annotations");
             else if (mode.tag === "@ensures") {
                 if (mode.returns.tag === "VoidType") {
                     return error("\\result illegal in functions that return 'void'");
@@ -225,11 +277,15 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                     return mode.returns;
                 }
             } else {
-                return error(`\\result illegal in ${mode.tag} annotations`, "use only in @ensures annotations");
+                return error(
+                    `\\result illegal in ${mode.tag} annotations`,
+                    "use only in @ensures annotations"
+                );
             }
         }
         case "LengthExpression": {
-            if (mode === null) return error("\\length illegal in ordinary expressions", "use only in annotations");
+            if (mode === null)
+                return error("\\length illegal in ordinary expressions", "use only in annotations");
             const tp = synthExpression(genv, env, mode, exp.argument);
             if (tp.tag !== "ArrayType") {
                 return error("argument to \\length not an array");
@@ -238,7 +294,8 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
             }
         }
         case "HasTagExpression": {
-            if (mode === null) return error("\\hastag illegal in ordinary expressions", "use only in annotations");
+            if (mode === null)
+                return error("\\hastag illegal in ordinary expressions", "use only in annotations");
             if (exp.kind.tag !== "PointerType") return error("tag must be a pointer type"); // TODO prettyprint;
             if (exp.kind.argument.tag === "VoidType") return error("tag can never be 'void*'");
             const tp = synthExpression(genv, env, mode, exp.argument);
@@ -246,10 +303,10 @@ function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
                 return error("tagged expression must have type void*"); // TODO inferred
             }
         }
-        default: return impossible(exp as never);
+        default:
+            return impossible(exp as never);
     }
 }
-
 
 function checkExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Expression, tp: ast.Type): void {
     const synthed = synthExpression(genv, env, mode, exp);
@@ -258,7 +315,13 @@ function checkExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.Express
     }
 }
 
-function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], returning: ast.Type | null, inLoop: boolean) {
+function checkStatements(
+    genv: GlobalEnv,
+    env: Env,
+    stms: ast.Statement[],
+    returning: ast.Type | null,
+    inLoop: boolean
+) {
     stms.reduce((env, stm) => {
         switch (stm.tag) {
             case "AssignmentStatement": {
@@ -266,7 +329,9 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
                 const right = synthSmallExpression(genv, env, null, stm.right, "assignment statement");
                 /* istanbul ignore if */
                 if (left.tag === "AmbiguousPointer") {
-                    throw new Error("LValue cannot have ambiguous pointer type (should be impossible, please report)")
+                    throw new Error(
+                        "LValue cannot have ambiguous pointer type (should be impossible, please report)"
+                    );
                 } else if (!isSubtype(genv, right, left)) {
                     return error("sides of assignment have different type"); // TODO: types
                 } else {
@@ -298,7 +363,9 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
             }
             case "WhileStatement": {
                 checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
-                stm.invariants.forEach(anno => checkExpression(genv, env, { tag: "@loop_invariant" }, anno, {tag: "BoolType"}));
+                stm.invariants.forEach(anno =>
+                    checkExpression(genv, env, { tag: "@loop_invariant" }, anno, { tag: "BoolType" })
+                );
                 checkStatements(genv, env, [stm.body], returning, true);
                 return env;
             }
@@ -319,7 +386,7 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
                     }
                 } else {
                     if (stm.argument === null) {
-                        return error("type mismatch, expected a return type found void") // TODO types
+                        return error("type mismatch, expected a return type found void"); // TODO types
                     } else {
                         checkExpression(genv, env, null, stm.argument, returning);
                     }
@@ -331,7 +398,6 @@ function checkStatements(genv: GlobalEnv, env: Env, stms: ast.Statement[], retur
             }
         }
     }, env);
-
 }
 
 function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarationOnly[]): Env {
@@ -380,6 +446,6 @@ export function check(decls: List<ast.Declaration | string>) {
         if (typeof decl === "string") return;
         checkDeclarations(checked, decl);
         checked.push(decl);
-    })
+    });
     return checked;
 }

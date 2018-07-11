@@ -23,7 +23,7 @@ describe("The spec parser", () => {
     it("should reject garbage commands", () => {
         expect(() => parseSpec("C0", "//test win\n")).to.throw();
         expect(() => parseSpec("C0", "//test nonsense\n")).to.throw();
-    })
+    });
 
     it("should capture return conditions as numbers", () => {
         expect(parseSpec("C0", "//test return 4\n")[0].outcome).to.equal(4);
@@ -68,7 +68,7 @@ describe("The spec parser", () => {
         expect(parseSpec("C0", "//test -lfoo => return 4\n")[0].libs).to.deep.equal(["foo"]);
         expect(parseSpec("C0", "//test -lfoo -d -lbar => return 4\n")[0].libs).to.deep.equal(["foo", "bar"]);
         expect(parseSpec("C0", "//test -lfoo -d -lbar => return 4\n")[0].debug).to.equal(true);
-    })
+    });
 
     it("should reject redundant or conflicting flags", () => {
         expect(() => parseSpec("C0", "//test -lfoo -lfoo => error\n")).to.throw();
@@ -77,5 +77,5 @@ describe("The spec parser", () => {
         expect(() => parseSpec("C0", "//test --no-purity-check --no-purity-check => error\n")).to.throw();
         expect(() => parseSpec("C0", "//test --standard=c0 --standard=c0 => error\n")).to.throw();
         expect(() => parseSpec("C0", "//test --standard=c0 --standard=c1 => error\n")).to.throw();
-    })
+    });
 });

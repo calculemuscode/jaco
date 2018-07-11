@@ -32,7 +32,6 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 */
 
-
 export function parseProgramRaw(str: string): List<string | parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = (parser.lexer = new TypeLexer(Set()));

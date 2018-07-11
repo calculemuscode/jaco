@@ -75,7 +75,8 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                     return [cond, "fail an assertion at runtime"];
                 case "typecheck":
                     return [cond, "successfully typecheck"];
-                /* istanbul ignore next */    
+                /* istanbul ignore next */
+
                 default:
                     throw new Error(`Unexpected condition ${cond} (should be impossible, please report)`);
             }
@@ -103,7 +104,7 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                     break;
                 }
                 case "--no-purity-check": {
-                    if (!purity) throw new Error(`--no-purity-check declared twice`)
+                    if (!purity) throw new Error(`--no-purity-check declared twice`);
                     purity = false;
                     break;
                 }
@@ -112,15 +113,18 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                     if (lang !== null) throw new Error(`Multiple language standards ${lang} and ${std}`);
                     lang = parseLang(std);
                     /* istanbul ignore next */
-                    if (lang === null) throw new Error(`Unknown language standard ${std} (should be impossible, please report)`);
+                    if (lang === null)
+                        throw new Error(
+                            `Unknown language standard ${std} (should be impossible, please report)`
+                        );
                     break;
                 }
                 /* istanbul ignore next */
                 default: {
-                    throw new Error(`Unknown directive ${flag[0][0]} (should be impossible, please report)`)
+                    throw new Error(`Unknown directive ${flag[0][0]} (should be impossible, please report)`);
                 }
             }
-        })
+        });
 
         return {
             outcome: outcome[0],

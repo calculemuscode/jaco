@@ -557,12 +557,15 @@ function restrictFunctionAnnos(
     return { pre: preconditions, post: postconditions };
 }
 
-export function restrictParams(lang: Lang, params: ast.VariableDeclarationOnly[]): ast.VariableDeclarationOnly[] {
+export function restrictParams(
+    lang: Lang,
+    params: ast.VariableDeclarationOnly[]
+): ast.VariableDeclarationOnly[] {
     return params.map(param => ({
         tag: param.tag,
         kind: restrictType(lang, param.kind),
         id: param.id
-    }))
+    }));
 }
 
 export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | string): string | ast.Declaration {

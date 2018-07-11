@@ -54,64 +54,64 @@ const basicLexing = {
 
 export function createCoreLexer(): Lexer {
     return states(
-    {
-        main: Object.assign(
-            {
-                newline: { match: /\r\n|\r|\n/, lineBreaks: true },
-                whitespace: { match: /[ \t\v\f]+/ },
-                anno_start: { match: "/*@", push: "multiLineAnno" },
-                comment_start: { match: "/*", push: "multiLineComment" },
-                anno_line_start: { match: "//@", push: "lineAnno" },
-                comment_line_start: { match: "//", push: "lineComment" },
-                pragma: /#.*/
+        {
+            main: Object.assign(
+                {
+                    newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                    whitespace: { match: /[ \t\v\f]+/ },
+                    anno_start: { match: "/*@", push: "multiLineAnno" },
+                    comment_start: { match: "/*", push: "multiLineComment" },
+                    anno_line_start: { match: "//@", push: "lineAnno" },
+                    comment_line_start: { match: "//", push: "lineComment" },
+                    pragma: /#.*/
+                },
+                basicLexing
+            ),
+            multiLineAnno: Object.assign(
+                {
+                    newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                    whitespace: { match: /[ \t\v\f]+/ },
+                    anno_end: { match: "@*/", pop: 1 },
+                    comment_start: { match: "/*", push: "multiLineComment" },
+                    comment_line_start: { match: "//", push: "lineComment" },
+                    annospace: { match: "@" }
+                },
+                basicLexing
+            ),
+            lineAnno: Object.assign(
+                {
+                    anno_end: { match: /\r\n|\r|\n/, pop: 1, lineBreaks: true },
+                    whitespace: { match: /[ \t\v\f]+/ },
+                    comment_start: { match: "/*", push: "multiLineComment" },
+                    comment_line_start: { match: "//", next: "lineComment" },
+                    annospace: { match: "@" }
+                },
+                basicLexing
+            ),
+            stringComponents: {
+                string_delimiter: { match: /"/, pop: 1 },
+                characters: { match: /[^\\\n\r"]+/, lineBreaks: false },
+                special_character: { match: /\\[^\n\r]/, lineBreaks: false },
+                invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true }
             },
-            basicLexing
-        ),
-        multiLineAnno: Object.assign(
-            {
-                newline: { match: /\r\n|\r|\n/, lineBreaks: true },
-                whitespace: { match: /[ \t\v\f]+/ },
-                anno_end: { match: "@*/", pop: 1 },
-                comment_start: { match: "/*", push: "multiLineComment" },
-                comment_line_start: { match: "//", push: "lineComment" },
-                annospace: { match: "@" }
+            charComponents: {
+                char_delimiter: { match: /'/, pop: 1 },
+                special_character: { match: /\\./, lineBreaks: true },
+                character: { match: /./, lineBreaks: false },
+                invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true, pop: 1 }
             },
-            basicLexing
-        ),
-        lineAnno: Object.assign(
-            {
-                anno_end: { match: /\r\n|\r|\n/, pop: 1, lineBreaks: true },
-                whitespace: { match: /[ \t\v\f]+/ },
+            multiLineComment: {
                 comment_start: { match: "/*", push: "multiLineComment" },
-                comment_line_start: { match: "//", next: "lineComment" },
-                annospace: { match: "@" }
+                comment_end: { match: "*/", pop: 1 },
+                comment: { match: /\*|\/|[^*\/\r\n]+/, lineBreaks: false },
+                newline: { match: /\n|\r|\r\n/, lineBreaks: true }
             },
-            basicLexing
-        ),
-        stringComponents: {
-            string_delimiter: { match: /"/, pop: 1 },
-            characters: { match: /[^\\\n\r"]+/, lineBreaks: false },
-            special_character: { match: /\\[^\n\r]/, lineBreaks: false },
-            invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true }
+            lineComment: {
+                comment: { match: /[^\n\r]/, lineBreaks: false },
+                comment_line_end: { match: /\n|\r|\r\n/, lineBreaks: true, pop: 1 }
+            }
         },
-        charComponents: {
-            char_delimiter: { match: /'/, pop: 1 },
-            special_character: { match: /\\./, lineBreaks: true },
-            character: { match: /./, lineBreaks: false },
-            invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true, pop: 1 }
-        },
-        multiLineComment: {
-            comment_start: { match: "/*", push: "multiLineComment" },
-            comment_end: { match: "*/", pop: 1 },
-            comment: { match: /\*|\/|[^*\/\r\n]+/, lineBreaks: false },
-            newline: { match: /\n|\r|\r\n/, lineBreaks: true }
-        },
-        lineComment: {
-            comment: { match: /[^\n\r]/, lineBreaks: false },
-            comment_line_end: { match: /\n|\r|\r\n/, lineBreaks: true, pop: 1 }
-        }
-    },
-    "main"
+        "main"
     );
 }
 
