@@ -94,6 +94,8 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             return { tag: "IntType" }; // Bogus
         }
         case "CastExpression": {
+            //const argumentType = synthExpression(genv, env, mode, exp.argument);
+            //if ()
             return { tag: "IntType" }; // Bogus
         }
         case "UnaryExpression": {
