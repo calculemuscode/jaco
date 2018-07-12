@@ -36,7 +36,7 @@ export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDecla
  * If parsing is done correctly, this function should only be given type Identifiers,
  * which must have a previous definition.
  */
-export function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.Type {
+export function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.ActualType {
     let tp = getTypeDef(genv, t.name);
 
     /* instanbul ignore if */
@@ -47,4 +47,8 @@ export function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ast.Type {
     } else {
         return tp;
     }
+}
+
+export function actualType(genv: GlobalEnv, t: ast.Type): ast.ActualType {
+    return t.tag === "Identifier" ? expandTypeDef(genv, t) : t;
 }

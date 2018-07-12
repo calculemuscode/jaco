@@ -125,6 +125,7 @@ export class TypeLexer {
         this.parsePragma = parsePragma || (() => Set());
     }
     addIdentifier(typeIdentifier: string) {
+        console.log(`Adding ${typeIdentifier}`)
         this.typeIds = this.typeIds.add(typeIdentifier);
     }
     next(): Token | undefined {

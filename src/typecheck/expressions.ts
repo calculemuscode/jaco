@@ -1,6 +1,6 @@
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
-import { GlobalEnv, expandTypeDef, getFunctionDeclaration, getStructDefinition } from "./globalenv";
+import { GlobalEnv, expandTypeDef, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
 import { Env, Synthed, isSubtype } from "./types";
 import * as ast from "../ast";
 
@@ -94,9 +94,23 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             return { tag: "IntType" }; // Bogus
         }
         case "CastExpression": {
-            //const argumentType = synthExpression(genv, env, mode, exp.argument);
-            //if ()
-            return { tag: "IntType" }; // Bogus
+            const castType = actualType(genv, exp.kind);
+            if (castType.tag !== "PointerType") 
+                return error("Type of cast must be a pointer or void*"); // TODO what was the type
+
+            const argumentType = synthExpression(genv, env, mode, exp.argument);
+            if (argumentType.tag === "AmbiguousPointer") return exp.kind; // NULL cast always ok
+            const expandedArgumentType = actualType(genv, argumentType);
+            if (expandedArgumentType.tag !== "PointerType") 
+                return error("Only pointer and void* types can be cast"); // TODO what was the type
+            
+            if (castType.argument.tag === "VoidType") {
+                if (expandedArgumentType.argument.tag === "VoidType") 
+                    return error("Casting a void* as a void* not permitted\n");
+            } else if (expandedArgumentType.argument.tag !== "VoidType") {
+                return error("Only casts to or from void* allowed");
+            }
+            return exp.kind;
         }
         case "UnaryExpression": {
             switch (exp.operator) {
@@ -111,18 +125,18 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     return { tag: "IntType" };
                 }
                 case "*": {
-                    const tp = synthExpression(genv, env, mode, exp.argument);
-                    switch (tp.tag) {
-                        case "AmbiguousPointer":
-                            return error("cannot dereference NULL");
+                    const pointerType = synthExpression(genv, env, mode, exp.argument);
+                    if (pointerType.tag === "AmbiguousPointer") return error("cannot dereference NULL");
+                    const actualPointerType = actualType(genv, pointerType);
+                    switch (actualPointerType.tag) {
                         case "PointerType": {
-                            if (tp.argument.tag === "VoidType") {
+                            if (actualPointerType.argument.tag === "VoidType") {
                                 return error(
                                     "cannot dereference value of type 'void*'",
                                     "cast to another pointer type with '(t*)'"
                                 );
                             } else {
-                                return tp.argument;
+                                return actualPointerType.argument;
                             }
                         }
                         default:

@@ -1,18 +1,15 @@
-/*
-import { Expression } from "./ast";
-import { parseExpression } from "./parse"
+import { readFileSync } from "fs";
+import { parseProgram } from "./parse";
+import { check } from "./typecheck/programs";
+import Lang from "./lang";
+import "mocha";
 
-const str: string = "15 < x && x < 20"; // Read DOM for student input
-const exp: Expression = parseExpression(str);
+function testfile(lang: Lang, filepath: string) {
+    const contents = readFileSync(filepath, { encoding: "binary" });
 
-function grade() {
+    let ast = parseProgram(lang, contents);
+    check(ast);
+    return true;
+}
 
-
-    if (exp.tag !== "LogicalExpression") { 
-        return "notabinop";
-    } else if (exp.operator === "||") {
-        return "usesor"
-    } else if (exp.left.tag !== "BinaryExpression" || exp.right.tag !== "BinaryExpression") {
-        return "A";
-    }
-} */
+testfile("C1", "tests/fp-basic/cast05.c1")

@@ -61,11 +61,10 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
             } else {
                 const parsedGlobalDecls = parsed[0];
                 decls = decls.concat(parsedGlobalDecls);
-                const possibleTypedef = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                // TODO: check that it's a typedef
-                //console.log(` -- typedef ${possibleTypedef[1]}`);
-                const typeIdentifier = possibleTypedef[1];
-                lexer.addIdentifier(typeIdentifier);
+                const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
+                if (possibleTypedef.tag === "TypeDefinition") {
+                    lexer.addIdentifier(possibleTypedef.definition.id.name);
+                }
                 parser.feed(" ");
             }
         }

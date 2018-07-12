@@ -57,6 +57,16 @@ export type Type =
     | StructType
     | Identifier;
 
+export type ActualType =
+    | IntType
+    | BoolType
+    | StringType
+    | CharType
+    | VoidType
+    | PointerType
+    | ArrayType
+    | StructType;    
+
 export interface IntType extends Syn {
     readonly tag: "IntType";
 }
