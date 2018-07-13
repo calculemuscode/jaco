@@ -69,14 +69,13 @@ function checkStatement(
             return env;
         }
         case "ForStatement": {
-            // xxx fix
             const env0 = stm.init ? checkStatement(genv, env, stm.init, null, false) : env;
             checkExpression(genv, env0, null, stm.test, { tag: "BoolType" });
             if (stm.update) checkStatement(genv, env0, stm.update, null, false);
             stm.invariants.forEach(anno =>
-                checkExpression(genv, env, { tag: "@loop_invariant" }, anno, { tag: "BoolType" })
+                checkExpression(genv, env0, { tag: "@loop_invariant" }, anno, { tag: "BoolType" })
             );
-            checkStatement(genv, env, stm.body, returning, true);
+            checkStatement(genv, env0, stm.body, returning, true);
             return env;
         }
         case "ReturnStatement": {

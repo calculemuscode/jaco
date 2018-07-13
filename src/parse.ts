@@ -62,7 +62,7 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
                 const parsedGlobalDecls = parsed[0];
                 decls = decls.concat(parsedGlobalDecls);
                 const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                if (possibleTypedef.tag === "TypeDefinition") {
+                if (possibleTypedef.tag === "TypeDefinition" || possibleTypedef.tag === "FunctionTypeDefinition") {
                     lexer.addIdentifier(possibleTypedef.definition.id.name);
                 }
                 parser.feed(" ");

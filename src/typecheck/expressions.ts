@@ -38,7 +38,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
         case "Identifier": {
             const t = env.get(exp.name);
             if (t === undefined) {
-                return error(`Undeclared variable ${exp.tag}`);
+                return error(`Undeclared variable ${exp.name}`);
             } else {
                 return t;
             }
