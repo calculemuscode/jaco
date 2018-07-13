@@ -129,7 +129,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             const callType = synthExpression(genv, env, mode, exp.callee);
             if (callType.tag === "AnonymousFunctionTypePointer") return error("Functions pointers must be stored in locals before they are called");
             if (callType.tag === "AmbiguousNullPointer") return error("Cannot call NULL as a function");
-            if (callType.tag === "NamedFunctionType") return error("Can only call pointer functions", "dereference fewer times");
+            if (callType.tag === "NamedFunctionType") return error(`Can only call pointers to functions, the function type '${callType.definition.id.name}' is not a pointer`);
             const actualCallType = actualType(genv, callType);
             if (actualCallType.tag !== "PointerType") return error("Only pointers to functions can be called");
             const actualFunctionType = actualType(genv, actualCallType.argument);
