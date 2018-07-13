@@ -17,7 +17,6 @@ GlobalDecl  -> %pragma
                                            {% util.TypeDefinition %}
              | "typedef" _ Tp _ Identifier _ FunDeclArgs _Annos # Also omits trailing semicolon
                                            {% util.FunctionTypeDefinition %}
-                                           # x => [`define function type ${x[4].name}`, x[4].name] %}
 
 FunDeclArgs -> "(" _ (Tp _ Identifier _ ("," _ Tp _ Identifier _):*):? ")" {% util.FunctionDeclarationArgs %}
 FunDeclEnd -> ";"                          {% x => null %}

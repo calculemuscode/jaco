@@ -58,7 +58,10 @@ function checkDeclarations(genv: GlobalEnv, decl: ast.Declaration) {
 export function check(decls: List<ast.Declaration | string>) {
     const checked: ast.Declaration[] = [];
     decls.forEach(decl => {
-        if (typeof decl === "string") { console.log(decl); return; } 
+        if (typeof decl === "string") {
+            console.log(decl);
+            return;
+        }
         checkDeclarations(checked, decl);
         checked.push(decl);
     });

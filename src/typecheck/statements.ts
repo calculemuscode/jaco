@@ -2,8 +2,8 @@ import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
 import { GlobalEnv } from "./globalenv";
-import { Env, isSubtype, checkTypeInDeclaration } from "./types";
-import { checkExpression, synthExpression, synthSmallExpression } from "./expressions";
+import { Env, checkTypeInDeclaration } from "./types";
+import { checkExpression, synthExpression, synthLValue } from "./expressions";
 
 export function checkStatements(
     genv: GlobalEnv,
@@ -24,10 +24,13 @@ function checkStatement(
 ): Env {
     switch (stm.tag) {
         case "AssignmentStatement": {
-            const left = synthExpression(genv, env, null, stm.left);
-            const right = synthSmallExpression(genv, env, null, stm.right, "assignment statement");
-            /* istanbul ignore if */
-            if (left.tag === "AmbiguousPointer") {
+            const left = synthLValue(genv, env, null, stm.left);
+            const right = checkExpression(genv, env, null, stm.right, left);
+            left;
+            right; // TODO bogus
+            return env;
+            /*
+            if (left.tag === "AmbiguousNullPointer") {
                 throw new Error(
                     "LValue cannot have ambiguous pointer type (should be impossible, please report)"
                 );
@@ -36,6 +39,7 @@ function checkStatement(
             } else {
                 return env;
             }
+            */
         }
         case "UpdateStatement": {
             checkExpression(genv, env, null, stm.argument, { tag: "IntType" });

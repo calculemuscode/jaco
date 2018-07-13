@@ -1,5 +1,8 @@
 /**
- * Consumes (and documents) the messy output produced by the parser, and turns it into parsedsyntax.ts types. This file could easily produce garbage output if there's a mismatch between the documented types and the types that the parser produces. This file should only throw errors to document invariants of the parser; user errors should be thrown in restrictsyntax.ts.
+ * Consumes (and documents) the messy output produced by the parser, and turns it into parsedsyntax.ts types.
+ * This file could easily produce garbage output if there's a mismatch between the documented types and the types
+ * that the parser produces. This file should only throw errors to document invariants of the parser; user
+ * errors should be thrown in restrictsyntax.ts.
  *
  * The structure of this file should match parsedsyntax.ts as much as practical.
  */
@@ -614,7 +617,7 @@ export function FunctionDeclarationArgs([l, s1, params, r]: [
         id: params[2]
     };
     return [first].concat(
-        params[4].map(x => ({
+        params[4].map((x): parsed.VariableDeclarationOnly => ({
             tag: "VariableDeclaration",
             kind: x[2],
             id: x[4]
@@ -633,7 +636,7 @@ export function StructDeclaration([struct, s1, s, s2, semi]: [
         tag: "StructDeclaration",
         id: s,
         definitions: []
-    }
+    };
 }
 
 export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: [
@@ -647,19 +650,25 @@ export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: 
     any,
     any,
     any
-]): ast.StructDeclaration {
+]): parsed.StructDeclaration {
     return {
         tag: "StructDeclaration",
         id: s,
-        definitions: defs.map((value): ast.VariableDeclarationOnly => ({
+        definitions: defs.map((value): parsed.VariableDeclarationOnly => ({
             tag: "VariableDeclaration",
             id: value[2],
             kind: value[0]
         }))
-    }
+    };
 }
 
-export function TypeDefinition([typedef, s1, tp, s2, id]: [any, any, ast.Type, any, ast.Identifier]): ast.TypeDefinition {
+export function TypeDefinition([typedef, s1, tp, s2, id]: [
+    any,
+    any,
+    ast.Type,
+    any,
+    ast.Identifier
+]): parsed.TypeDefinition {
     return {
         tag: "TypeDefinition",
         definition: {
@@ -667,7 +676,30 @@ export function TypeDefinition([typedef, s1, tp, s2, id]: [any, any, ast.Type, a
             id: id,
             kind: tp
         }
-    }
+    };
+}
+
+export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, args, annos]: [
+    any,
+    any,
+    ast.Type,
+    any,
+    ast.Identifier,
+    any,
+    ast.VariableDeclarationOnly[],
+    parsed.Anno[]
+]): parsed.FunctionTypeDefinition {
+    return {
+        tag: "FunctionTypeDefinition",
+        definition: {
+            tag: "FunctionDeclaration",
+            returns: ty,
+            id: f,
+            params: args,
+            annos: annos,
+            body: null
+        }
+    };
 }
 
 export function FunctionDeclaration([ty, s1, f, s2, args, annos, s3, def]: [

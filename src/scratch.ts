@@ -12,4 +12,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/fp-basic/forloop1.c0")
+testfile("C1", "tests/fp-basic/forloop1.c0");

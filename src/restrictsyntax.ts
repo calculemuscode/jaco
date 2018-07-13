@@ -46,6 +46,14 @@ export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
     }
 }
 
+export function restrictValueType(lang: Lang, syn: ast.Type): ast.ValueType {
+    const type = restrictType(lang, syn);
+    if (type.tag === "VoidType") {
+        throw new Error(`Type 'void' can only be used as the return type of a function.`);
+    }
+    return type;
+}
+
 export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expression {
     switch (syn.tag) {
         case "StringLiteral": {
@@ -147,7 +155,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
             if (lang !== "C1") throw new Error(`Casts not a part of ${lang}`);
             return {
                 tag: "CastExpression",
-                kind: restrictType(lang, syn.kind),
+                kind: restrictValueType(lang, syn.kind),
                 argument: restrictExpression(lang, syn.argument)
             };
         }
@@ -207,7 +215,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 throw new Error(`Allocation not a part of ${lang}`);
             return {
                 tag: "AllocExpression",
-                kind: restrictType(lang, syn.kind)
+                kind: restrictValueType(lang, syn.kind)
             };
         }
         case "AllocArrayExpression": {
@@ -215,7 +223,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 throw new Error(`Allocation not a part of ${lang}`);
             return {
                 tag: "AllocArrayExpression",
-                kind: restrictType(lang, syn.kind),
+                kind: restrictValueType(lang, syn.kind),
                 size: restrictExpression(lang, syn.size)
             };
         }
@@ -238,7 +246,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
             if (lang !== "C1") throw new Error(`Tag contracts not a part of ${lang}`);
             return {
                 tag: "HasTagExpression",
-                kind: restrictType(lang, syn.kind),
+                kind: restrictValueType(lang, syn.kind),
                 argument: restrictExpression(lang, syn.argument)
             };
         }
@@ -405,7 +413,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
         case "VariableDeclaration": {
             return {
                 tag: "VariableDeclaration",
-                kind: restrictType(lang, syn.kind),
+                kind: restrictValueType(lang, syn.kind),
                 id: syn.id,
                 init: syn.init ? restrictExpression(lang, syn.init) : null
             };
@@ -559,11 +567,11 @@ function restrictFunctionAnnos(
 
 export function restrictParams(
     lang: Lang,
-    params: ast.VariableDeclarationOnly[]
+    params: parsed.VariableDeclarationOnly[]
 ): ast.VariableDeclarationOnly[] {
     return params.map(param => ({
         tag: param.tag,
-        kind: restrictType(lang, param.kind),
+        kind: restrictValueType(lang, param.kind),
         id: param.id
     }));
 }
@@ -589,10 +597,38 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | strin
                           }
             };
         }
-        case "StructDeclaration": 
-            return decl;
-            case "TypeDefinition": 
-            return decl;
+        case "FunctionTypeDefinition": {
+            const annos = restrictFunctionAnnos(lang, decl.definition.annos);
+            return {
+                tag: "FunctionTypeDefinition",
+                definition: {
+                    tag: "FunctionDeclaration",
+                    returns: restrictType(lang, decl.definition.returns),
+                    id: decl.definition.id,
+                    params: restrictParams(lang, decl.definition.params),
+                    preconditions: annos.pre,
+                    postconditions: annos.post,
+                    body: null
+                }
+            };
+        }
+        case "StructDeclaration": {
+            return {
+                tag: "StructDeclaration",
+                id: decl.id,
+                definitions: restrictParams(lang, decl.definitions)
+            };
+        }
+        case "TypeDefinition": {
+            return {
+                tag: "TypeDefinition",
+                definition: {
+                    tag: "VariableDeclaration",
+                    id: decl.definition.id,
+                    kind: restrictValueType(lang, decl.definition.kind)
+                }
+            };
+        }
         default:
             return impossible(decl);
     }

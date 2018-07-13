@@ -242,18 +242,35 @@ export interface BlockStatement extends ast.Syn {
     readonly body: Statement[];
 }
 
-export type Declaration = FunctionDeclaration | ast.StructDeclaration | ast.TypeDefinition;
+export type Declaration = FunctionDeclaration | StructDeclaration | TypeDefinition | FunctionTypeDefinition;
 
 export interface VariableDeclarationOnly extends ast.Syn {
+    readonly tag: "VariableDeclaration";
     readonly kind: ast.Type;
     readonly id: ast.Identifier;
+}
+
+export interface StructDeclaration {
+    readonly tag: "StructDeclaration";
+    readonly id: ast.Identifier;
+    readonly definitions: VariableDeclarationOnly[];
 }
 
 export interface FunctionDeclaration extends ast.Syn {
     readonly tag: "FunctionDeclaration";
     readonly returns: ast.Type;
     readonly id: ast.Identifier;
-    readonly params: ast.VariableDeclarationOnly[];
+    readonly params: VariableDeclarationOnly[];
     readonly annos: Anno[];
     readonly body: null | BlockStatement;
+}
+
+export interface TypeDefinition {
+    readonly tag: "TypeDefinition";
+    readonly definition: VariableDeclarationOnly;
+}
+
+export interface FunctionTypeDefinition extends ast.Syn {
+    readonly tag: "FunctionTypeDefinition";
+    readonly definition: FunctionDeclaration & { body: null };
 }

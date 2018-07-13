@@ -16,6 +16,9 @@
  *  - The placement restrictions on requires, ensures, loop_invariant, and assert contracts are
  *    expressed. These are properties of static semantics in the spec, see C0.23, "@requires and @ensures can
  *    only annotate functions," etc.
+ *  - Use of void in declarations like "typedef void <tid>" and "void a = 12" is precluded in the syntax
+ *    by the use of ValueType. These are properties of static semantics in the spec, see C0.23
+ *    "Type void is used only as the return type of functions".
  *  - Arbitrary pragmas are accepted (this matches the actual behavior of the C0 compiler, which only warns on
  *    unknown pragmas)
  *
@@ -57,15 +60,15 @@ export type Type =
     | StructType
     | Identifier;
 
-export type ActualType =
+export type ValueType =
     | IntType
     | BoolType
     | StringType
     | CharType
-    | VoidType
     | PointerType
     | ArrayType
-    | StructType;    
+    | StructType
+    | Identifier;
 
 export interface IntType extends Syn {
     readonly tag: "IntType";
@@ -195,7 +198,7 @@ export interface IndirectCallExpression extends Syn {
  */
 export interface CastExpression extends Syn {
     readonly tag: "CastExpression";
-    readonly kind: Type;
+    readonly kind: ValueType;
     readonly argument: Expression;
 }
 
@@ -259,7 +262,7 @@ export interface ConditionalExpression extends Syn {
  */
 export interface AllocExpression extends Syn {
     readonly tag: "AllocExpression";
-    readonly kind: Type;
+    readonly kind: ValueType;
 }
 
 /**
@@ -267,7 +270,7 @@ export interface AllocExpression extends Syn {
  */
 export interface AllocArrayExpression extends Syn {
     readonly tag: "AllocArrayExpression";
-    readonly kind: Type;
+    readonly kind: ValueType;
     readonly size: Expression;
 }
 
@@ -291,7 +294,7 @@ export interface LengthExpression extends Syn {
  */
 export interface HasTagExpression extends Syn {
     readonly tag: "HasTagExpression";
-    readonly kind: Type;
+    readonly kind: ValueType;
     readonly argument: Expression;
 }
 
@@ -347,7 +350,7 @@ export interface ExpressionStatement extends Syn {
 
 export interface VariableDeclaration extends Syn {
     readonly tag: "VariableDeclaration";
-    readonly kind: Type;
+    readonly kind: ValueType;
     readonly id: Identifier;
     readonly init: Expression | null;
 }
@@ -415,7 +418,7 @@ export type Declaration =
  * Struct definitions must have 1 or more definitions.
  * `struct id {};`
  * is not allowed.
- * 
+ *
  * If definitions.length === 0, this represents a struct declaration
  * `struct id;`
  */
@@ -427,7 +430,7 @@ export interface StructDeclaration {
 
 export interface VariableDeclarationOnly extends Syn {
     readonly tag: "VariableDeclaration";
-    readonly kind: Type;
+    readonly kind: ValueType;
     readonly id: Identifier;
 }
 

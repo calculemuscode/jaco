@@ -56,7 +56,6 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
         } else {
             // parsed.length === 1
             if (index === segments.length - 1) {
-                //console.log(` -- end`);
                 decls = decls.concat(parsed[0]);
             } else {
                 const parsedGlobalDecls = parsed[0];
