@@ -28,7 +28,7 @@ function testfile(filenameLang: Lang, filepath: string) {
             if (hasPragmas) return;
 
             /* Step 2: Try to parse */
-            let ast: List<string | ast.Declaration> = List();
+            let ast: List<ast.Declaration> = List();
             if (spec.outcome === "error_parse") {
                 expect(() => parseProgram(spec.lang, contents)).to.throw();
                 return;

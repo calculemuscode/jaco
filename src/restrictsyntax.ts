@@ -576,7 +576,7 @@ export function restrictParams(
     }));
 }
 
-export function restrictDeclaration(lang: Lang, decl: parsed.Declaration | string): string | ast.Declaration {
+export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.Declaration {
     if (typeof decl === "string") return decl;
     switch (decl.tag) {
         case "FunctionDeclaration": {

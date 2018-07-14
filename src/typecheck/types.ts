@@ -12,7 +12,7 @@ export type Synthed =
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration }
     | { tag: "AnonymousFunctionTypePointer"; definition: ast.FunctionDeclaration };
 
-export function isEqual(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
+export function equalTypes(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
     const actual1 = actualType(genv, t1);
     const actual2 = actualType(genv, t2);
     switch (actual1.tag) {
@@ -24,7 +24,7 @@ export function isEqual(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
             return actual1.tag === actual2.tag;
         case "ArrayType":
         case "PointerType":
-            return actual1.tag === actual2.tag && isEqual(genv, actual1.argument, actual2.argument);
+            return actual1.tag === actual2.tag && equalTypes(genv, actual1.argument, actual2.argument);
         case "StructType":
             return actual1.tag === actual2.tag && actual1.id.name === actual2.id.name;
         case "NamedFunctionType":
@@ -34,15 +34,15 @@ export function isEqual(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
     }
 }
 
-function equalFunctionTypeDeclarations(
+export function equalFunctionTypes(
     genv: GlobalEnv,
     decl1: ast.FunctionDeclaration,
     decl2: ast.FunctionDeclaration
 ): boolean {
-    if (!isEqual(genv, decl1.returns, decl2.returns)) return false;
+    if (!equalTypes(genv, decl1.returns, decl2.returns)) return false;
     if (decl1.params.length !== decl2.params.length) return false;
     for (let i = 0; i < decl1.params.length; i++) {
-        if (!isEqual(genv, decl1.params[i].kind, decl2.params[i].kind)) return false;
+        if (!equalTypes(genv, decl1.params[i].kind, decl2.params[i].kind)) return false;
     }
     return true;
 }
@@ -93,7 +93,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
 
     if (t1.tag === "AnonymousFunctionTypePointer") {
         if (t2.tag === "AnonymousFunctionTypePointer") {
-            return equalFunctionTypeDeclarations(genv, t1.definition, t2.definition) ? t1 : null;
+            return equalFunctionTypes(genv, t1.definition, t2.definition) ? t1 : null;
         } else if (t2.tag === "NamedFunctionType") {
             return error(
                 `Named function type ${t2.definition.id.name} is not equal to a function pointer`,
@@ -104,7 +104,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
             if (actual2.tag !== "PointerType") return null;
             const actual2arg = actualType(genv, actual2.argument);
             if (actual2arg.tag !== "NamedFunctionType") return null;
-            return equalFunctionTypeDeclarations(genv, t1.definition, actual2arg.definition) ? t1 : null;
+            return equalFunctionTypes(genv, t1.definition, actual2arg.definition) ? t1 : null;
         }
     } else if (t2.tag === "AnonymousFunctionTypePointer") {
         if (t1.tag === "NamedFunctionType") {
@@ -117,7 +117,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
             if (actual1.tag !== "PointerType") return null;
             const actual1arg = actualType(genv, actual1.argument);
             if (actual1arg.tag !== "NamedFunctionType") return null;
-            return equalFunctionTypeDeclarations(genv, actual1arg.definition, t2.definition) ? t2 : null;
+            return equalFunctionTypes(genv, actual1arg.definition, t2.definition) ? t2 : null;
         }
     } else if (t1.tag === "NamedFunctionType" || t2.tag === "NamedFunctionType") {
         return t1.tag === "NamedFunctionType" &&
@@ -146,8 +146,9 @@ export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type
     } else if (abstract.tag === "AnonymousFunctionTypePointer") {
         if (actualConcrete.tag !== "PointerType") return false;
         const concreteFunctionType = actualType(genv, actualConcrete.argument);
-        return (concreteFunctionType.tag === "NamedFunctionType" &&
-            equalFunctionTypeDeclarations(genv, abstract.definition, concreteFunctionType.definition)
+        return (
+            concreteFunctionType.tag === "NamedFunctionType" &&
+            equalFunctionTypes(genv, abstract.definition, concreteFunctionType.definition)
         );
     }
     const actualAbstract = actualType(genv, abstract);

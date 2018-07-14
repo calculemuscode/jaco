@@ -2,8 +2,8 @@ import { impossible } from "@calculemus/impossible";
 import { Map, List } from "immutable";
 import * as ast from "../ast";
 import { error } from "./error";
-import { GlobalEnv } from "./globalenv";
-import { Env, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
+import { GlobalEnv, getTypeDef, getFunctionDeclaration } from "./globalenv";
+import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatements } from "./statements";
 
@@ -18,7 +18,7 @@ function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarati
     }, Map<string, ast.Type>());
 }
 
-function checkDeclarations(genv: GlobalEnv, decl: ast.Declaration) {
+function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration) {
     switch (decl.tag) {
         case "Pragma": {
             return;
@@ -26,10 +26,19 @@ function checkDeclarations(genv: GlobalEnv, decl: ast.Declaration) {
         case "StructDeclaration": {
             return;
         }
-        case "TypeDefinition": {
-            return;
-        }
+        case "TypeDefinition":
         case "FunctionTypeDefinition": {
+            const typeoftype = decl.tag === "TypeDefinition" ? "type" : "function type";
+            const previousTypeDef = getTypeDef(genv, decl.definition.id.name);
+            const previousFunction = getFunctionDeclaration(genv, decl.definition.id.name);
+            if (previousTypeDef !== null)
+                return error(`${typeoftype} name '${decl.definition.id.name}' already defined as a type`);
+            if (previousFunction !== null)
+                return error(
+                    `${typeoftype} name '${decl.definition.id.name}' already used in a function ${
+                        previousFunction.body === null ? "declaration" : "definition"
+                    }`
+                );
             return;
         }
         case "FunctionDeclaration": {
@@ -43,9 +52,21 @@ function checkDeclarations(genv: GlobalEnv, decl: ast.Declaration) {
                     tag: "BoolType"
                 })
             );
+
             if (decl.body !== null) {
                 checkStatements(genv, env, decl.body.body, decl.returns, false);
             }
+
+            const previousFunction = getFunctionDeclaration(genv, decl.id.name);
+            if (previousFunction === null) return;
+            if (previousFunction.body !== null && decl.body !== null)
+                error(`function ${decl.id.name} defined more than once`);
+            if (!equalFunctionTypes(genv, previousFunction, decl)) {
+                const oldone = previousFunction.body === null ? "declaration" : "definition";
+                const newone = decl.body === null ? "declaration" : "definition";
+                error(`function ${newone} for '${decl.id.name}' does not match previous function ${oldone}`);
+            }
+
             return;
         }
         /* instanbul ignore next */
@@ -55,14 +76,18 @@ function checkDeclarations(genv: GlobalEnv, decl: ast.Declaration) {
     }
 }
 
-export function check(decls: List<ast.Declaration | string>) {
-    const checked: ast.Declaration[] = [];
+export function check(decls: List<ast.Declaration>) {
+    const checked: ast.Declaration[] = [{
+        tag: "FunctionDeclaration",
+        returns: { tag: "IntType" },
+        id: { tag: "Identifier", name: "main" },
+        params: [],
+        preconditions: [],
+        postconditions: [],
+        body: null
+    }];
     decls.forEach(decl => {
-        if (typeof decl === "string") {
-            console.log(decl);
-            return;
-        }
-        checkDeclarations(checked, decl);
+        checkDeclaration(checked, decl);
         checked.push(decl);
     });
     return checked;

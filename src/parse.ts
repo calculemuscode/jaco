@@ -32,11 +32,11 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 */
 
-export function parseProgramRaw(str: string): List<string | parsed.Declaration> {
+export function parseProgramRaw(str: string): List<parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = (parser.lexer = new TypeLexer(Set()));
     const segments = str.split(";");
-    let decls: List<string | parsed.Declaration> = List<string | parsed.Declaration>();
+    let decls: List<parsed.Declaration> = List();
     segments.forEach((segment, index) => {
         parser.feed(segment);
         const parsed = parser.finish();
@@ -59,9 +59,11 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
                 decls = decls.concat(parsed[0]);
             } else {
                 const parsedGlobalDecls = parsed[0];
-                decls = decls.concat(parsedGlobalDecls);
                 const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                if (possibleTypedef.tag === "TypeDefinition" || possibleTypedef.tag === "FunctionTypeDefinition") {
+                if (
+                    possibleTypedef.tag === "TypeDefinition" ||
+                    possibleTypedef.tag === "FunctionTypeDefinition"
+                ) {
                     lexer.addIdentifier(possibleTypedef.definition.id.name);
                 }
                 parser.feed(" ");
@@ -69,13 +71,12 @@ export function parseProgramRaw(str: string): List<string | parsed.Declaration> 
         }
     });
 
+    // code quality: Rewrite to make this impossible; return in loop
     return decls;
 }
 
-export function parseProgram(lang: Lang, str: string): List<string | ast.Declaration> {
+export function parseProgram(lang: Lang, str: string): List<ast.Declaration> {
     return parseProgramRaw(str).map(decl => {
-        if (typeof decl === "string") return decl;
-        if (decl instanceof Array) return decl[0] as string;
         return restrictDeclaration(lang, decl);
     });
 }
