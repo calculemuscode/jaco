@@ -1,9 +1,11 @@
-import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
+import { Set } from "immutable";
+import * as ast from "../ast";
 import { error } from "./error";
 import { GlobalEnv } from "./globalenv";
 import { Env, checkTypeInDeclaration } from "./types";
-import { checkExpression, synthExpression, synthLValue } from "./expressions";
+import { checkExpression, synthExpression, synthLValue, expressionFreeVars } from "./expressions";
+import { FunctionDeclarationArgs } from "../parser-util";
 
 export function checkStatements(
     genv: GlobalEnv,
@@ -134,4 +136,62 @@ function checkStatement(
     }
 }
 
+function checkExpressionUses(locals: Set<string>, defined: Set<string>, exp: ast.Expression): Set<string> {
+    const freeVars = expressionFreeVars(exp);
+    const freeLocals = freeVars.intersect(locals);
+    const undefinedFreeLocals = freeLocals.subtract(defined);
+    for (let badLocal in undefinedFreeLocals.values) 
+        return error(`local ${badLocal} used without necessarily being defined`);
+    }
+    return freeVars.subtract(locals);
+}
+
+/**
+ * 
+ * @param locals All locals valid at this point in the program
+ * @param constants Locals that are free in the postcondition and so must not be modified
+ * @param defined Locals that have been previously defined on all control paths to this point
+ * @param stm The statement being analyized
+ */
+export function checkStatementFlow(locals: Set<string>, constants: Set<string>, defined: Set<string>, stm: ast.Statement): {locals: Set<string>, defined: Set<string>, functions: Set<string>} {
+    switch(stm.tag) {
+        case "AssignmentStatement": {
+            let functions = checkExpressionUses(locals, defined, stm.right);
+            if (stm.left.tag === "Identifier") {
+                if (constants.has(stm.left.name)) {
+                    error(`assigning to ${stm.left.name} is not permitted when ${stm.left.name} is used in postcondition`);
+                }
+                defined = defined.add(stm.left.name);
+            } else {
+                functions = functions.union(checkExpressionUses(locals, defined, stm.left));
+            }
+            return { locals: locals, defined: defined, functions: functions };
+        }
+        case "UpdateStatement": {
+            return { locals: locals, defined: defined, functions: checkExpressionUses(locals, defined, stm.argument) };
+        }
+        case "ExpressionStatement": {
+            return { locals: locals, defined: defined, functions: checkExpressionUses(locals, defined, stm.expression) };
+        }
+        case "VariableDeclaration": {
+            if (stm.init === null) return { locals: locals.add(stm.id.name), defined: defined, functions: Set() };
+            return { locals: locals.add(stm.id.name), defined: defined.add(stm.id.name), functions: checkExpressionUses(locals, defined, stm.init)};
+        }
+        case "IfStatement": {
+            const test = checkExpressionUses(locals, defined, stm.test);
+            const consequent = checkStatementFlow(locals, constants, defined, stm.consequent);
+            if (stm.alternate) {
+                const alternate = checkStatementFlow(locals, constants, defined, stm.alternate);
+                return { locals: locals, defined: consequent.defined.intersect(alternate.defined), functions: test.union(consequent.functions).union(alternate.functions)};
+            } else {
+                return { locals: locals, defined: defined, functions: test.union(consequent.functions)};
+            }
+        }
+        case "WhileStatement": {
+            const test = checkExpression
+        }
+        default:
+        return impossible(stm);
+    }
+}
 

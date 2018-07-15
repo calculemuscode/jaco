@@ -377,7 +377,7 @@ export function checkExpression(
     }
 }
 
-export function expressionFreeVars(genv: GlobalEnv, exp: ast.Expression): Set<string> {
+export function expressionFreeVars(exp: ast.Expression): Set<string> {
     switch (exp.tag) {
         case "Identifier":
             return Set(exp.name);
@@ -390,29 +390,29 @@ export function expressionFreeVars(genv: GlobalEnv, exp: ast.Expression): Set<st
         case "ResultExpression":
             return Set();
         case "ArrayMemberExpression":
-            return expressionFreeVars(genv, exp.object).union(expressionFreeVars(genv, exp.index));
+            return expressionFreeVars(exp.object).union(expressionFreeVars(exp.index));
         case "StructMemberExpression":
-            return expressionFreeVars(genv, exp.object);
+            return expressionFreeVars(exp.object);
         case "CallExpression":
         case "IndirectCallExpression":
             return exp.arguments.reduce(
-                (fv, arg) => fv.union(expressionFreeVars(genv, arg)),
-                expressionFreeVars(genv, exp.callee)
+                (fv, arg) => fv.union(expressionFreeVars(arg)),
+                expressionFreeVars(exp.callee)
             );
         case "UnaryExpression":
         case "CastExpression":
         case "LengthExpression":
         case "HasTagExpression":
-            return expressionFreeVars(genv, exp.argument);
+            return expressionFreeVars(exp.argument);
         case "BinaryExpression":
         case "LogicalExpression":
-            return expressionFreeVars(genv, exp.left).union(expressionFreeVars(genv, exp.right));
+            return expressionFreeVars(exp.left).union(expressionFreeVars( exp.right));
         case "ConditionalExpression":
-            return expressionFreeVars(genv, exp.test)
-                .union(expressionFreeVars(genv, exp.consequent))
-                .union(expressionFreeVars(genv, exp.alternate));
+            return expressionFreeVars(exp.test)
+                .union(expressionFreeVars( exp.consequent))
+                .union(expressionFreeVars(exp.alternate));
         case "AllocArrayExpression":
-            return expressionFreeVars(genv, exp.size);
+            return expressionFreeVars(exp.size);
         default:
             return impossible(exp);
     }
