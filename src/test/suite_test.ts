@@ -13,8 +13,11 @@ import "mocha";
 function testfile(filenameLang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
     const spectxt = contents.match(/(\/\/test.*(\r|\n|\n\r|\r\n))+/);
-    if (spectxt === null) throw new Error(`No specs in file ${filepath}`);
-    const specs = parseSpec(filenameLang, spectxt[0]);
+    if (spectxt === null) {
+        console.warn(`No specs in file ${filepath}`);
+        return;
+    }
+    const specs = parseSpec(filenameLang, spectxt[0], filepath);
     specs.forEach((spec, i) => {
         it(`test ${filepath}.${i}, should ${spec.description}`, () => {
             /* Step 1: Ensure the core lexer lexes everything */
@@ -26,6 +29,7 @@ function testfile(filenameLang: Lang, filepath: string) {
                 hasPragmas = hasPragmas || tok["type"] === "pragma";
             }
             if (hasPragmas) return;
+            if (spec.files.length > 0 || spec.libs.length > 0) return;
 
             /* Step 2: Try to parse */
             let ast: List<ast.Declaration> = List();

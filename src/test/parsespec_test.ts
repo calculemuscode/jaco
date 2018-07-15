@@ -35,7 +35,7 @@ describe("The spec parser", () => {
         expect(parseSpec("C0", "//test error_parse\n")[0].outcome).to.equal("error_parse");
         expect(parseSpec("C0", "//test error_typecheck\n")[0].outcome).to.equal("error_typecheck");
         expect(parseSpec("C0", "//test error_static\n")[0].outcome).to.equal("error_static");
-        expect(parseSpec("C0", "//test error_runtime\n")[0].outcome).to.equal("error_runtime");
+        expect(parseSpec("C0", "//test failure\n")[0].outcome).to.equal("failure");
         expect(parseSpec("C0", "//test error\n")[0].outcome).to.equal("error");
         expect(parseSpec("C0", "//test div-by-zero\n")[0].outcome).to.equal("aritherror");
         expect(parseSpec("C0", "//test aritherror\n")[0].outcome).to.equal("aritherror");

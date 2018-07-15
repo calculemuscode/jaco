@@ -593,10 +593,10 @@ export function ContinueStatement([stm, s1, semi]: [Token, any, Token]): ast.Con
 }
 
 export function Anno1(
-    annos: [Token, any, parsed.Anno[], any, Token] | [Token, any, parsed.Anno[], any, Token, any[], Token]
+    annos: [Token, any, parsed.Anno[], Token] | [Token, any, parsed.Anno[], Token, any, Token]
 ): parsed.Anno[] {
     const start: Token = annos[0];
-    const end: Token = annos[6] ? annos[6] : annos[4];
+    const end: Token = annos[5] ? annos[5] : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
         throw new Error(
             `Single-line annotations cannot be extended onto multiple lines with multiline comments.`

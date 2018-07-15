@@ -12,8 +12,8 @@ export type Outcome =
     | "error_parse"
     | "error_typecheck"
     | "error_static"
-    | "error_runtime"
     | "error"
+    | "failure"
     | "aritherror"
     | "memerror"
     | "infloop"
@@ -25,17 +25,18 @@ export interface Spec {
     debug: boolean;
     purity: boolean;
     libs: string[];
+    files: string[];
     lang: Lang;
 }
 
-export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
+export function parseSpec(defaultLang: Lang, spec: string, filename?: string): Spec[] {
     let specs;
     try {
         const specParser = new Parser(Grammar.fromCompiled(testSpecRules));
         specParser.feed(spec);
         specs = specParser.finish();
     } catch (err) {
-        throw new Error(`Error parsing test spec:\n${err}`);
+        throw new Error(`Error parsing test spec${filename ? ` for ${filename}` : ""}:\n${err}`);
     }
 
     if (specs.length === 0) throw new Error(`No test spec found`);
@@ -56,11 +57,11 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                 case "error_typecheck":
                     return [cond, "fail checking static semantics"];
                 case "error_static":
-                    return [cond, "fail checking static semantics"];
-                case "error_runtime":
-                    return [cond, "fail checking static semantics"];
+                    return [cond, "fail checking purity"];
                 case "error":
                     return [cond, "fail somehow"];
+                case "failure":
+                    return [cond, "call error() at runtime"];
                 case "div-by-zero":
                     return ["aritherror", "throw an arithmetic error at runtime"];
                 case "aritherror":
@@ -85,8 +86,9 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
         let debug = false;
         let purity = true;
         let libs: string[] = [];
+        let files: string[] = [];
         let libSet: Set<string> = Set();
-        let lang: Lang | null = null;
+        let lang: Lang | null = null;        
 
         const flags = spec[1] ? spec[1][1] : [];
         flags.forEach((flag: any) => {
@@ -96,6 +98,11 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
                     if (libSet.has(lib)) throw new Error(`-l${lib} declared twice`);
                     libs.push(lib);
                     libSet = libSet.add(lib);
+                    break;
+                }
+                case "-f": {
+                    const filedep = flag[0][1].join("");
+                    files.push(filedep);
                     break;
                 }
                 case "-d": {
@@ -132,6 +139,7 @@ export function parseSpec(defaultLang: Lang, spec: string): Spec[] {
             debug: debug,
             purity: purity,
             libs: libs,
+            files: files,
             lang: lang ? lang : defaultLang
         };
     });

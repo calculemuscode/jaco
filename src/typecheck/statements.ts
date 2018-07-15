@@ -5,7 +5,6 @@ import { error } from "./error";
 import { GlobalEnv } from "./globalenv";
 import { Env, checkTypeInDeclaration } from "./types";
 import { checkExpression, synthExpression, synthLValue, expressionFreeVars } from "./expressions";
-import { FunctionDeclarationArgs } from "../parser-util";
 
 export function checkStatements(
     genv: GlobalEnv,
@@ -140,7 +139,7 @@ function checkExpressionUses(locals: Set<string>, defined: Set<string>, exp: ast
     const freeVars = expressionFreeVars(exp);
     const freeLocals = freeVars.intersect(locals);
     const undefinedFreeLocals = freeLocals.subtract(defined);
-    for (let badLocal in undefinedFreeLocals.values) 
+    for (let badLocal in undefinedFreeLocals.values) {
         return error(`local ${badLocal} used without necessarily being defined`);
     }
     return freeVars.subtract(locals);
@@ -188,10 +187,10 @@ export function checkStatementFlow(locals: Set<string>, constants: Set<string>, 
             }
         }
         case "WhileStatement": {
-            const test = checkExpression
+            //const test = checkExpression
         }
         default:
-        return impossible(stm);
+        return error("unimplemented"); //impossible(stm);
     }
 }
 
