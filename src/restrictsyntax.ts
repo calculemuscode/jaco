@@ -431,7 +431,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                     tag: "IfStatement",
                     test: restrictExpression(lang, syn.test),
                     consequent: restrictAssert(lang, syn.consequent),
-                    alternate: restrictAssert(lang, syn.consequent)
+                    alternate: restrictAssert(lang, syn.alternate)
                 };
             }
         }

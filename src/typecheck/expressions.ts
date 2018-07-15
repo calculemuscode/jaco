@@ -380,7 +380,7 @@ export function checkExpression(
 export function expressionFreeVars(exp: ast.Expression): Set<string> {
     switch (exp.tag) {
         case "Identifier":
-            return Set(exp.name);
+            return Set([exp.name]);
         case "IntLiteral":
         case "StringLiteral":
         case "CharLiteral":
@@ -406,10 +406,10 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
             return expressionFreeVars(exp.argument);
         case "BinaryExpression":
         case "LogicalExpression":
-            return expressionFreeVars(exp.left).union(expressionFreeVars( exp.right));
+            return expressionFreeVars(exp.left).union(expressionFreeVars(exp.right));
         case "ConditionalExpression":
             return expressionFreeVars(exp.test)
-                .union(expressionFreeVars( exp.consequent))
+                .union(expressionFreeVars(exp.consequent))
                 .union(expressionFreeVars(exp.alternate));
         case "AllocArrayExpression":
             return expressionFreeVars(exp.size);

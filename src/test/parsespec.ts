@@ -88,7 +88,7 @@ export function parseSpec(defaultLang: Lang, spec: string, filename?: string): S
         let libs: string[] = [];
         let files: string[] = [];
         let libSet: Set<string> = Set();
-        let lang: Lang | null = null;        
+        let lang: Lang | null = null;
 
         const flags = spec[1] ? spec[1][1] : [];
         flags.forEach((flag: any) => {

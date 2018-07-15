@@ -135,62 +135,162 @@ function checkStatement(
     }
 }
 
-function checkExpressionUses(locals: Set<string>, defined: Set<string>, exp: ast.Expression): Set<string> {
+export function checkExpressionUsesGetFreeFunctions(locals: Set<string>, defined: Set<string>, exp: ast.Expression): Set<string> {
     const freeVars = expressionFreeVars(exp);
     const freeLocals = freeVars.intersect(locals);
     const undefinedFreeLocals = freeLocals.subtract(defined);
-    for (let badLocal in undefinedFreeLocals.values) {
+    for (let badLocal of undefinedFreeLocals.values()) {
         return error(`local ${badLocal} used without necessarily being defined`);
     }
     return freeVars.subtract(locals);
 }
 
 /**
- * 
+ *
  * @param locals All locals valid at this point in the program
  * @param constants Locals that are free in the postcondition and so must not be modified
  * @param defined Locals that have been previously defined on all control paths to this point
  * @param stm The statement being analyized
  */
-export function checkStatementFlow(locals: Set<string>, constants: Set<string>, defined: Set<string>, stm: ast.Statement): {locals: Set<string>, defined: Set<string>, functions: Set<string>} {
-    switch(stm.tag) {
+export function checkStatementFlow(
+    locals: Set<string>,
+    constants: Set<string>,
+    defined: Set<string>,
+    stm: ast.Statement
+): { locals: Set<string>; defined: Set<string>; functions: Set<string> } {
+    switch (stm.tag) {
         case "AssignmentStatement": {
-            let functions = checkExpressionUses(locals, defined, stm.right);
+            let functions = checkExpressionUsesGetFreeFunctions(locals, defined, stm.right);
             if (stm.left.tag === "Identifier") {
                 if (constants.has(stm.left.name)) {
-                    error(`assigning to ${stm.left.name} is not permitted when ${stm.left.name} is used in postcondition`);
+                    error(
+                        `assigning to ${stm.left.name} is not permitted when ${
+                            stm.left.name
+                        } is used in postcondition`
+                    );
                 }
                 defined = defined.add(stm.left.name);
             } else {
-                functions = functions.union(checkExpressionUses(locals, defined, stm.left));
+                functions = functions.union(checkExpressionUsesGetFreeFunctions(locals, defined, stm.left));
             }
             return { locals: locals, defined: defined, functions: functions };
         }
         case "UpdateStatement": {
-            return { locals: locals, defined: defined, functions: checkExpressionUses(locals, defined, stm.argument) };
+            return {
+                locals: locals,
+                defined: defined,
+                functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.argument)
+            };
         }
         case "ExpressionStatement": {
-            return { locals: locals, defined: defined, functions: checkExpressionUses(locals, defined, stm.expression) };
+            return {
+                locals: locals,
+                defined: defined,
+                functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.expression)
+            };
         }
         case "VariableDeclaration": {
-            if (stm.init === null) return { locals: locals.add(stm.id.name), defined: defined, functions: Set() };
-            return { locals: locals.add(stm.id.name), defined: defined.add(stm.id.name), functions: checkExpressionUses(locals, defined, stm.init)};
+            if (stm.init === null)
+                return { locals: locals.add(stm.id.name), defined: defined, functions: Set() };
+            return {
+                locals: locals.add(stm.id.name),
+                defined: defined.add(stm.id.name),
+                functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.init)
+            };
         }
         case "IfStatement": {
-            const test = checkExpressionUses(locals, defined, stm.test);
+            const test = checkExpressionUsesGetFreeFunctions(locals, defined, stm.test);
             const consequent = checkStatementFlow(locals, constants, defined, stm.consequent);
             if (stm.alternate) {
                 const alternate = checkStatementFlow(locals, constants, defined, stm.alternate);
-                return { locals: locals, defined: consequent.defined.intersect(alternate.defined), functions: test.union(consequent.functions).union(alternate.functions)};
+                return {
+                    locals: locals,
+                    defined: consequent.defined.intersect(alternate.defined),
+                    functions: test.union(consequent.functions).union(alternate.functions)
+                };
             } else {
-                return { locals: locals, defined: defined, functions: test.union(consequent.functions)};
+                return { locals: locals, defined: defined, functions: test.union(consequent.functions) };
             }
         }
         case "WhileStatement": {
-            //const test = checkExpression
+            const test = stm.invariants.reduce(
+                (set, exp) => set.union(checkExpressionUsesGetFreeFunctions(locals, defined, exp)),
+                checkExpressionUsesGetFreeFunctions(locals, defined, stm.test)
+            );
+            const body = checkStatementFlow(locals, constants, defined, stm.body);
+            return { locals: locals, defined: defined, functions: test.union(body.functions) };
+        }
+        case "ForStatement": {
+            const init = checkStatementFlow(
+                locals,
+                constants,
+                defined,
+                stm.init || { tag: "BlockStatement", body: [] }
+            );
+            const test = stm.invariants.reduce(
+                (set, exp) => set.union(checkExpressionUsesGetFreeFunctions(init.locals, init.defined, exp)),
+                checkExpressionUsesGetFreeFunctions(init.locals, init.defined, stm.test)
+            );
+            const body = checkStatementFlow(init.locals, constants, init.defined, stm.body);
+            const update = checkStatementFlow(
+                init.locals,
+                constants,
+                body.defined,
+                stm.update || { tag: "BlockStatement", body: [] }
+            );
+            return {
+                locals: locals,
+                defined: init.defined,
+                functions: init.functions
+                    .union(test)
+                    .union(body.functions)
+                    .union(update.functions)
+            };
+        }
+        case "ReturnStatement": {
+            return {
+                locals: locals,
+                defined: locals,
+                functions: stm.argument === null ? Set() : checkExpressionUsesGetFreeFunctions(locals, defined, stm.argument)
+            };
+        }
+        case "BlockStatement": {
+            const body = stm.body.reduce(
+                ({ locals, defined, functions }, stm) => {
+                    const result = checkStatementFlow(locals, constants, defined, stm);
+                    return {
+                        locals: result.locals,
+                        defined: result.defined,
+                        functions: functions.union(result.functions)
+                    };
+                },
+                { locals: locals, defined: defined, functions: Set() }
+            );
+            return {
+                locals: locals,
+                defined: body.defined,
+                functions: body.functions
+            };
+        }
+        case "AssertStatement": {
+            return {
+                locals: locals,
+                defined: defined,
+                functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.test)
+            };
+        }
+        case "ErrorStatement": {
+            return {
+                locals: locals,
+                defined: defined,
+                functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.argument)
+            }
+        }
+        case "BreakStatement":
+        case "ContinueStatement": {
+            return { locals: locals, defined: locals, functions: Set() };
         }
         default:
-        return error("unimplemented"); //impossible(stm);
+            return impossible(stm);
     }
 }
-

@@ -27,12 +27,14 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
 }
 
 export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.FunctionDeclaration | null {
+    let result: ast.FunctionDeclaration | null = null;
     for (let decl of genv) {
         if (decl.tag === "FunctionDeclaration" && decl.id.name === t) {
-            return decl;
+            if (result === null) result = decl;
+            if (decl.body !== null) return decl;
         }
     }
-    return null;
+    return result;
 }
 
 export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDeclaration | null {
