@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
-import { Env, Synthed, isSubtype, typeSizeFullyDefined } from "./types";
+import { Env, Synthed, isSubtype, typeSizeFullyDefined, leastUpperBoundSynthedType } from "./types";
 import * as ast from "../ast";
 
 export type mode =
@@ -330,8 +330,9 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             checkExpression(genv, env, mode, exp.test, { tag: "BoolType" });
             const left = synthExpression(genv, env, mode, exp.consequent);
             const right = synthExpression(genv, env, mode, exp.alternate);
-            right;
-            return left; // Bogus
+            const lub = leastUpperBoundSynthedType(genv, left, right);
+            if (lub === null) return error("Branches of ternary expression 'e ? e1 : e2' have incompatible types"); // todo types
+            return lub;
         }
         case "AllocExpression": {
             const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);

@@ -86,8 +86,12 @@ function leastUpperBoundType(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): ast.T
 export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Synthed): Synthed | null {
     if (t1.tag === "AmbiguousNullPointer" || t2.tag === "AmbiguousNullPointer") {
         if (t1.tag === t2.tag) return t1;
-        if (t1.tag === "PointerType" || t1.tag === "AnonymousFunctionTypePointer") return t1;
-        if (t2.tag === "PointerType" || t2.tag === "AnonymousFunctionTypePointer") return t2;
+        if (t1.tag === "AnonymousFunctionTypePointer") return t1;
+        if (t2.tag === "AnonymousFunctionTypePointer") return t2;
+        if (t1.tag === "NamedFunctionType") return null;
+        if (t2.tag === "NamedFunctionType") return null;
+        if (t1.tag !== "AmbiguousNullPointer" && actualType(genv, t1).tag === "PointerType") return t1;
+        if (t2.tag !== "AmbiguousNullPointer" && actualType(genv, t2).tag === "PointerType") return t1;
         return null;
     }
 
