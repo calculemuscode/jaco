@@ -9,7 +9,8 @@ function testfile(lang: Lang, filepath: string) {
 
     let ast = parseProgram(lang, contents);
     check(ast);
+    console.log(JSON.stringify(ast, undefined, 2));
     return true;
 }
 
-testfile("C1", "tests/examples/isqrt.c0");
+testfile("C1", "tests/l1-large/alaska-error01.l1");

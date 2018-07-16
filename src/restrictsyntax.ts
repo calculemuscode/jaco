@@ -97,8 +97,15 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
         case "Identifier":
             return syn;
         case "IntLiteral":
-            if (syn.raw.startsWith("0x") || syn.raw.startsWith("0X")) {
-                const hex = syn.raw.substring(2);
+            if (syn.raw === "0") {
+                return { tag: "IntLiteral", raw: "0", value: 0 };
+            } else if (syn.raw.startsWith("0") || syn.raw.startsWith("0")) {
+                const match = syn.raw.match(/^0[xX](0*)([0-9a-fA-F]+)$/);
+                if (match === null) {
+                    if (syn.raw[1].toLowerCase() !== "x") throw new Error(`Bad numeric constant: ${syn.raw}\nIdentifiers beginning with '0' must be hex constants starting as '0X' or '0x'`);
+                    throw new Error(`Invalid hex constant: ${syn.raw}\nHex constants must only have the characters '0123456789abcdefABCDEF'`);
+                }
+                const hex = match[2];
                 if (hex.length > 8) throw new Error(`Hex constant too large: ${syn.raw}`);
                 const value = parseInt(hex, 16);
                 return {
@@ -107,6 +114,9 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                     value: value < 0x80000000 ? value : value - 0x100000000
                 };
             } else {
+                const match = syn.raw.match(/^[0-9]+$/);
+                if (match === null)
+                    throw new Error(`Invalid integer constant: ${syn.raw}`)
                 if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
                 const dec = parseInt(syn.raw, 10);
                 if (dec > 2147483648) throw new Error(`Decimal constant too large: ${syn.raw}`);

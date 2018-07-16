@@ -41,7 +41,7 @@ const basicLexing = {
             ]
         }
     },
-    numeric_literal: { match: /(?:0[xX][0-9a-zA-Z]+)|(?:[1-9][0-9]*)|0/ },
+    numeric_literal: { match: /(?:0[0-9a-zA-Z_]+)|(?:[1-9][A-Za-z0-9_]*)|0/ },
     char_delimiter: { match: /'/, push: "charComponents" },
     string_delimiter: { match: /\"/, push: "stringComponents" },
     logical_and: "&&",
