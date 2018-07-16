@@ -312,6 +312,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                         case "NamedFunctionType": return error(`cannot compare functions for equality directly with ${exp.operator}`)
                         case "StructType": return error(`cannot compare structs for equality directly with ${exp.operator}`, "pointers to struts can be compared")
                         case "VoidType": return error(`cannot compare void expressions for equality`);
+                        case "StringType": return error(`cannot compare strings with '${exp.operator}'`, "try using string_equal in library <string>")
                     }
                     checkExpression(genv, env, mode, exp.right, actualLeft);
                     return { tag: "BoolType" };

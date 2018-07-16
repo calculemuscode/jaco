@@ -53,16 +53,16 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | "\\" "hastag" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.HasTagExpression %}
                 | "(" _ "*" _ Expression _ ")" _ Funargs              {% util.IndirectCallExpression %}
 ExpC           -> ExpD {% id %} | Unop _ ExpC                         {% util.UnaryExpression %}
-ExpB           -> ExpC {% id %} | ExpC _ BinopB _ ExpB                {% util.BinaryExpression %}
-ExpA           -> ExpB {% id %} | ExpB _ BinopA _ ExpA                {% util.BinaryExpression %}
-Exp9           -> ExpA {% id %} | ExpA _ Binop9 _ Exp9                {% util.BinaryExpression %}
-Exp8           -> Exp9 {% id %} | Exp9 _ Binop8 _ Exp8                {% util.BinaryExpression %}
-Exp7           -> Exp8 {% id %} | Exp8 _ Binop7 _ Exp7                {% util.BinaryExpression %}
-Exp6           -> Exp7 {% id %} | Exp7 _ Binop6 _ Exp6                {% util.BinaryExpression %}
-Exp5           -> Exp6 {% id %} | Exp6 _ Binop5 _ Exp5                {% util.BinaryExpression %}
-Exp4           -> Exp5 {% id %} | Exp5 _ Binop4 _ Exp4                {% util.BinaryExpression %}
-Exp3           -> Exp4 {% id %} | Exp4 _ Binop3 _ Exp3                {% util.BinaryExpression %}
-Exp2           -> Exp3 {% id %} | Exp3 _ Binop2 _ Exp2                {% util.BinaryExpression %}
+ExpB           -> ExpC {% id %} | ExpB _ BinopB _ ExpC                {% util.BinaryExpression %}
+ExpA           -> ExpB {% id %} | ExpA _ BinopA _ ExpB                {% util.BinaryExpression %}
+Exp9           -> ExpA {% id %} | Exp9 _ Binop9 _ ExpA                {% util.BinaryExpression %}
+Exp8           -> Exp9 {% id %} | Exp8 _ Binop8 _ Exp9                {% util.BinaryExpression %}
+Exp7           -> Exp8 {% id %} | Exp7 _ Binop7 _ Exp8                {% util.BinaryExpression %}
+Exp6           -> Exp7 {% id %} | Exp6 _ Binop6 _ Exp7                {% util.BinaryExpression %}
+Exp5           -> Exp6 {% id %} | Exp5 _ Binop5 _ Exp6                {% util.BinaryExpression %}
+Exp4           -> Exp5 {% id %} | Exp4 _ Binop4 _ Exp5                {% util.BinaryExpression %}
+Exp3           -> Exp4 {% id %} | Exp3 _ Binop3 _ Exp4                {% util.BinaryExpression %}
+Exp2           -> Exp3 {% id %} | Exp2 _ Binop2 _ Exp3                {% util.BinaryExpression %}
 Exp1           -> Exp2 {% id %} | Exp2 _ Binop1 _ Expression _ ":" _ Exp1 {% util.ConditionalExpression %}
 Exp0           -> Exp1 {% id %} | Exp1 _ Binop0 _ Exp0                {% util.BinaryExpression %}
 
