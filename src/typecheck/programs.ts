@@ -104,7 +104,6 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
                 functionsUsed = checkStatementFlow(defined, constants, defined, decl.body).functions.union(functionsUsed);
             }
 
-
             return functionsUsed;
         }
         /* instanbul ignore next */
