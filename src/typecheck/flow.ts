@@ -199,7 +199,7 @@ export function checkStatementFlow(
             );
             return {
                 locals: locals,
-                defined: body.defined,
+                defined: body.defined.intersect(locals),
                 functions: body.functions,
                 returns: body.returns
             };
