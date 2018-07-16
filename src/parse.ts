@@ -11,7 +11,7 @@ const programRules = require("../lib/program-rules");
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(expressionRules));
-    parser.lexer = new TypeLexer(opt.types || Set());
+    parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || Set());
     parser.feed(str);
     const parsed: parsed.Expression[] = parser.finish();
     if (parsed.length > 1) {
@@ -32,9 +32,9 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 */
 
-export function parseProgramRaw(str: string): List<parsed.Declaration> {
+export function parseProgramRaw(lang: Lang, str: string): List<parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = (parser.lexer = new TypeLexer(Set()));
+    const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, Set()));
     const segments = str.split(";");
     let decls: List<parsed.Declaration> = List();
     let size = 0;
@@ -86,7 +86,7 @@ export function parseProgramRaw(str: string): List<parsed.Declaration> {
 }
 
 export function parseProgram(lang: Lang, str: string): List<ast.Declaration> {
-    return parseProgramRaw(str).map(decl => {
+    return parseProgramRaw(lang, str).map(decl => {
         return restrictDeclaration(lang, decl);
     });
 }

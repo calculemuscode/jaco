@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, lstatSync } from "fs";
 import { List } from "immutable";
 import { expect } from "chai";
 import { join, extname } from "path";
-import { createCoreLexer } from "../lex";
+import { createAnnoLexer } from "../lex";
 import { parseProgram } from "../parse";
 import Lang, { parse as parseLang } from "../lang";
 import { parseSpec, Spec } from "./parsespec";
@@ -28,7 +28,7 @@ function testfile(filenameLang: Lang, filepath: string) {
         it(`test ${filepath}.${i}, should ${spec.description}`, () => {
             /* Step 1: Ensure the core lexer lexes everything */
             /* (also ignore pragma-contining files, for now) */
-            const lexer = createCoreLexer();
+            const lexer = createAnnoLexer();
             let hasPragmas = false;
             lexer.reset(contents);
             for (let tok of lexer) {
@@ -36,6 +36,7 @@ function testfile(filenameLang: Lang, filepath: string) {
             }
             if (hasPragmas) return;
             if (spec.files.length > 0 || spec.libs.length > 0) return;
+        
 
             /* Step 2: Try to parse */
             let ast: List<ast.Declaration> = List();

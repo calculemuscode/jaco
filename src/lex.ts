@@ -1,5 +1,7 @@
 import { states, Token, Lexer, LexerState } from "moo";
 import { Set } from "immutable";
+import Lang from "./lang";
+import { impossible } from "../node_modules/@calculemus/impossible";
 
 /**
  * Ambitious Goal: "invalid syntax" errors from the lexer are unclear. Can we take errors out of the lexer to
@@ -45,6 +47,8 @@ const basicLexing = {
     char_delimiter: { match: /'/, push: "charComponents" },
     string_delimiter: { match: /\"/, push: "stringComponents" },
     logical_and: "&&",
+    decrement: "--",
+    increment: "++",
     symbol: /[!$%&\(\)*+,\-.\/:;<=>?\[\\\]^{\|}~]/,
     unexpected_unicode_character: { match: /[\x00-\u{10FFFF}]/, lineBreaks: true }, // ugh linebreaks
     invalid_character: { match: /./, lineBreaks: true }, // ugh linebreaks
@@ -52,12 +56,52 @@ const basicLexing = {
     space: "<placeholder>"
 };
 
-export function createCoreLexer(): Lexer {
+export function createLexer(): Lexer {
     return states(
         {
             main: Object.assign(
                 {
                     newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                    whitespace: { match: /[ \t\v\f]+/ },
+                    comment_start: { match: "/*", push: "multiLineComment" },
+                    comment_line_start: { match: "//", push: "lineComment" },
+                    pragma: /#.*/
+                },
+                basicLexing
+            ),
+            stringComponents: {
+                string_delimiter: { match: /"/, pop: 1 },
+                characters: { match: /[^\\\n\r"]+/, lineBreaks: false },
+                special_character: { match: /\\[^\n\r]/, lineBreaks: false },
+                invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true }
+            },
+            charComponents: {
+                char_delimiter: { match: /'/, pop: 1 },
+                special_character: { match: /\\./, lineBreaks: true },
+                character: { match: /./, lineBreaks: false },
+                invalid_string_character: { match: /[\x00-xFF]/, lineBreaks: true, pop: 1 }
+            },
+            multiLineComment: {
+                comment_start: { match: "/*", push: "multiLineComment" },
+                comment_end: { match: "*/", pop: 1 },
+                comment: { match: /\*|\/|[^*\/\n]+/, lineBreaks: false },
+                newline: { match: /\n/, lineBreaks: true }
+            },
+            lineComment: {
+                comment: { match: /[^\n]/, lineBreaks: false },
+                comment_line_end: { match: /\n/, lineBreaks: true, pop: 1 }
+            }
+        },
+        "main"
+    );
+}
+
+export function createAnnoLexer(): Lexer {
+    return states(
+        {
+            main: Object.assign(
+                {
+                    newline: { match: /\n/, lineBreaks: true },
                     whitespace: { match: /[ \t\v\f]+/ },
                     anno_start: { match: "/*@", push: "multiLineAnno" },
                     comment_start: { match: "/*", push: "multiLineComment" },
@@ -69,7 +113,7 @@ export function createCoreLexer(): Lexer {
             ),
             multiLineAnno: Object.assign(
                 {
-                    newline: { match: /\r\n|\r|\n/, lineBreaks: true },
+                    newline: { match: /\n/, lineBreaks: true },
                     whitespace: { match: /[ \t\v\f]+/ },
                     anno_end: { match: "@*/", pop: 1 },
                     comment_start: { match: "/*", push: "multiLineComment" },
@@ -80,7 +124,7 @@ export function createCoreLexer(): Lexer {
             ),
             lineAnno: Object.assign(
                 {
-                    anno_end: { match: /\r\n|\r|\n/, pop: 1, lineBreaks: true },
+                    anno_end: { match: /\n/, pop: 1, lineBreaks: true },
                     whitespace: { match: /[ \t\v\f]+/ },
                     comment_start: { match: "/*", push: "multiLineComment" },
                     comment_line_start: { match: "//", next: "lineComment" },
@@ -103,12 +147,12 @@ export function createCoreLexer(): Lexer {
             multiLineComment: {
                 comment_start: { match: "/*", push: "multiLineComment" },
                 comment_end: { match: "*/", pop: 1 },
-                comment: { match: /\*|\/|[^*\/\r\n]+/, lineBreaks: false },
-                newline: { match: /\n|\r|\r\n/, lineBreaks: true }
+                comment: { match: /\*|\/|[^*\/\n]+/, lineBreaks: false },
+                newline: { match: /\n/, lineBreaks: true }
             },
             lineComment: {
-                comment: { match: /[^\n\r]/, lineBreaks: false },
-                comment_line_end: { match: /\n|\r|\r\n/, lineBreaks: true, pop: 1 }
+                comment: { match: /[^\n]/, lineBreaks: false },
+                comment_line_end: { match: /\n/, lineBreaks: true, pop: 1 }
             }
         },
         "main"
@@ -119,9 +163,25 @@ export class TypeLexer {
     private typeIds: Set<string>;
     private coreLexer: Lexer;
     private parsePragma: (pragma: string) => Set<string>;
-    constructor(typeIds: Set<string>, parsePragma?: (pragma: string) => Set<string>) {
+    constructor(lang: Lang, typeIds: Set<string>, parsePragma?: (pragma: string) => Set<string>) {
         this.typeIds = typeIds;
-        this.coreLexer = createCoreLexer();
+        switch (lang) {
+            case "L1":
+            case "L2":
+            case "L3":
+            case "L4": {
+                this.coreLexer = createLexer();
+                break;
+            }
+            case "C0":
+            case "C1": {
+                this.coreLexer = createAnnoLexer();
+                break;
+            }
+            default: {
+                this.coreLexer = impossible(lang);
+            }
+        }
         this.parsePragma = parsePragma || (() => Set());
     }
     addIdentifier(typeIdentifier: string) {
@@ -156,4 +216,4 @@ export class TypeLexer {
     }
 }
 
-export const lexer = new TypeLexer(Set());
+export const lexer = new TypeLexer("C1", Set());

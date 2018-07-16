@@ -42,8 +42,8 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | ExpD _ "." _ FieldName                              {% util.StructMemberExpression %}
                 | ExpD _ ("-" ">") _ FieldName                        {% util.StructMemberExpression %}
                 | ExpD _ "[" _ Expression _ "]"                       {% util.ArrayMemberExpression %}
-                | ExpD _ "+" "+"                                      {% util.UpdateExpression %}
-                | ExpD _ "-" "-"                                      {% util.UpdateExpression %}
+                | ExpD _ "++"                                         {% util.UpdateExpression %}
+                | ExpD _ "--"                                         {% util.UpdateExpression %}
                 | "alloc" _ "(" _ Tp _ ")"                            {% util.AllocExpression %}
                 | "alloc_array" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.AllocArrayExpression %}
                 | "assert" _ "(" _ Expression _ ")"                   {% util.AssertExpression %}

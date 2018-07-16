@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import { parseProgram } from "./parse";
 import { check } from "./typecheck/programs";
 import Lang from "./lang";
-import "mocha";
 
 function testfile(lang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
@@ -13,4 +12,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/compilers/blue-follow1.l1");
+testfile("C1", "tests/compilers/lammergeier-ascii-whitespace.l1");
