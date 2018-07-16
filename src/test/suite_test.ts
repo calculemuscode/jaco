@@ -21,7 +21,7 @@ function testfile(filenameLang: Lang, filepath: string) {
     try {
         specs = parseSpec(filenameLang, spectxt[0], filepath);
     } catch (err) {
-        console.log(err);
+        console.log(err.message);
         specs = [];
     }
     specs.forEach((spec, i) => {

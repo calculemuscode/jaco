@@ -12,4 +12,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/compilers/lammergeier-ascii-whitespace.l1");
+testfile("C1", "tests/compilers/aluminium-exception03.l2");

@@ -252,7 +252,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case "^":
                 case "|": {
                     checkExpression(genv, env, mode, exp.left, { tag: "IntType" });
-                    checkExpression(genv, env, mode, exp.left, { tag: "IntType" });
+                    checkExpression(genv, env, mode, exp.right, { tag: "IntType" });
                     return { tag: "IntType" };
                 }
 
@@ -261,11 +261,10 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case ">=":
                 case ">": {
                     const leftType = synthExpression(genv, env, mode, exp.left);
-                    if (
-                        leftType.tag === "AmbiguousNullPointer" ||
-                        leftType.tag === "AnonymousFunctionTypePointer"
-                    )
-                        return error("Cannot compare pointers for inequality");
+                    if (leftType.tag === "AmbiguousNullPointer")
+                        return error(`Cannot compare pointers with ${exp.operator}`);
+                    if (leftType.tag === "AnonymousFunctionTypePointer")
+                        return error(`Cannot compare function pointers with ${exp.operator}`);
                     if (leftType.tag === "NamedFunctionType")
                         return error("Cannot compare functions for inequality");
                     switch (actualType(genv, leftType).tag) {
@@ -292,10 +291,30 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case "==":
                 case "!=": {
                     const left = synthExpression(genv, env, mode, exp.left);
-                    const right = synthExpression(genv, env, mode, exp.right);
-                    left;
-                    right;
-                    return { tag: "BoolType" }; // Bogus
+                    switch (left.tag) {
+                        case "AmbiguousNullPointer": {
+                            const right = synthExpression(genv, env, mode, exp.right);
+                            if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
+                            if (right.tag === "AnonymousFunctionTypePointer") return { tag: "BoolType" };
+                            if (right.tag === "NamedFunctionType") return error("cannot compare NULL and a function");
+                            if (actualType(genv, right).tag === "PointerType") return { tag: "BoolType" }
+                            else return error(`cannot compare 'NULL' to a non-pointer type with ${exp.operator}`)
+                            
+                        }
+                        case "AnonymousFunctionTypePointer": {
+                            const right = synthExpression(genv, env, mode, exp.right);
+                            if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
+                            return error("can only compare an function pointer '&f' against NULL");
+                        }
+                    }
+                    const actualLeft = actualType(genv, left);
+                    switch (actualLeft.tag) {
+                        case "NamedFunctionType": return error(`cannot compare functions for equality directly with ${exp.operator}`)
+                        case "StructType": return error(`cannot compare structs for equality directly with ${exp.operator}`, "pointers to struts can be compared")
+                        case "VoidType": return error(`cannot compare void expressions for equality`);
+                    }
+                    checkExpression(genv, env, mode, exp.right, actualLeft);
+                    return { tag: "BoolType" };
                 }
                 default:
                     return impossible(exp.operator);

@@ -91,7 +91,7 @@ function checkStatement(
                 }
             } else {
                 if (stm.argument === null) {
-                    return error("type mismatch, expected a return type found void"); // TODO types
+                    return error("type mismatch, expected a return type found void");
                 } else {
                     checkExpression(genv, env, null, stm.argument, returning);
                 }
