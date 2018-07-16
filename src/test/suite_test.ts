@@ -5,19 +5,25 @@ import { join, extname } from "path";
 import { createCoreLexer } from "../lex";
 import { parseProgram } from "../parse";
 import Lang, { parse as parseLang } from "../lang";
-import { parseSpec } from "./parsespec";
+import { parseSpec, Spec } from "./parsespec";
 import { check } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
 
 function testfile(filenameLang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
-    const spectxt = contents.match(/(\/\/test.*(\r|\n|\n\r|\r\n))+/);
+    const spectxt = contents.match(/(\/\/test .*(\r|\n|\n\r|\r\n))+/);
     if (spectxt === null) {
         console.warn(`No specs in file ${filepath}`);
         return;
     }
-    const specs = parseSpec(filenameLang, spectxt[0], filepath);
+    let specs: Spec[];
+    try {
+        specs = parseSpec(filenameLang, spectxt[0], filepath);
+    } catch (err) {
+        console.log(err);
+        specs = [];
+    }
     specs.forEach((spec, i) => {
         it(`test ${filepath}.${i}, should ${spec.description}`, () => {
             /* Step 1: Ensure the core lexer lexes everything */
@@ -47,7 +53,8 @@ function testfile(filenameLang: Lang, filepath: string) {
             }
 
             /* Step 3: Try to typecheck */
-            if (spec.outcome === "error_typecheck") {
+            /* The first branch is wrong: error does allow error_statics */
+            if (spec.outcome === "error_typecheck" || spec.outcome === "error") {
                 expect(() => check(ast)).to.throw();
                 return;
             } else if (spec.outcome !== "error") {

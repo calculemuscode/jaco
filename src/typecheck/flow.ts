@@ -87,7 +87,7 @@ export function checkStatementFlow(
     switch (stm.tag) {
         case "AssignmentStatement": {
             let functions = checkExpressionUsesGetFreeFunctions(locals, defined, stm.right);
-            if (stm.left.tag === "Identifier") {
+            if (stm.operator === "=" && stm.left.tag === "Identifier") {
                 if (constants.has(stm.left.name)) {
                     error(
                         `assigning to ${stm.left.name} is not permitted when ${
