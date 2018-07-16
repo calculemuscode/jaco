@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
-import { Env, Synthed, isSubtype } from "./types";
+import { Env, Synthed, isSubtype, typeSizeFullyDefined } from "./types";
 import * as ast from "../ast";
 
 export type mode =
@@ -314,11 +314,13 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             return left; // Bogus
         }
         case "AllocExpression": {
-            // TODO check type
+            const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
+            if (undefinedTypePart !== null) return error("cannot allocate an undefined type", `give a definition for 'strict ${undefinedTypePart}`);
             return { tag: "PointerType", argument: exp.kind };
         }
         case "AllocArrayExpression": {
-            // TODO check type
+            const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
+            if (undefinedTypePart !== null) return error("cannot allocate an undefined type", `give a definition for 'strict ${undefinedTypePart}`);
             checkExpression(genv, env, mode, exp.size, { tag: "IntType" });
             return { tag: "ArrayType", argument: exp.kind };
         }

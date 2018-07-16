@@ -102,7 +102,10 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
                 }])
                 checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
                 let constants = decl.postconditions.reduce((constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)), Set());
-                functionsUsed = checkStatementFlow(defined, constants, defined, decl.body).functions.union(functionsUsed);
+                const functionAnalysis = checkStatementFlow(defined, constants, defined, decl.body);
+                if (decl.returns.tag !== "VoidType" && !functionAnalysis.returns)
+                    return error(`function ${decl.id.name} has non-void return type but does not return along every path`)
+                functionsUsed = functionAnalysis.functions.union(functionsUsed);
             }
 
             return functionsUsed;

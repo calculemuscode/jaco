@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import { Map } from "immutable";
 import { error } from "./error";
-import { actualType, GlobalEnv } from "./globalenv";
+import { actualType, GlobalEnv, getStructDefinition } from "./globalenv";
 import * as ast from "../ast";
 
 export type Env = Map<string, ast.Type>;
@@ -181,6 +181,9 @@ export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type
     }
 }
 
+/**
+ * Ensures that a type is not void or (recursively) void[]
+ */
 export function checkTypeIsNotVoid(genv: GlobalEnv, tp: ast.Type): void {
     const actual = actualType(genv, tp);
     switch (actual.tag) {
@@ -207,7 +210,9 @@ export function checkTypeIsNotVoid(genv: GlobalEnv, tp: ast.Type): void {
     }
 }
 
-/** Asserts type mentioned in variable declaration or function argument has small type */
+/**
+ * Asserts type mentioned in variable declaration or function argument has small type
+ */
 export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunctionArg?: boolean): void {
     const actual = actualType(genv, tp);
     switch (actual.tag) {
@@ -232,12 +237,42 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
     }
 }
 
-/** Checks a valid function return type */
+/** 
+ * Checks that a function return type is valid (void or small)
+ */
 export function checkFunctionReturnType(genv: GlobalEnv, t: ast.Type) {
     switch (t.tag) {
         case "VoidType":
             return;
         default:
             return checkTypeInDeclaration(genv, t, true);
+    }
+}
+
+/**
+ * Checks whether a type is fully defined - whether all its constituent struct parts are 
+ * Returns the undefined struct as a string if the type is not fully defined (for the error message)
+ */
+export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type) : string | null {
+    const actual = actualType(genv, t);
+    switch (actual.tag) {
+        case "IntType":
+        case "BoolType":
+        case "StringType":
+        case "CharType":
+        case "VoidType": 
+        case "ArrayType":
+        case "PointerType": 
+        case "NamedFunctionType": return null;
+        case "StructType": {
+            const defn = getStructDefinition(genv, actual.id.name);
+            if (defn === null || defn.definitions.length === 0) return actual.id.name;
+            for (let decl of defn.definitions) {
+                const part = typeSizeFullyDefined(genv, decl.kind);
+                if (part !== null) return part;
+            }
+            return null;
+        }
+        default: return impossible(actual);
     }
 }
