@@ -37,10 +37,12 @@ export function parseProgramRaw(str: string): List<parsed.Declaration> {
     const lexer: TypeLexer = (parser.lexer = new TypeLexer(Set()));
     const segments = str.split(";");
     let decls: List<parsed.Declaration> = List();
+    let size = 0;
     segments.forEach((segment, index) => {
         parser.feed(segment);
         const parsed = parser.finish();
         if (parsed.length > 1) {
+            console.log("Parse ambiguous");
             console.log(JSON.stringify(parsed[0]));
             console.log(JSON.stringify(parsed[parsed.length - 1]));
             throw new Error(
@@ -59,12 +61,20 @@ export function parseProgramRaw(str: string): List<parsed.Declaration> {
                 decls = decls.concat(parsed[0]);
             } else {
                 const parsedGlobalDecls = parsed[0];
+                if (parsedGlobalDecls.length === 0) throw new Error(`semicolon at beginning of file`);
+
                 const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                if (
-                    possibleTypedef.tag === "TypeDefinition" ||
-                    possibleTypedef.tag === "FunctionTypeDefinition"
-                ) {
-                    lexer.addIdentifier(possibleTypedef.definition.id.name);
+                if (parsedGlobalDecls.length === size) throw new Error(`too many semicolons after a ${possibleTypedef.tag}`)
+                size = parsedGlobalDecls.length;
+
+                switch (possibleTypedef.tag) {
+                    case "TypeDefinition":
+                    case "FunctionTypeDefinition": {
+                        lexer.addIdentifier(possibleTypedef.definition.id.name);
+                        break;
+                    }
+                    default: 
+                        throw new Error(`unnecessary semicolon at the top level after ${possibleTypedef.tag}`);
                 }
                 parser.feed(" ");
             }

@@ -13,4 +13,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/l1-large/alaska-error01.l1");
+testfile("C1", "tests/compilers/blue-follow1.l1");
