@@ -270,7 +270,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     switch (actualType(genv, leftType).tag) {
                         case "IntType":
                         case "CharType": {
-                            checkExpression(genv, env, mode, exp.left, leftType);
+                            checkExpression(genv, env, mode, exp.right, leftType);
                             return { tag: "BoolType" };
                         }
                         case "StringType": {
