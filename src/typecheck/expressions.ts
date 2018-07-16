@@ -1,5 +1,4 @@
 import { impossible } from "@calculemus/impossible";
-import { Set } from "immutable";
 import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
 import { Env, Synthed, isSubtype } from "./types";
@@ -377,43 +376,3 @@ export function checkExpression(
     }
 }
 
-export function expressionFreeVars(exp: ast.Expression): Set<string> {
-    switch (exp.tag) {
-        case "Identifier":
-            return Set([exp.name]);
-        case "IntLiteral":
-        case "StringLiteral":
-        case "CharLiteral":
-        case "BoolLiteral":
-        case "NullLiteral":
-        case "AllocExpression":
-        case "ResultExpression":
-            return Set();
-        case "ArrayMemberExpression":
-            return expressionFreeVars(exp.object).union(expressionFreeVars(exp.index));
-        case "StructMemberExpression":
-            return expressionFreeVars(exp.object);
-        case "CallExpression":
-        case "IndirectCallExpression":
-            return exp.arguments.reduce(
-                (fv, arg) => fv.union(expressionFreeVars(arg)),
-                expressionFreeVars(exp.callee)
-            );
-        case "UnaryExpression":
-        case "CastExpression":
-        case "LengthExpression":
-        case "HasTagExpression":
-            return expressionFreeVars(exp.argument);
-        case "BinaryExpression":
-        case "LogicalExpression":
-            return expressionFreeVars(exp.left).union(expressionFreeVars(exp.right));
-        case "ConditionalExpression":
-            return expressionFreeVars(exp.test)
-                .union(expressionFreeVars(exp.consequent))
-                .union(expressionFreeVars(exp.alternate));
-        case "AllocArrayExpression":
-            return expressionFreeVars(exp.size);
-        default:
-            return impossible(exp);
-    }
-}

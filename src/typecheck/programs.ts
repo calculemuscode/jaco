@@ -4,8 +4,9 @@ import * as ast from "../ast";
 import { error } from "./error";
 import { GlobalEnv, getTypeDef, getFunctionDeclaration } from "./globalenv";
 import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
-import { checkExpression, expressionFreeVars } from "./expressions";
-import { checkStatements, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./statements";
+import { checkExpression } from "./expressions";
+import { checkStatements } from "./statements";
+import { expressionFreeVars, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./flow";
 
 function getDefinedFromParams(params: ast.VariableDeclarationOnly[]): Set<string> {
     return params.reduce((set, param) => set.add(param.id.name), Set<string>());
