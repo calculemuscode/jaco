@@ -390,7 +390,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                     return {
                         tag: "UpdateStatement",
                         operator: syn.expression.operator,
-                        argument: restrictExpression(lang, syn.expression.argument)
+                        argument: restrictLValue(lang, syn.expression.argument)
                     };
                 }
                 case "AssertExpression": {

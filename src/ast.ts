@@ -340,7 +340,7 @@ export interface AssignmentStatement extends Syn {
 export interface UpdateStatement extends Syn {
     readonly tag: "UpdateStatement";
     readonly operator: "++" | "--";
-    readonly argument: Expression;
+    readonly argument: LValue;
 }
 
 export interface ExpressionStatement extends Syn {
