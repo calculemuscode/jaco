@@ -394,7 +394,7 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
                     };
                 }
                 case "AssertExpression": {
-                    if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4") {
+                    if (lang === "L1" || lang === "L2") {
                         throw new Error(`Assertions not a part of ${lang}`);
                     }
                     return {
@@ -590,6 +590,11 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
     if (typeof decl === "string") return decl;
     switch (decl.tag) {
         case "FunctionDeclaration": {
+            if (lang == "L1" || lang == "L2") {
+                if (decl.body === null) throw new Error(`function declarations are not a part of ${lang}`);
+                if (decl.id.name !== "main") throw new Error(`only function 'main' can be defined in ${lang}`)
+            }                
+
             const annos = restrictFunctionAnnos(lang, decl.annos);
             return {
                 tag: "FunctionDeclaration",
@@ -608,6 +613,9 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             };
         }
         case "FunctionTypeDefinition": {
+            if (lang != "C1")
+                throw new Error(`function types are not a part of ${lang}`);
+
             const annos = restrictFunctionAnnos(lang, decl.definition.annos);
             return {
                 tag: "FunctionTypeDefinition",
@@ -623,6 +631,9 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             };
         }
         case "StructDeclaration": {
+            if (lang == "L1" || lang == "L2" || lang == "L3")
+                throw new Error(`structs are not a part of ${lang}`);
+
             return {
                 tag: "StructDeclaration",
                 id: decl.id,
@@ -630,6 +641,9 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             };
         }
         case "TypeDefinition": {
+            if (lang == "L1" || lang == "L2")
+                throw new Error(`typedefs are not a part of ${lang}`);
+
             return {
                 tag: "TypeDefinition",
                 definition: {

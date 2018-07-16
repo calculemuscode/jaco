@@ -1,6 +1,11 @@
+import { List, Set } from "immutable";
 import * as ast from "../ast";
 
-export type GlobalEnv = ast.Declaration[];
+export type GlobalEnv = {
+    readonly libstructs: Set<string>,
+    readonly libfuncs: Set<string>,
+    readonly decls: List<ast.Declaration>;
+}
 
 export type ActualType =
     | ast.IntType
@@ -13,7 +18,7 @@ export type ActualType =
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration };
 
 export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueType | null {
-    for (let decl of genv) {
+    for (let decl of genv.decls) {
         if (decl.tag === "TypeDefinition" && decl.definition.id.name === t) {
             return decl.definition.kind;
         } else if (decl.tag === "FunctionTypeDefinition" && decl.definition.id.name === t) {
@@ -26,9 +31,39 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
     return null;
 }
 
+export const initMain: GlobalEnv = ({
+        libstructs: Set<string>(),
+        libfuncs: Set<string>(),
+        decls: List<ast.Declaration>([{
+            tag: "FunctionDeclaration",
+            returns: { tag: "IntType" },
+            id: { tag: "Identifier", name: "main" },
+            params: [],
+            preconditions: [],
+            postconditions: [],
+            body: null
+            }])
+});
+
+export function addDecl(genv: GlobalEnv, decl: ast.Declaration, library?: boolean): GlobalEnv {
+    return {
+        libstructs: library && decl.tag == "StructDeclaration" ? genv.libstructs.add(decl.id.name) : genv.libstructs,
+        libfuncs: library && decl.tag == "FunctionDeclaration" ? genv.libfuncs.add(decl.id.name) : genv.libfuncs,
+        decls: genv.decls.push(decl)
+    }
+}
+
+export function isLibraryFunction(genv: GlobalEnv, t: string): boolean {
+    return genv.libfuncs.has(t);
+}
+
+export function isLibraryStruct(genv: GlobalEnv, t: string): boolean {
+    return genv.libfuncs.has(t);
+}
+
 export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.FunctionDeclaration | null {
-    let result: ast.FunctionDeclaration | null = null;
-    for (let decl of genv) {
+    let result: ast.FunctionDeclaration  | null = null;
+    for (let decl of genv.decls) {
         if (decl.tag === "FunctionDeclaration" && decl.id.name === t) {
             if (result === null) result = decl;
             if (decl.body !== null) return decl;
@@ -39,7 +74,7 @@ export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.Function
 
 export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDeclaration | null {
     let result: ast.StructDeclaration | null = null;
-    for (let decl of genv) {
+    for (let decl of genv.decls) {
         if (decl.tag === "StructDeclaration" && decl.id.name === t) {
             if (result === null) result = decl;
             if (decl.definitions.length > 0) return decl;

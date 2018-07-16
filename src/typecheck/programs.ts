@@ -2,7 +2,7 @@ import { impossible } from "@calculemus/impossible";
 import { Map, List, Set } from "immutable";
 import * as ast from "../ast";
 import { error } from "./error";
-import { GlobalEnv, getTypeDef, getFunctionDeclaration } from "./globalenv";
+import { GlobalEnv, getTypeDef, getFunctionDeclaration, addDecl, initMain } from "./globalenv";
 import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatements } from "./statements";
@@ -23,7 +23,7 @@ function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarati
     }, Map<string, ast.Type>());
 }
 
-function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
+function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration, library: boolean): Set<string> {
     switch (decl.tag) {
         case "Pragma": {
             return Set();
@@ -91,7 +91,7 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
             }
 
             if (decl.body !== null) {
-                const recursiveGlobalEnv = genv.concat([{
+                const recursiveGlobalEnv = addDecl(genv, {
                     tag: "FunctionDeclaration",
                     id: decl.id,
                     returns: decl.returns,
@@ -99,7 +99,7 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
                     preconditions: [],
                     postconditions: [],
                     body: null
-                }])
+                });
                 checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
                 let constants = decl.postconditions.reduce((constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)), Set());
                 const functionAnalysis = checkStatementFlow(defined, constants, defined, decl.body);
@@ -117,27 +117,27 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration): Set<string> {
     }
 }
 
-export function check(decls: List<ast.Declaration>) {
-    const result = decls.reduce(({ genv, functionsUsed }, decl) => ({
-            genv: genv.concat([decl]),
-            functionsUsed: checkDeclaration(genv, decl).union(functionsUsed)
-        })
-    , {genv: [{
-        tag: "FunctionDeclaration",
-        returns: { tag: "IntType" },
-        id: { tag: "Identifier", name: "main" },
-        params: [],
-        preconditions: [],
-        postconditions: [],
-        body: null
-    }] as ast.Declaration[], functionsUsed: Set<string>() })
+export function checkProgram(libs: List<List<ast.Declaration>>, decls: List<ast.Declaration>) {
+    const libenv = (libs.concat() as List<ast.Declaration>).reduce(({ genv, functionsUsed }, decl) => {
+        const newFunctions = checkDeclaration(genv, decl, true);
+            return {
+                genv: addDecl(genv, decl),
+                functionsUsed: newFunctions.union(functionsUsed)
+            }
+        }
+    , { genv: initMain, functionsUsed: Set<string>() });
 
-    // Check that all functions are defined if they are used
-    result.functionsUsed.union(Set<string>(["main"])).forEach((name):void => {
-        const def = getFunctionDeclaration(result.genv, name);
+    const progenv = decls.reduce(({ genv, functionsUsed }, decl) => {
+        const newFunctions = checkDeclaration(genv, decl, true);
+        return {
+            genv: addDecl(genv, decl),
+            functionsUsed: newFunctions.union(functionsUsed)
+        }
+    }, libenv);
+
+    progenv.functionsUsed.union(Set<string>(["main"])).forEach((name):void => {
+        const def = getFunctionDeclaration(progenv.genv, name);
         if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
         if (def.body === null) return error(`function ${name} is never defined`);
-    });
-
-    return result.genv;
+    });    
 }
