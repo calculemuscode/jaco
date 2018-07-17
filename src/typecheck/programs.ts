@@ -12,7 +12,7 @@ import {
     isLibraryStruct,
     getStructDefinition
 } from "./globalenv";
-import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
+import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType, typeSizeFullyDefined } from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatements } from "./statements";
 import { expressionFreeVars, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./flow";
@@ -38,13 +38,18 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             return Set();
         }
         case "StructDeclaration": {
-            console.log(decl);
             if (decl.definitions === null) return Set();
             if (!library && isLibraryStruct(genv, decl.id.name))
                 return error(`struct ${decl.id.name} is declared in a library and cannot be defined here`);
             const previousStruct = getStructDefinition(genv, decl.id.name);
             if (previousStruct !== null && previousStruct.definitions !== null)
                 return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
+            for (let part of decl.definitions) {
+                const undefinedTypePart = typeSizeFullyDefined(genv, part.kind);
+                if (undefinedTypePart !== null) {
+                    return error(`cannot define struct ${decl.id.name} because component struct ${undefinedTypePart} is not fully defined`);
+                }
+            }
             return Set();
         }
         case "TypeDefinition": {
