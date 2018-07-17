@@ -1,0 +1,31 @@
+/* L4 Library for 15411 Compiler Design */
+
+/* fpt alias for float */
+typedef int fpt;
+
+fpt fadd(fpt x, fpt y);
+fpt fsub(fpt x, fpt y);
+fpt fmul(fpt x, fpt y);
+fpt fdiv(fpt x, fpt y);
+bool fless(fpt x, fpt y);
+
+fpt itof(int n);
+int ftoi(fpt x);
+
+/* dub alias for double */
+typedef struct dub* dub;
+
+dub dadd(dub x, dub y);
+dub dsub(dub x, dub y);
+dub dmul(dub x, dub y);
+dub ddiv(dub x, dub y);
+bool dless(dub x, dub y);
+
+dub itod(int n);
+int dtoi(dub x);
+
+/* print to stderr */
+void print_fpt(fpt x);
+void print_dub(dub x);
+void print_int(int n);
+void print_hex(int n);
