@@ -425,7 +425,7 @@ export type Declaration =
 export interface StructDeclaration {
     readonly tag: "StructDeclaration";
     readonly id: Identifier;
-    readonly definitions: VariableDeclarationOnly[];
+    readonly definitions: null | VariableDeclarationOnly[];
 }
 
 export interface VariableDeclarationOnly extends Syn {

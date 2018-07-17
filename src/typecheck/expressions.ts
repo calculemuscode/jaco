@@ -104,7 +104,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 ); // TODO add inferred type
             let structDef = getStructDefinition(genv, actualObjectType.id.name);
             if (structDef === null) return error(`'struct ${actualObjectType.id.name}' not defined`);
-            if (structDef.definitions.length === 0)
+            if (structDef.definitions === null)
                 return error(`'struct ${actualObjectType.id.name}' declared but not defined`);
             for (let field of structDef.definitions) {
                 if (field.id.name === exp.field.name) return field.kind;

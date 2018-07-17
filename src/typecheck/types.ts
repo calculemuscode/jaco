@@ -289,7 +289,7 @@ export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type): string | nul
             return null;
         case "StructType": {
             const defn = getStructDefinition(genv, actual.id.name);
-            if (defn === null || defn.definitions.length === 0) return actual.id.name;
+            if (defn === null || defn.definitions === null) return actual.id.name;
             for (let decl of defn.definitions) {
                 const part = typeSizeFullyDefined(genv, decl.kind);
                 if (part !== null) return part;

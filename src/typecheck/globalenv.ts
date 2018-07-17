@@ -81,7 +81,7 @@ export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDecla
     for (let decl of genv.decls) {
         if (decl.tag === "StructDeclaration" && decl.id.name === t) {
             if (result === null) result = decl;
-            if (decl.definitions.length > 0) return decl;
+            if (decl.definitions !== null) return decl;
         }
     }
     return result;
