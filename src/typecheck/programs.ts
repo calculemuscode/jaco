@@ -8,7 +8,9 @@ import {
     getFunctionDeclaration,
     addDecl,
     initMain,
-    isLibraryFunction
+    isLibraryFunction,
+    isLibraryStruct,
+    getStructDefinition
 } from "./globalenv";
 import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
 import { checkExpression } from "./expressions";
@@ -36,6 +38,10 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             return Set();
         }
         case "StructDeclaration": {
+            if (decl.definitions.length === 0) return Set();
+            if (!library && isLibraryStruct(genv, decl.id.name)) return error(`struct ${decl.id.name} is declared in a library and cannot be defined here`)
+            const previousStruct = getStructDefinition(genv, decl.id.name);
+            if (previousStruct !== null && previousStruct.definitions.length > 0) return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
             return Set();
         }
         case "TypeDefinition": {
@@ -110,6 +116,8 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             }
 
             if (decl.body !== null) {
+                if (library) error(`functions cannot be defined in a library header file`);
+                if (isLibraryFunction(genv, decl.id.name)) error(`function ${decl.id.name} is declared in a library header and cannot be defined`);
                 const recursiveGlobalEnv = addDecl(false, 
                     genv,
                     {
