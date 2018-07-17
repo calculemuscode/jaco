@@ -71,15 +71,19 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
             }
         } else {
             // parsed.length === 1
+            const parsedGlobalDecls = parsed[0];
+            for (let i = size; i < parsedGlobalDecls.length - 1; i++) {
+                if (parsedGlobalDecls[i].tag === "TypeDefinition" || parsedGlobalDecls[i].tag === "FunctionTypeDefinition") 
+                   throw new Error(`typedef is missing its trailing semicolon`);
+            }
             if (segment.last) {
-                if (parsed[0].length > size) {
-                    const possibleTypeDef: ast.Declaration = parsed[0][parsed[0].length - 1];
+                if (parsedGlobalDecls.length > size) {
+                    const possibleTypeDef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
                     if (possibleTypeDef.tag === "TypeDefinition" || possibleTypeDef.tag === "FunctionTypeDefinition") 
-                        throw new Error(`typedef without a final semicolon at the end of the file`);
+                    throw new Error(`typedef without a final semicolon at the end of the file`);
                 }
-                decls = decls.concat(parsed[0]);
+                decls = decls.concat(parsedGlobalDecls);
             } else {
-                const parsedGlobalDecls = parsed[0];
                 if (parsedGlobalDecls.length === 0) throw new Error(`semicolon at beginning of file`);
 
                 const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];

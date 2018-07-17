@@ -18,7 +18,8 @@ export type Outcome =
     | "memerror"
     | "infloop"
     | "abort"
-    | "typecheck";
+    | "typecheck"
+    | "compile";
 export interface Spec {
     outcome: Outcome;
     description: string;
@@ -74,8 +75,10 @@ export function parseSpec(defaultLang: Lang, spec: string, filename?: string): S
                     return [cond, "never terminate"];
                 case "abort":
                     return [cond, "fail an assertion at runtime"];
-                case "typecheck":
+                    case "typecheck":
                     return [cond, "successfully typecheck"];
+                    case "compile":
+                    return [cond, "typecheck and link"];
                 /* istanbul ignore next */
 
                 default:

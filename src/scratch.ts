@@ -14,4 +14,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/l4-large/beorn-yo-dawg-i-herd-you-liek-null.l4");
+testfile("C1", "tests/compilers/squirtle-error-typedef-blah.l3");
