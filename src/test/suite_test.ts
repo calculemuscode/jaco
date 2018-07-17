@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, lstatSync } from "fs";
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import { expect } from "chai";
 import { join, extname, basename } from "path";
 import { createAnnoLexer } from "../lex";
@@ -9,6 +9,18 @@ import { parseSpec, Spec } from "./parsespec";
 import { checkProgram } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
+
+function extractTypedefs(decls: List<ast.Declaration>): Set<string> {
+    return decls.reduce((set, decl) => {
+        switch (decl.tag) {
+            case "TypeDefinition":
+            case "FunctionTypeDefinition":
+                return set.add(decl.definition.id.name);
+            default:
+                return set;
+        }
+    }, Set<string>());
+}
 
 function testfile(filenameLang: Lang, libs: string[], filepath: string) {
     const libcontents = libs.map(lib => readFileSync(lib, { encoding: "binary" }));
@@ -43,22 +55,32 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
             let ast: List<ast.Declaration> = List();
             if (spec.outcome === "error_parse") {
                 expect(() => {
-                    libcontents.forEach(libstr => parseProgram(spec.lang, libstr));
-                    parseProgram(spec.lang, contents);
+                    libAst = libcontents.reduce(
+                        (ast, libstr) => ast.concat(parseProgram("C1", libstr)),
+                        libAst
+                    );
+                    const typedefs = extractTypedefs(libAst);
+                    ast = parseProgram(spec.lang, contents, typedefs);
                 }).to.throw();
                 return;
             } else if (spec.outcome !== "error") {
                 expect(
                     () =>
                         (libAst = libcontents.reduce(
-                            (ast, libstr) => ast.concat(parseProgram(spec.lang, libstr)),
+                            (ast, libstr) => ast.concat(parseProgram("C1", libstr)),
                             libAst
                         ))
                 ).not.to.throw();
-                expect(() => (ast = parseProgram(spec.lang, contents))).not.to.throw();
+                const typedefs = extractTypedefs(libAst);
+                expect(() => (ast = parseProgram(spec.lang, contents, typedefs))).not.to.throw();
             } else {
                 try {
-                    ast = parseProgram(spec.lang, contents);
+                    libAst = libcontents.reduce(
+                        (ast, libstr) => ast.concat(parseProgram("C1", libstr)),
+                        libAst
+                    );
+                    const typedefs = extractTypedefs(libAst);
+                    ast = parseProgram(spec.lang, contents, typedefs);
                 } catch (e) {
                     return;
                 }
@@ -92,11 +114,19 @@ readdirSync(dir).forEach(subdir => {
                 let lang = parseLang(ext);
                 if (lang !== null && !file.endsWith(`_aux${ext}`)) {
                     let libs: string[];
-                    const lib = join(dir, subdir, base + ".h0");
-                    try {
-                        lstatSync(lib);
-                        libs = [lib];
-                    } catch (e) {
+
+                    if (lang == "L1" || lang == "L2") {
+                        libs = [];
+                    } else if (lang === "L3" || lang === "L4") {
+                        // For compatibility with the
+                        const lib = join(dir, subdir, base + ".h0");
+                        try {
+                            lstatSync(lib);
+                            libs = [lib];
+                        } catch (e) {
+                            libs = [join(".", "stdlib", "15411.h0")];
+                        }
+                    } else {
                         libs = [];
                     }
                     testfile(lang, libs, join(dir, subdir, file));

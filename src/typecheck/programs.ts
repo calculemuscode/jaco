@@ -110,18 +110,15 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             }
 
             if (decl.body !== null) {
-                const recursiveGlobalEnv = addDecl(false, 
-                    genv,
-                    {
-                        tag: "FunctionDeclaration",
-                        id: decl.id,
-                        returns: decl.returns,
-                        params: decl.params,
-                        preconditions: [],
-                        postconditions: [],
-                        body: null
-                    }
-                );
+                const recursiveGlobalEnv = addDecl(false, genv, {
+                    tag: "FunctionDeclaration",
+                    id: decl.id,
+                    returns: decl.returns,
+                    params: decl.params,
+                    preconditions: [],
+                    postconditions: [],
+                    body: null
+                });
                 checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
                 let constants = decl.postconditions.reduce(
                     (constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)),

@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
-import { Env, Synthed, isSubtype, typeSizeFullyDefined, leastUpperBoundSynthedType } from "./types";
+import { Env, Synthed, isSubtype, typeSizeFullyDefined, leastUpperBoundSynthedType, actualSynthed } from "./types";
 import * as ast from "../ast";
 
 export type mode =
@@ -348,6 +348,21 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             const lub = leastUpperBoundSynthedType(genv, left, right);
             if (lub === null)
                 return error("Branches of ternary expression 'e ? e1 : e2' have incompatible types"); // todo types
+            const actualLub = actualSynthed(genv, lub);
+            switch (actualLub.tag) {
+                case "VoidType":
+                    return error("condition expression branches cannot have void type");
+                case "NamedFunctionType":
+                    return error(
+                        `functions with type ${actualLub.definition.id.name} cannot be returned from a conditional`,
+                        "use function pointers"
+                    );
+                case "StructType":
+                    return error(
+                        `values of type 'struct${actualLub.id.name}' cannot be used in a conditional`,
+                        "use struct pointers"
+                    );
+            }
             return lub;
         }
         case "AllocExpression": {

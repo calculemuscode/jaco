@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import { Map } from "immutable";
 import { error } from "./error";
-import { actualType, GlobalEnv, getStructDefinition } from "./globalenv";
+import { ActualType, actualType, GlobalEnv, getStructDefinition } from "./globalenv";
 import * as ast from "../ast";
 
 export type Env = Map<string, ast.Type>;
@@ -11,6 +11,24 @@ export type Synthed =
     | { tag: "AmbiguousNullPointer" }
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration }
     | { tag: "AnonymousFunctionTypePointer"; definition: ast.FunctionDeclaration };
+
+export type ActualSynthed =
+    | ActualType
+    | ast.VoidType
+    | { tag: "AmbiguousNullPointer" }
+    | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration }
+    | { tag: "AnonymousFunctionTypePointer"; definition: ast.FunctionDeclaration };
+
+export function actualSynthed(genv: GlobalEnv, t1: Synthed): ActualSynthed {
+    switch (t1.tag) {
+        case "AmbiguousNullPointer":
+        case "NamedFunctionType":
+        case "AnonymousFunctionTypePointer":
+            return t1;
+        default:
+            return actualType(genv, t1);
+    }
+}
 
 export function equalTypes(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
     const actual1 = actualType(genv, t1);
@@ -81,7 +99,8 @@ function leastUpperBoundType(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): ast.T
 }
 
 /**
- * Almost entirely here to deal with the mess that is functions, and only then because of conditionals;
+ * Almost entirely here to deal with the mess that is functions, and only (seemingly) because of conditionals.
+ * (Perhaps this function can be reused for equality comparisions?)
  */
 export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Synthed): Synthed | null {
     if (t1.tag === "AmbiguousNullPointer" || t2.tag === "AmbiguousNullPointer") {
@@ -140,22 +159,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
  */
 export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type): boolean {
     const actualConcrete = actualType(genv, concrete);
-    if (abstract.tag === "AmbiguousNullPointer") {
-        return actualConcrete.tag === "PointerType";
-    } else if (abstract.tag === "NamedFunctionType") {
-        return (
-            actualConcrete.tag === "NamedFunctionType" &&
-            abstract.definition.id.name === actualConcrete.definition.id.name
-        );
-    } else if (abstract.tag === "AnonymousFunctionTypePointer") {
-        if (actualConcrete.tag !== "PointerType") return false;
-        const concreteFunctionType = actualType(genv, actualConcrete.argument);
-        return (
-            concreteFunctionType.tag === "NamedFunctionType" &&
-            equalFunctionTypes(genv, abstract.definition, concreteFunctionType.definition)
-        );
-    }
-    const actualAbstract = actualType(genv, abstract);
+    const actualAbstract = actualSynthed(genv, abstract);
     switch (actualAbstract.tag) {
         case "IntType":
         case "BoolType":
@@ -179,6 +183,20 @@ export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type
             return (
                 actualConcrete.tag === "NamedFunctionType" &&
                 actualAbstract.definition.id.name === actualConcrete.definition.id.name
+            );
+        case "AmbiguousNullPointer":
+            return actualConcrete.tag === "PointerType";
+        case "NamedFunctionType":
+            return (
+                actualConcrete.tag === "NamedFunctionType" &&
+                actualAbstract.definition.id.name === actualConcrete.definition.id.name
+            );
+        case "AnonymousFunctionTypePointer":
+            if (actualConcrete.tag !== "PointerType") return false;
+            const concreteFunctionType = actualType(genv, actualConcrete.argument);
+            return (
+                concreteFunctionType.tag === "NamedFunctionType" &&
+                equalFunctionTypes(genv, actualAbstract.definition, concreteFunctionType.definition)
             );
         default:
             return impossible(actualAbstract);

@@ -32,9 +32,9 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 */
 
-export function parseProgramRaw(lang: Lang, str: string): List<parsed.Declaration> {
+export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): List<parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, Set()));
+    const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, typedefs || Set()));
     const segments = str.split(";");
     let decls: List<parsed.Declaration> = List();
     let size = 0;
@@ -88,8 +88,8 @@ export function parseProgramRaw(lang: Lang, str: string): List<parsed.Declaratio
     return decls;
 }
 
-export function parseProgram(lang: Lang, str: string): List<ast.Declaration> {
-    return parseProgramRaw(lang, str).map(decl => {
+export function parseProgram(lang: Lang, str: string, typedefs?: Set<string>): List<ast.Declaration> {
+    return parseProgramRaw(lang, str, typedefs).map(decl => {
         return restrictDeclaration(lang, decl);
     });
 }
