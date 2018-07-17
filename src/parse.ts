@@ -54,6 +54,11 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
         if (parsed.length > 1) {
             console.log("Parse ambiguous");
             console.log(JSON.stringify(parsed[0]));
+            console.log(JSON.stringify(parsed[1]));
+            console.log(JSON.stringify(parsed[2]));
+            console.log(JSON.stringify(parsed[3]));
+            console.log(JSON.stringify(parsed[4]));
+            console.log(JSON.stringify(parsed[5]));
             console.log(JSON.stringify(parsed[parsed.length - 1]));
             throw new Error(
                 `Internal error, parse ambiguous (${parsed.length} parses) (this should not happen)`

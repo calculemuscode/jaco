@@ -122,13 +122,13 @@ export function ArrayMemberExpression([object, s1, l, s2, index, s3, r]: [
 export type Arguments = [
     Token,
     any,
-    null | [parsed.Expression, any, [Token, any, parsed.Expression][]],
+    null | [parsed.Expression, [any, Token, any, parsed.Expression, any][]],
     Token
 ];
 
 export function Arguments([l, s1, args, r]: Arguments): parsed.Expression[] {
     if (args === null) return [];
-    return [args[0]].concat(args[2].map(x => x[2]));
+    return [args[0]].concat(args[1].map(x => x[3]));
 }
 
 export function StructMemberExpression([object, s1, deref, s2, field]: [

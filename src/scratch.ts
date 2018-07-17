@@ -14,4 +14,4 @@ function testfile(lang: Lang, filepath: string) {
     return true;
 }
 
-testfile("C1", "tests/fp-basic/multidecls1.c0");
+testfile("C1", "tests/compilers/kentucky-piderman.l3");

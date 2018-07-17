@@ -66,7 +66,7 @@ Exp2           -> Exp3 {% id %} | Exp2 _ Binop2 _ Exp3                {% util.Bi
 Exp1           -> Exp2 {% id %} | Exp2 _ Binop1 _ Expression _ ":" _ Exp1 {% util.ConditionalExpression %}
 Exp0           -> Exp1 {% id %} | Exp1 _ Binop0 _ Exp0                {% util.BinaryExpression %}
 
-Funargs        -> "(" _ (Expression _ ("," _ Expression):*):? ")"
+Funargs        -> "(" _ (Expression (_ "," _ Expression):* _):? ")"
 
 Tp             -> "int"                                               {% util.IntType %}
                 | "bool"                                              {% util.BoolType %}  
