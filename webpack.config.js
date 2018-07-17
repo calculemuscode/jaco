@@ -2,7 +2,7 @@
 const path = require("path");
 
 module.exports = {
-    mode: "development",
+    mode: "production",
     devtool: "inline-source-map",
     entry: path.resolve(__dirname, "src", "demo", "demo.ts"),
     output: {
@@ -18,6 +18,9 @@ module.exports = {
         // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
         { test: /\.tsx?$/, loader: "ts-loader" }
       ]
-    } 
+    },
+    externals: {
+        "codemirror": "CodeMirror"
+    },
   };
   
