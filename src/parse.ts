@@ -32,14 +32,24 @@ export function parseStatement(str: string, options?: { types?: Set<string>; lan
 }
 */
 
+function* semicolonSplit(s: string) {
+    let ndx = s.indexOf(";");
+    while (ndx > 0) {
+        yield { last: false, segment: s.slice(0, ndx) };
+        s = s.slice(ndx + 1);
+        ndx = s.indexOf(";")
+    }
+    yield { last: true, segment: s };
+}
+
 export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): List<parsed.Declaration> {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, typedefs || Set()));
-    const segments = str.split(";");
+    const segments = semicolonSplit(str);
     let decls: List<parsed.Declaration> = List();
     let size = 0;
-    segments.forEach((segment, index) => {
-        parser.feed(segment);
+    for (let segment of segments) {
+        parser.feed(segment.segment);
         const parsed = parser.finish();
         if (parsed.length > 1) {
             console.log("Parse ambiguous");
@@ -49,15 +59,19 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
                 `Internal error, parse ambiguous (${parsed.length} parses) (this should not happen)`
             );
         } else if (parsed.length === 0) {
-            if (index === segments.length - 1) {
+            if (segment.last) {
                 throw new Error("Incomplete parse at the end of the file");
             } else {
-                //console.log(` -- continuing to parse`);
                 parser.feed(";");
             }
         } else {
             // parsed.length === 1
-            if (index === segments.length - 1) {
+            if (segment.last) {
+                if (parsed[0].length > size) {
+                    const possibleTypeDef: ast.Declaration = parsed[0][parsed[0].length - 1];
+                    if (possibleTypeDef.tag === "TypeDefinition" || possibleTypeDef.tag === "FunctionTypeDefinition") 
+                        throw new Error(`typedef without a final semicolon at the end of the file`);
+                }
                 decls = decls.concat(parsed[0]);
             } else {
                 const parsedGlobalDecls = parsed[0];
@@ -82,7 +96,7 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
                 parser.feed(" ");
             }
         }
-    });
+    }
 
     // code quality: Rewrite to make this impossible; return in loop
     return decls;
