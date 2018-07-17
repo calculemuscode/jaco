@@ -2,7 +2,7 @@ import { impossible } from "@calculemus/impossible";
 import * as ast from "../ast";
 import { error } from "./error";
 import { GlobalEnv } from "./globalenv";
-import { Env, checkTypeInDeclaration } from "./types";
+import { Env, checkTypeInDeclaration, actualSynthed } from "./types";
 import { checkExpression, synthExpression, synthLValue } from "./expressions";
 
 export function checkStatements(
@@ -46,7 +46,9 @@ function checkStatement(
             return env;
         }
         case "ExpressionStatement": {
-            synthExpression(genv, env, null, stm.expression);
+            const expType = actualSynthed(genv, synthExpression(genv, env, null, stm.expression));
+            if (expType.tag === "StructType") return error(`expression used as statements cannot have type 'struct ${expType.id.name}'`)
+            if (expType.tag === "NamedFunctionType") return error(`expression used as statements cannot have function type '${expType.definition.id.name}'`);
             return env;
         }
         case "VariableDeclaration": {

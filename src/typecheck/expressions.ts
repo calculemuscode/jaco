@@ -379,7 +379,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             if (undefinedTypePart !== null)
                 return error(
                     "cannot allocate an undefined type",
-                    `give a definition for 'strict ${undefinedTypePart}`
+                    `give a definition for 'struct ${undefinedTypePart}`
                 );
             return { tag: "PointerType", argument: exp.kind };
         }
@@ -388,7 +388,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             if (undefinedTypePart !== null)
                 return error(
                     "cannot allocate an undefined type",
-                    `give a definition for 'strict ${undefinedTypePart}`
+                    `give a definition for 'struct ${undefinedTypePart}`
                 );
             checkExpression(genv, env, mode, exp.size, { tag: "IntType" });
             return { tag: "ArrayType", argument: exp.kind };
