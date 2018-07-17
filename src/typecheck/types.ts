@@ -216,7 +216,7 @@ export function checkTypeIsNotVoid(genv: GlobalEnv, tp: ast.Type): void {
             );
         case "PointerType": {
             if (actual.argument.tag === "VoidType") return;
-            checkTypeIsNotVoid(genv, actual.argument);
+            return checkTypeIsNotVoid(genv, actual.argument);
         }
         case "ArrayType":
             return checkTypeIsNotVoid(genv, actual.argument);
