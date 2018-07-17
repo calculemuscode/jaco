@@ -2,7 +2,14 @@ import { impossible } from "@calculemus/impossible";
 import { Map, List, Set } from "immutable";
 import * as ast from "../ast";
 import { error } from "./error";
-import { GlobalEnv, getTypeDef, getFunctionDeclaration, addDecl, initMain } from "./globalenv";
+import {
+    GlobalEnv,
+    getTypeDef,
+    getFunctionDeclaration,
+    addDecl,
+    initMain,
+    isLibraryFunction
+} from "./globalenv";
 import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatements } from "./statements";
@@ -23,7 +30,7 @@ function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarati
     }, Map<string, ast.Type>());
 }
 
-function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration, library: boolean): Set<string> {
+function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declaration): Set<string> {
     switch (decl.tag) {
         case "Pragma": {
             return Set();
@@ -103,15 +110,18 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration, library: boole
             }
 
             if (decl.body !== null) {
-                const recursiveGlobalEnv = addDecl(genv, {
-                    tag: "FunctionDeclaration",
-                    id: decl.id,
-                    returns: decl.returns,
-                    params: decl.params,
-                    preconditions: [],
-                    postconditions: [],
-                    body: null
-                });
+                const recursiveGlobalEnv = addDecl(false, 
+                    genv,
+                    {
+                        tag: "FunctionDeclaration",
+                        id: decl.id,
+                        returns: decl.returns,
+                        params: decl.params,
+                        preconditions: [],
+                        postconditions: [],
+                        body: null
+                    }
+                );
                 checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
                 let constants = decl.postconditions.reduce(
                     (constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)),
@@ -139,26 +149,28 @@ function checkDeclaration(genv: GlobalEnv, decl: ast.Declaration, library: boole
 export function checkProgram(libs: List<ast.Declaration>, decls: List<ast.Declaration>) {
     const libenv = libs.reduce(
         ({ genv, functionsUsed }, decl) => {
-            const newFunctions = checkDeclaration(genv, decl, true);
+            const newFunctions = checkDeclaration(true, genv, decl);
             return {
-                genv: addDecl(genv, decl),
+                genv: addDecl(true, genv, decl),
                 functionsUsed: newFunctions.union(functionsUsed)
             };
         },
         { genv: initMain, functionsUsed: Set<string>() }
     );
-
     const progenv = decls.reduce(({ genv, functionsUsed }, decl) => {
-        const newFunctions = checkDeclaration(genv, decl, true);
+        const newFunctions = checkDeclaration(false, genv, decl);
         return {
-            genv: addDecl(genv, decl),
+            genv: addDecl(false, genv, decl),
             functionsUsed: newFunctions.union(functionsUsed)
         };
     }, libenv);
 
+    console.log(progenv.genv.libfuncs);
+    console.log(progenv.genv.libstructs);
     progenv.functionsUsed.union(Set<string>(["main"])).forEach((name): void => {
         const def = getFunctionDeclaration(progenv.genv, name);
         if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
-        if (def.body === null) return error(`function ${name} is never defined`);
+        if (def.body === null && !isLibraryFunction(progenv.genv, def.id.name))
+            return error(`function ${name} is never defined`);
     });
 }

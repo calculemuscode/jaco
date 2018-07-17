@@ -49,8 +49,12 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                 return;
             } else if (spec.outcome !== "error") {
                 expect(
-                    () => (libAst = libcontents.reduce((ast, libstr) => ast.concat(parseProgram(spec.lang, libstr)), libAst)
-                )).not.to.throw();
+                    () =>
+                        (libAst = libcontents.reduce(
+                            (ast, libstr) => ast.concat(parseProgram(spec.lang, libstr)),
+                            libAst
+                        ))
+                ).not.to.throw();
                 expect(() => (ast = parseProgram(spec.lang, contents))).not.to.throw();
             } else {
                 try {

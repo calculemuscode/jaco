@@ -47,7 +47,7 @@ export const initMain: GlobalEnv = {
     ])
 };
 
-export function addDecl(genv: GlobalEnv, decl: ast.Declaration, library?: boolean): GlobalEnv {
+export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration): GlobalEnv {
     return {
         libstructs:
             library && decl.tag == "StructDeclaration" ? genv.libstructs.add(decl.id.name) : genv.libstructs,
