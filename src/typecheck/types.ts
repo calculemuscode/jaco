@@ -110,7 +110,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
         if (t1.tag === "NamedFunctionType") return null;
         if (t2.tag === "NamedFunctionType") return null;
         if (t1.tag !== "AmbiguousNullPointer" && actualType(genv, t1).tag === "PointerType") return t1;
-        if (t2.tag !== "AmbiguousNullPointer" && actualType(genv, t2).tag === "PointerType") return t1;
+        if (t2.tag !== "AmbiguousNullPointer" && actualType(genv, t2).tag === "PointerType") return t2;
         return null;
     }
 
@@ -290,10 +290,6 @@ export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type): string | nul
         case "StructType": {
             const defn = getStructDefinition(genv, actual.id.name);
             if (defn === null || defn.definitions === null) return actual.id.name;
-            for (let decl of defn.definitions) {
-                const part = typeSizeFullyDefined(genv, decl.kind);
-                if (part !== null) return part;
-            }
             return null;
         }
         default:

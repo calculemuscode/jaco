@@ -44,13 +44,14 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             const previousStruct = getStructDefinition(genv, decl.id.name);
             if (previousStruct !== null && previousStruct.definitions !== null)
                 return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
-            getEnvironmentFromParams(genv, decl.definitions);
-            for (let part of decl.definitions) {
-                const undefinedTypePart = typeSizeFullyDefined(genv, part.kind);
+            decl.definitions.reduce((set, definition) => {
+                if (set.has(definition.id.name)) error(`field '${definition.id.name}' used more than once in definition of struct '${decl.id.name}'`)
+                const undefinedTypePart = typeSizeFullyDefined(genv, definition.kind);
                 if (undefinedTypePart !== null) {
                     return error(`cannot define struct ${decl.id.name} because component struct ${undefinedTypePart} is not fully defined`);
                 }
-            }
+                return set.add(definition.id.name);
+            }, Set<string>());
             return Set();
         }
         case "TypeDefinition": {
