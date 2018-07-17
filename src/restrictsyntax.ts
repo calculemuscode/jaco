@@ -645,7 +645,7 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             return {
                 tag: "StructDeclaration",
                 id: decl.id,
-                definitions: restrictParams(lang, decl.definitions)
+                definitions: decl.definitions === null ? null : restrictParams(lang, decl.definitions)
             };
         }
         case "TypeDefinition": {

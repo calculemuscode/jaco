@@ -635,7 +635,7 @@ export function StructDeclaration([struct, s1, s, s2, semi]: [
     return {
         tag: "StructDeclaration",
         id: s,
-        definitions: []
+        definitions: null
     };
 }
 

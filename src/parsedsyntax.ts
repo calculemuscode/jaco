@@ -253,7 +253,7 @@ export interface VariableDeclarationOnly extends ast.Syn {
 export interface StructDeclaration {
     readonly tag: "StructDeclaration";
     readonly id: ast.Identifier;
-    readonly definitions: VariableDeclarationOnly[];
+    readonly definitions: null | VariableDeclarationOnly[];
 }
 
 export interface FunctionDeclaration extends ast.Syn {

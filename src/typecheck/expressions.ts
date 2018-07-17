@@ -1,7 +1,14 @@
 import { impossible } from "@calculemus/impossible";
 import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
-import { Env, Synthed, isSubtype, typeSizeFullyDefined, leastUpperBoundSynthedType, actualSynthed } from "./types";
+import {
+    Env,
+    Synthed,
+    isSubtype,
+    typeSizeFullyDefined,
+    leastUpperBoundSynthedType,
+    actualSynthed
+} from "./types";
 import * as ast from "../ast";
 
 export type mode =
@@ -354,7 +361,9 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     return error("condition expression branches cannot have void type");
                 case "NamedFunctionType":
                     return error(
-                        `functions with type ${actualLub.definition.id.name} cannot be returned from a conditional`,
+                        `functions with type ${
+                            actualLub.definition.id.name
+                        } cannot be returned from a conditional`,
                         "use function pointers"
                     );
                 case "StructType":

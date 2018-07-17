@@ -38,10 +38,13 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             return Set();
         }
         case "StructDeclaration": {
-            if (decl.definitions.length === 0) return Set();
-            if (!library && isLibraryStruct(genv, decl.id.name)) return error(`struct ${decl.id.name} is declared in a library and cannot be defined here`)
+            console.log(decl);
+            if (decl.definitions === null) return Set();
+            if (!library && isLibraryStruct(genv, decl.id.name))
+                return error(`struct ${decl.id.name} is declared in a library and cannot be defined here`);
             const previousStruct = getStructDefinition(genv, decl.id.name);
-            if (previousStruct !== null && previousStruct.definitions.length > 0) return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
+            if (previousStruct !== null && previousStruct.definitions !== null)
+                return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
             return Set();
         }
         case "TypeDefinition": {
@@ -117,19 +120,17 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
 
             if (decl.body !== null) {
                 if (library) error(`functions cannot be defined in a library header file`);
-                if (isLibraryFunction(genv, decl.id.name)) error(`function ${decl.id.name} is declared in a library header and cannot be defined`);
-                const recursiveGlobalEnv = addDecl(false, 
-                    genv,
-                    {
-                        tag: "FunctionDeclaration",
-                        id: decl.id,
-                        returns: decl.returns,
-                        params: decl.params,
-                        preconditions: [],
-                        postconditions: [],
-                        body: null
-                    }
-                );
+                if (isLibraryFunction(genv, decl.id.name))
+                    error(`function ${decl.id.name} is declared in a library header and cannot be defined`);
+                const recursiveGlobalEnv = addDecl(false, genv, {
+                    tag: "FunctionDeclaration",
+                    id: decl.id,
+                    returns: decl.returns,
+                    params: decl.params,
+                    preconditions: [],
+                    postconditions: [],
+                    body: null
+                });
                 checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
                 let constants = decl.postconditions.reduce(
                     (constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)),
@@ -173,8 +174,6 @@ export function checkProgram(libs: List<ast.Declaration>, decls: List<ast.Declar
         };
     }, libenv);
 
-    console.log(progenv.genv.libfuncs);
-    console.log(progenv.genv.libstructs);
     progenv.functionsUsed.union(Set<string>(["main"])).forEach((name): void => {
         const def = getFunctionDeclaration(progenv.genv, name);
         if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
