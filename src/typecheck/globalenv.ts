@@ -2,10 +2,10 @@ import { List, Set } from "immutable";
 import * as ast from "../ast";
 
 export type GlobalEnv = {
-    readonly libstructs: Set<string>,
-    readonly libfuncs: Set<string>,
+    readonly libstructs: Set<string>;
+    readonly libfuncs: Set<string>;
     readonly decls: List<ast.Declaration>;
-}
+};
 
 export type ActualType =
     | ast.IntType
@@ -31,10 +31,11 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
     return null;
 }
 
-export const initMain: GlobalEnv = ({
-        libstructs: Set<string>(),
-        libfuncs: Set<string>(),
-        decls: List<ast.Declaration>([{
+export const initMain: GlobalEnv = {
+    libstructs: Set<string>(),
+    libfuncs: Set<string>(),
+    decls: List<ast.Declaration>([
+        {
             tag: "FunctionDeclaration",
             returns: { tag: "IntType" },
             id: { tag: "Identifier", name: "main" },
@@ -42,15 +43,18 @@ export const initMain: GlobalEnv = ({
             preconditions: [],
             postconditions: [],
             body: null
-            }])
-});
+        }
+    ])
+};
 
 export function addDecl(genv: GlobalEnv, decl: ast.Declaration, library?: boolean): GlobalEnv {
     return {
-        libstructs: library && decl.tag == "StructDeclaration" ? genv.libstructs.add(decl.id.name) : genv.libstructs,
-        libfuncs: library && decl.tag == "FunctionDeclaration" ? genv.libfuncs.add(decl.id.name) : genv.libfuncs,
+        libstructs:
+            library && decl.tag == "StructDeclaration" ? genv.libstructs.add(decl.id.name) : genv.libstructs,
+        libfuncs:
+            library && decl.tag == "FunctionDeclaration" ? genv.libfuncs.add(decl.id.name) : genv.libfuncs,
         decls: genv.decls.push(decl)
-    }
+    };
 }
 
 export function isLibraryFunction(genv: GlobalEnv, t: string): boolean {
@@ -62,7 +66,7 @@ export function isLibraryStruct(genv: GlobalEnv, t: string): boolean {
 }
 
 export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.FunctionDeclaration | null {
-    let result: ast.FunctionDeclaration  | null = null;
+    let result: ast.FunctionDeclaration | null = null;
     for (let decl of genv.decls) {
         if (decl.tag === "FunctionDeclaration" && decl.id.name === t) {
             if (result === null) result = decl;

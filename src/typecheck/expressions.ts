@@ -296,10 +296,13 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             const right = synthExpression(genv, env, mode, exp.right);
                             if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
                             if (right.tag === "AnonymousFunctionTypePointer") return { tag: "BoolType" };
-                            if (right.tag === "NamedFunctionType") return error("cannot compare NULL and a function");
-                            if (actualType(genv, right).tag === "PointerType") return { tag: "BoolType" }
-                            else return error(`cannot compare 'NULL' to a non-pointer type with ${exp.operator}`)
-                            
+                            if (right.tag === "NamedFunctionType")
+                                return error("cannot compare NULL and a function");
+                            if (actualType(genv, right).tag === "PointerType") return { tag: "BoolType" };
+                            else
+                                return error(
+                                    `cannot compare 'NULL' to a non-pointer type with ${exp.operator}`
+                                );
                         }
                         case "AnonymousFunctionTypePointer": {
                             const right = synthExpression(genv, env, mode, exp.right);
@@ -309,10 +312,22 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     }
                     const actualLeft = actualType(genv, left);
                     switch (actualLeft.tag) {
-                        case "NamedFunctionType": return error(`cannot compare functions for equality directly with ${exp.operator}`)
-                        case "StructType": return error(`cannot compare structs for equality directly with ${exp.operator}`, "pointers to struts can be compared")
-                        case "VoidType": return error(`cannot compare void expressions for equality`);
-                        case "StringType": return error(`cannot compare strings with '${exp.operator}'`, "try using string_equal in library <string>")
+                        case "NamedFunctionType":
+                            return error(
+                                `cannot compare functions for equality directly with ${exp.operator}`
+                            );
+                        case "StructType":
+                            return error(
+                                `cannot compare structs for equality directly with ${exp.operator}`,
+                                "pointers to struts can be compared"
+                            );
+                        case "VoidType":
+                            return error(`cannot compare void expressions for equality`);
+                        case "StringType":
+                            return error(
+                                `cannot compare strings with '${exp.operator}'`,
+                                "try using string_equal in library <string>"
+                            );
                     }
                     checkExpression(genv, env, mode, exp.right, actualLeft);
                     return { tag: "BoolType" };
@@ -331,17 +346,26 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             const left = synthExpression(genv, env, mode, exp.consequent);
             const right = synthExpression(genv, env, mode, exp.alternate);
             const lub = leastUpperBoundSynthedType(genv, left, right);
-            if (lub === null) return error("Branches of ternary expression 'e ? e1 : e2' have incompatible types"); // todo types
+            if (lub === null)
+                return error("Branches of ternary expression 'e ? e1 : e2' have incompatible types"); // todo types
             return lub;
         }
         case "AllocExpression": {
             const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
-            if (undefinedTypePart !== null) return error("cannot allocate an undefined type", `give a definition for 'strict ${undefinedTypePart}`);
+            if (undefinedTypePart !== null)
+                return error(
+                    "cannot allocate an undefined type",
+                    `give a definition for 'strict ${undefinedTypePart}`
+                );
             return { tag: "PointerType", argument: exp.kind };
         }
         case "AllocArrayExpression": {
             const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
-            if (undefinedTypePart !== null) return error("cannot allocate an undefined type", `give a definition for 'strict ${undefinedTypePart}`);
+            if (undefinedTypePart !== null)
+                return error(
+                    "cannot allocate an undefined type",
+                    `give a definition for 'strict ${undefinedTypePart}`
+                );
             checkExpression(genv, env, mode, exp.size, { tag: "IntType" });
             return { tag: "ArrayType", argument: exp.kind };
         }
@@ -398,4 +422,3 @@ export function checkExpression(
         return error("type mismatch"); // TODO: expected/found
     }
 }
-

@@ -102,8 +102,17 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
             } else if (syn.raw.startsWith("0") || syn.raw.startsWith("0")) {
                 const match = syn.raw.match(/^0[xX](0*)([0-9a-fA-F]+)$/);
                 if (match === null) {
-                    if (syn.raw[1].toLowerCase() !== "x") throw new Error(`Bad numeric constant: ${syn.raw}\nIdentifiers beginning with '0' must be hex constants starting as '0X' or '0x'`);
-                    throw new Error(`Invalid hex constant: ${syn.raw}\nHex constants must only have the characters '0123456789abcdefABCDEF'`);
+                    if (syn.raw[1].toLowerCase() !== "x")
+                        throw new Error(
+                            `Bad numeric constant: ${
+                                syn.raw
+                            }\nIdentifiers beginning with '0' must be hex constants starting as '0X' or '0x'`
+                        );
+                    throw new Error(
+                        `Invalid hex constant: ${
+                            syn.raw
+                        }\nHex constants must only have the characters '0123456789abcdefABCDEF'`
+                    );
                 }
                 const hex = match[2];
                 if (hex.length > 8) throw new Error(`Hex constant too large: ${syn.raw}`);
@@ -115,8 +124,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
                 };
             } else {
                 const match = syn.raw.match(/^[0-9]+$/);
-                if (match === null)
-                    throw new Error(`Invalid integer constant: ${syn.raw}`)
+                if (match === null) throw new Error(`Invalid integer constant: ${syn.raw}`);
                 if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
                 const dec = parseInt(syn.raw, 10);
                 if (dec > 2147483648) throw new Error(`Decimal constant too large: ${syn.raw}`);
@@ -592,8 +600,9 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
         case "FunctionDeclaration": {
             if (lang == "L1" || lang == "L2") {
                 if (decl.body === null) throw new Error(`function declarations are not a part of ${lang}`);
-                if (decl.id.name !== "main") throw new Error(`only function 'main' can be defined in ${lang}`)
-            }                
+                if (decl.id.name !== "main")
+                    throw new Error(`only function 'main' can be defined in ${lang}`);
+            }
 
             const annos = restrictFunctionAnnos(lang, decl.annos);
             return {
@@ -613,8 +622,7 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             };
         }
         case "FunctionTypeDefinition": {
-            if (lang != "C1")
-                throw new Error(`function types are not a part of ${lang}`);
+            if (lang != "C1") throw new Error(`function types are not a part of ${lang}`);
 
             const annos = restrictFunctionAnnos(lang, decl.definition.annos);
             return {
@@ -641,8 +649,7 @@ export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.D
             };
         }
         case "TypeDefinition": {
-            if (lang == "L1" || lang == "L2")
-                throw new Error(`typedefs are not a part of ${lang}`);
+            if (lang == "L1" || lang == "L2") throw new Error(`typedefs are not a part of ${lang}`);
 
             return {
                 tag: "TypeDefinition",

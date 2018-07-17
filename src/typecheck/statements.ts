@@ -133,4 +133,3 @@ function checkStatement(
         }
     }
 }
-

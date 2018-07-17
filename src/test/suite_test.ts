@@ -37,19 +37,20 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
             }
             if (hasPragmas) return;
             if (spec.files.length > 0 || spec.libs.length > 0) return;
-        
 
             /* Step 2: Try to parse */
-            let libAsts: List<List<ast.Declaration>> = List();
+            let libAst: List<ast.Declaration> = List();
             let ast: List<ast.Declaration> = List();
             if (spec.outcome === "error_parse") {
                 expect(() => {
-                    List(libcontents).forEach(libstr => parseProgram(spec.lang, libstr));
-                    parseProgram(spec.lang, contents)
+                    libcontents.forEach(libstr => parseProgram(spec.lang, libstr));
+                    parseProgram(spec.lang, contents);
                 }).to.throw();
                 return;
             } else if (spec.outcome !== "error") {
-                expect(() => (libAsts = List(libcontents).map(libstr => parseProgram(spec.lang, libstr)))).not.to.throw();
+                expect(
+                    () => (libAst = libcontents.reduce((ast, libstr) => ast.concat(parseProgram(spec.lang, libstr)), libAst)
+                )).not.to.throw();
                 expect(() => (ast = parseProgram(spec.lang, contents))).not.to.throw();
             } else {
                 try {
@@ -62,13 +63,13 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
             /* Step 3: Try to typecheck */
             /* The first branch is wrong: error does allow error_statics */
             if (spec.outcome === "error_typecheck" || spec.outcome === "error") {
-                expect(() => checkProgram(libAsts, ast)).to.throw();
+                expect(() => checkProgram(libAst, ast)).to.throw();
                 return;
             } else if (spec.outcome !== "error") {
-                expect(() => checkProgram(libAsts, ast)).not.to.throw();
+                expect(() => checkProgram(libAst, ast)).not.to.throw();
             } else {
                 try {
-                    checkProgram(libAsts, ast)
+                    checkProgram(libAst, ast);
                 } catch (e) {
                     return;
                 }
@@ -87,12 +88,11 @@ readdirSync(dir).forEach(subdir => {
                 let lang = parseLang(ext);
                 if (lang !== null && !file.endsWith(`_aux${ext}`)) {
                     let libs: string[];
-                    const lib = join(dir, subdir, base+'.h0');
+                    const lib = join(dir, subdir, base + ".h0");
                     try {
                         lstatSync(lib);
-                        console.log(`Hey ${lib}`);
                         libs = [lib];
-                    } catch(e) {
+                    } catch (e) {
                         libs = [];
                     }
                     testfile(lang, libs, join(dir, subdir, file));

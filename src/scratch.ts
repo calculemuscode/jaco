@@ -9,7 +9,7 @@ function testfile(lang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
 
     let ast = parseProgram(lang, contents);
-    checkProgram(List<List<ast.Declaration>>(), ast);
+    checkProgram(List<ast.Declaration>(), ast);
     console.log(JSON.stringify(ast, undefined, 2));
     return true;
 }

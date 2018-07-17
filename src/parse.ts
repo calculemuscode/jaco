@@ -64,7 +64,8 @@ export function parseProgramRaw(lang: Lang, str: string): List<parsed.Declaratio
                 if (parsedGlobalDecls.length === 0) throw new Error(`semicolon at beginning of file`);
 
                 const possibleTypedef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                if (parsedGlobalDecls.length === size) throw new Error(`too many semicolons after a ${possibleTypedef.tag}`)
+                if (parsedGlobalDecls.length === size)
+                    throw new Error(`too many semicolons after a ${possibleTypedef.tag}`);
                 size = parsedGlobalDecls.length;
 
                 switch (possibleTypedef.tag) {
@@ -73,8 +74,10 @@ export function parseProgramRaw(lang: Lang, str: string): List<parsed.Declaratio
                         lexer.addIdentifier(possibleTypedef.definition.id.name);
                         break;
                     }
-                    default: 
-                        throw new Error(`unnecessary semicolon at the top level after ${possibleTypedef.tag}`);
+                    default:
+                        throw new Error(
+                            `unnecessary semicolon at the top level after ${possibleTypedef.tag}`
+                        );
                 }
                 parser.feed(" ");
             }

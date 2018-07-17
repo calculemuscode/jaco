@@ -241,7 +241,7 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
     }
 }
 
-/** 
+/**
  * Checks that a function return type is valid (void or small)
  */
 export function checkFunctionReturnType(genv: GlobalEnv, t: ast.Type) {
@@ -254,20 +254,21 @@ export function checkFunctionReturnType(genv: GlobalEnv, t: ast.Type) {
 }
 
 /**
- * Checks whether a type is fully defined - whether all its constituent struct parts are 
+ * Checks whether a type is fully defined - whether all its constituent struct parts are
  * Returns the undefined struct as a string if the type is not fully defined (for the error message)
  */
-export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type) : string | null {
+export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type): string | null {
     const actual = actualType(genv, t);
     switch (actual.tag) {
         case "IntType":
         case "BoolType":
         case "StringType":
         case "CharType":
-        case "VoidType": 
+        case "VoidType":
         case "ArrayType":
-        case "PointerType": 
-        case "NamedFunctionType": return null;
+        case "PointerType":
+        case "NamedFunctionType":
+            return null;
         case "StructType": {
             const defn = getStructDefinition(genv, actual.id.name);
             if (defn === null || defn.definitions.length === 0) return actual.id.name;
@@ -277,6 +278,7 @@ export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type) : string | nu
             }
             return null;
         }
-        default: return impossible(actual);
+        default:
+            return impossible(actual);
     }
 }
