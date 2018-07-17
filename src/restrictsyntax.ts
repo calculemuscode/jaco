@@ -23,9 +23,11 @@ export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
         case "PointerType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
                 throw new Error(`Pointer types are not a part of ${lang}`);
+            const argument = restrictType(lang, syn.argument);
+            if ((lang === "L4" || lang === "C0") && argument.tag === "VoidType") throw new Error(`The type 'void*' is not a part of ${lang}`)
             return {
                 tag: "PointerType",
-                argument: restrictType(lang, syn.argument)
+                argument: argument
             };
         case "ArrayType":
             if (lang === "L1" || lang === "L2" || lang === "L3")

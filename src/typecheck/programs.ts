@@ -44,6 +44,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             const previousStruct = getStructDefinition(genv, decl.id.name);
             if (previousStruct !== null && previousStruct.definitions !== null)
                 return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
+            getEnvironmentFromParams(genv, decl.definitions);
             for (let part of decl.definitions) {
                 const undefinedTypePart = typeSizeFullyDefined(genv, part.kind);
                 if (undefinedTypePart !== null) {
