@@ -4,7 +4,7 @@
  * Aims to mostly-faithfully capture the the C1 Grammar as described in
  * http://c0.typesafety.net/doc/c0-reference.pdf
  *
- * Exceptions:
+ * Changes/Exceptions:
  *  - Does not distinguish <sid>, <vid>, <fid>, and <aid> categories. These are used by the parser to
  *    disambiguate syntactic forms (especially the unfortunate <aid> vs. <tid> distinction needed to parse the
  *    statement `x * y;` as a binary expression or variable declaration). Within a full syntax tree
@@ -22,7 +22,7 @@
  *  - Arbitrary pragmas are accepted (this matches the actual behavior of the C0 compiler, which only warns on
  *    unknown pragmas)
  *
- * At the same time, this AST attempts to maintain all the non-whitespace formatting that a user provided.
+ * At the same time, this AST attempts to capture all the non-whitespace formatting that a user provided.
  *
  * Exceptions:
  *  - Does not keep annotations in groups or remember whether an annotation is single or multiline
@@ -37,12 +37,13 @@
  *        //@assert e1; @assert e2
  *        x++;
  *      }
- *  - Treats assert contracts as statements, meaning that it must represent
+ *  - Assert contracts as statements, which means that asserts hanging off an if or else statement cannot
+ *    be represented. This means that this AST cannot faithfully represent
  *      if (e)
  *        //@assert e;
  *        x++;
  *
- *    as
+ *    and so the parsing infrastructure must rewrite such an expression as
  *      if (e) {
  *         //@assert e;
  *         x++;

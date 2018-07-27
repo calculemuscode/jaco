@@ -1,9 +1,14 @@
 /**
  * Internal representation: the parsed syntax for C0/C1
  *
- * This file describes exactly the syntax that gets parsed by the parser. It is therefore very sensitive to changes in the parser, and so should not be relied upon.
+ * This file describes exactly the syntax that gets parsed by the parser. 
+ * It is therefore very sensitive to changes in the parser; it should not 
+ * be relied upon for anything else, and may change between minor and 
+ * patch versions.
  *
- * The only producer of these types is parse-util.ts. The only consumer of these types is restrictsyntax.ts. The structure of this file should match ast.ts as much as practical.
+ * The only producer of these types is parse-util.ts. The only consumer of 
+ * these types is restrictsyntax.ts. The structure of this file should match 
+ * ast.ts as much as practical.
  */
 
 import * as ast from "./ast";

@@ -48,7 +48,7 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | "false"                                             {% util.BoolLiteral %}
                 | "NULL"                                              {% util.NullLiteral %}
                 | Identifier                                          {% id %}
-                | Identifier _ Funargs                                {% util.CallExpression %}
+                | Identifier _ "(" Funargs ")"                        {% util.CallExpression %}
                 | ExpD _ "." _ FieldName                              {% util.StructMemberExpression %}
                 | ExpD _ ("-" ">") _ FieldName                        {% util.StructMemberExpression %}
                 | ExpD _ "[" _ Expression _ "]"                       {% util.ArrayMemberExpression %}
@@ -60,7 +60,7 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | "\\" "result"                                       {% util.ResultExpression %}
                 | "\\" "length" _ "(" _ Expression _ ")"              {% util.LengthExpression %}
                 | "\\" "hastag" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.HasTagExpression %}
-                | "(" _ "*" _ Expression _ ")" _ Funargs              {% util.IndirectCallExpression %}
+                | "(" _ "*" _ Expression _ ")" _ "(" Funargs ")"      {% util.IndirectCallExpression %}
 ExpC           -> ExpD {% id %} | Unop _ ExpC                         {% util.UnaryExpression %}
 ExpB           -> ExpC {% id %} | ExpB _ BinopB _ ExpC                {% util.BinaryExpression %}
 ExpA           -> ExpB {% id %} | ExpA _ BinopA _ ExpB                {% util.BinaryExpression %}
@@ -75,7 +75,7 @@ Exp2           -> Exp3 {% id %} | Exp2 _ Binop2 _ Exp3                {% util.Bi
 Exp1           -> Exp2 {% id %} | Exp2 _ Binop1 _ Expression _ ":" _ Exp1 {% util.ConditionalExpression %}
 Exp0           -> Exp1 {% id %} | Exp1 _ Binop0 _ Exp0                {% util.BinaryExpression %}
 
-Funargs        -> "(" _ (Expression (_ "," _ Expression):* _):? ")"
+Funargs        -> _ (Expression (_ "," _ Expression):* _):?
 
 Tp             -> "int"                                               {% util.IntType %}
                 | "bool"                                              {% util.BoolType %}  
