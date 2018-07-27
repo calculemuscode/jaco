@@ -47,8 +47,12 @@ function checkStatement(
         }
         case "ExpressionStatement": {
             const expType = actualSynthed(genv, synthExpression(genv, env, null, stm.expression));
-            if (expType.tag === "StructType") return error(`expression used as statements cannot have type 'struct ${expType.id.name}'`)
-            if (expType.tag === "NamedFunctionType") return error(`expression used as statements cannot have function type '${expType.definition.id.name}'`);
+            if (expType.tag === "StructType")
+                return error(`expression used as statements cannot have type 'struct ${expType.id.name}'`);
+            if (expType.tag === "NamedFunctionType")
+                return error(
+                    `expression used as statements cannot have function type '${expType.definition.id.name}'`
+                );
             return env;
         }
         case "VariableDeclaration": {

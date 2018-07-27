@@ -20,4 +20,4 @@ GlobalDecl  -> %pragma
 
 FunDeclArgs -> "(" _ (Tp _ Identifier _ ("," _ Tp _ Identifier _):*):? ")" {% util.FunctionDeclarationArgs %}
 FunDeclEnd -> ";"                          {% x => null %}
-FunDeclEnd -> StatementBlock               {% id %}
+FunDeclEnd -> BlockStatement               {% id %}

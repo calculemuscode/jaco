@@ -24,7 +24,8 @@ export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
             if (lang === "L1" || lang === "L2" || lang === "L3")
                 throw new Error(`Pointer types are not a part of ${lang}`);
             const argument = restrictType(lang, syn.argument);
-            if ((lang === "L4" || lang === "C0") && argument.tag === "VoidType") throw new Error(`The type 'void*' is not a part of ${lang}`)
+            if ((lang === "L4" || lang === "C0") && argument.tag === "VoidType")
+                throw new Error(`The type 'void*' is not a part of ${lang}`);
             return {
                 tag: "PointerType",
                 argument: argument
@@ -459,9 +460,9 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
             if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
             return {
                 tag: "WhileStatement",
-                invariants: restrictLoopInvariants(lang, syn.annos),
+                invariants: restrictLoopInvariants(lang, syn.body[0]),
                 test: restrictExpression(lang, syn.test),
-                body: restrictStatement(lang, syn.body)
+                body: restrictStatement(lang, syn.body[1])
             };
         }
         case "ForStatement": {
@@ -509,11 +510,11 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
 
             return {
                 tag: "ForStatement",
-                invariants: restrictLoopInvariants(lang, syn.annos),
+                invariants: restrictLoopInvariants(lang, syn.body[0]),
                 init: init,
                 test: restrictExpression(lang, syn.test),
                 update: update,
-                body: restrictStatement(lang, syn.body)
+                body: restrictStatement(lang, syn.body[1])
             };
         }
         case "ReturnStatement": {

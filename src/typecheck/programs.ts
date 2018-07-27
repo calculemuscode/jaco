@@ -12,7 +12,13 @@ import {
     isLibraryStruct,
     getStructDefinition
 } from "./globalenv";
-import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType, typeSizeFullyDefined } from "./types";
+import {
+    Env,
+    equalFunctionTypes,
+    checkTypeInDeclaration,
+    checkFunctionReturnType,
+    typeSizeFullyDefined
+} from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatements } from "./statements";
 import { expressionFreeVars, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./flow";
@@ -45,10 +51,19 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             if (previousStruct !== null && previousStruct.definitions !== null)
                 return error(`struct ${decl.id.name} is defined twice`, "structs can only be defined once");
             decl.definitions.reduce((set, definition) => {
-                if (set.has(definition.id.name)) error(`field '${definition.id.name}' used more than once in definition of struct '${decl.id.name}'`)
+                if (set.has(definition.id.name))
+                    error(
+                        `field '${definition.id.name}' used more than once in definition of struct '${
+                            decl.id.name
+                        }'`
+                    );
                 const undefinedTypePart = typeSizeFullyDefined(genv, definition.kind);
                 if (undefinedTypePart !== null) {
-                    return error(`cannot define struct ${decl.id.name} because component struct ${undefinedTypePart} is not fully defined`);
+                    return error(
+                        `cannot define struct ${
+                            decl.id.name
+                        } because component struct ${undefinedTypePart} is not fully defined`
+                    );
                 }
                 return set.add(definition.id.name);
             }, Set<string>());

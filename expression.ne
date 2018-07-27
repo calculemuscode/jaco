@@ -1,5 +1,15 @@
-# Parses a superset of C1 expressions
-# UpdateStatement and AssignStatement are parsed as Expressions
+# Parses a not-especially-principled superset of C1 expressions and types, assuming a lexer
+# that can disambiguate regular identifiers (%identifier) from typedef'ed identifiers
+# (%type_identifier).
+#
+# Nearley doesn't support operator precedence, so this uses the (I think pretty standard)
+# trick of having a deep fall-through set of cases, one for each level of operator precedence.
+#
+# e++ and e-- are parsed as expressions, even though they are statements in C0; this causes
+# *e++ to with the correct precedence as *(e++)
+#
+# e1 = e2 is also parsed as an expression, mostly to give better error messages for 
+# "if (e1 = e2)" bugs
 
 @{%
 const lexer = require('./lex').lexer;
@@ -42,8 +52,7 @@ ExpD           -> "(" _ Expression _ ")"                              {% x => x[
                 | ExpD _ "." _ FieldName                              {% util.StructMemberExpression %}
                 | ExpD _ ("-" ">") _ FieldName                        {% util.StructMemberExpression %}
                 | ExpD _ "[" _ Expression _ "]"                       {% util.ArrayMemberExpression %}
-                | ExpD _ "++"                                         {% util.UpdateExpression %}
-                | ExpD _ "--"                                         {% util.UpdateExpression %}
+                | ExpD _ ("++" | "--")                                {% util.UpdateExpression %}
                 | "alloc" _ "(" _ Tp _ ")"                            {% util.AllocExpression %}
                 | "alloc_array" _ "(" _ Tp _ "," _ Expression _ ")"   {% util.AllocArrayExpression %}
                 | "assert" _ "(" _ Expression _ ")"                   {% util.AssertExpression %}

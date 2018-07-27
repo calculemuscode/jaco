@@ -16,7 +16,6 @@ const inputDoc = CodeMirror(document.getElementById("input")!, {
 });
 const output = document.getElementById("output")!;
 
-
 function draw(prog: string) {
     try {
         const program = parseProgram("C1", prog);

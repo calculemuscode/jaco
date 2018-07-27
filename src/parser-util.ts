@@ -8,10 +8,29 @@
  */
 
 import { Token } from "moo";
+import { impossible } from "@calculemus/impossible";
 import * as ast from "./ast";
 import * as parsed from "./parsedsyntax";
 
+// This is incorrect, but Typescript doesn't check anyway
+// If whitespace gets captured in the future this needs revisiting
+export type WS = { contents: (Token | WS)[] };
+
+function assertSyn(x: any) {
+    if (!x || !x.tag) throw new Error(`${x}`);
+}
+
+function assertAnnoAndStm(x: any) {
+    if (!x || x.length !== 2) throw new Error(`a ${x}`);
+    if (!x[0].forEach) throw new Error(`${x[0]}`);
+    x[0].forEach((y: any, i: number) => {
+        if (!y || !y.tag) throw new Error(`[${i}] => ${y}`);
+    }) 
+    if (!x[1] || !x[1].tag) throw new Error(`${x}`); 
+}
+
 export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Token[]): ast.Identifier {
+    if (!text) throw new Error(`Identifier`);
     return {
         tag: "Identifier",
         name: text
@@ -359,16 +378,15 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
     };
 }
 
-export function UpdateExpression([argument, s1, op1, op2]: [
+export function UpdateExpression([argument, s1, op]: [
     parsed.Expression,
     any,
-    Token,
-    Token
+    [Token]
 ]): parsed.UpdateExpression {
     return {
         tag: "UpdateExpression",
         argument: argument,
-        operator: op1.value === "+" ? "++" : "--"
+        operator: op[0].value === "++" ? "++" : "--"
     };
 }
 
@@ -404,8 +422,8 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
 
 export type SimpleParsed =
     | parsed.Expression
-    | [ast.Type, any, ast.Identifier, null | [any, Token, any, parsed.Expression]];
-export function SimpleStatement([stm, s1, semi]: [SimpleParsed, any, Token]):
+    | [ast.Type, WS, ast.Identifier, null | [WS, Token, WS, parsed.Expression]];
+export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
     | parsed.VariableDeclaration
     | parsed.ExpressionStatement {
     if (stm instanceof Array) {
@@ -424,7 +442,128 @@ export function SimpleStatement([stm, s1, semi]: [SimpleParsed, any, Token]):
     }
 }
 
-export function IfStatement([i, s1, l, s2, test, s3, r, s4, [annos, consequent]]: [
+export type Wrapper =
+    | { tag: "while"; test: parsed.Expression }
+    | {
+          tag: "for";
+          init: null | parsed.ExpressionStatement | parsed.VariableDeclaration;
+          test: parsed.Expression;
+          update: null | parsed.Expression;
+      }
+    | { tag: "ifelse"; test: parsed.Expression; consequent: AnnosAndStm };
+
+export type AnnosAndStm = [parsed.Anno[], parsed.Statement];
+
+// "if" _ "(" _ Expression _ ")" _ StatementNoDangle _ "else" _
+export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
+    Token,
+    WS,
+    Token,
+    WS,
+    parsed.Expression,
+    WS,
+    Token,
+    WS,
+    AnnosAndStm,
+    WS,
+    Token,
+    WS
+]): Wrapper {
+    assertAnnoAndStm(stm);
+    return {
+        tag: "ifelse",
+        test: test,
+        consequent: stm
+    };
+}
+
+export function For([tok, s1, l, init, s2, semi1, s3, test, s4, semi2, update, s5, r, s6]: [
+    Token,
+    WS,
+    Token,
+    null | [WS, SimpleParsed],
+    WS,
+    Token,
+    WS,
+    parsed.Expression,
+    WS,
+    Token,
+    null | [WS, parsed.Expression],
+    WS,
+    Token,
+    WS
+]): Wrapper {
+    assertSyn(test);
+    return {
+        tag: "for",
+        init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
+        test: test,
+        update: update === null ? null : update[1]
+    };
+}
+
+export function While([tok, s1, l, s2, test, s3, r, s4]: [
+    Token,
+    WS,
+    Token,
+    WS,
+    parsed.Expression,
+    WS,
+    Token,
+    WS
+]) {
+    assertSyn(test);
+    return { tag: "while", test: test };
+}
+
+export function Statement([wrappers, annos, stm]: [
+    [parsed.Anno[], Wrapper][],
+    parsed.Anno[],
+    [parsed.Statement]
+]): AnnosAndStm {
+    const x = wrappers.reduceRight<AnnosAndStm>(
+        (stm, [newannos, wrap]) => {
+            switch (wrap.tag) {
+                case "ifelse":
+                    return [
+                        newannos,
+                        {
+                            tag: "IfStatement",
+                            test: wrap.test,
+                            consequent: wrap.consequent,
+                            alternate: stm
+                        }
+                    ];
+                case "while":
+                    return [
+                        newannos,
+                        {
+                            tag: "WhileStatement",
+                            test: wrap.test,
+                            body: stm
+                        }
+                    ];
+                case "for":
+                    return [
+                        newannos,
+                        {
+                            tag: "ForStatement",
+                            init: wrap.init,
+                            test: wrap.test,
+                            update: wrap.update,
+                            body: stm
+                        }
+                    ];
+                default:
+                    return impossible(wrap);
+            }
+        },
+        [annos, stm[0]]
+    );
+    return x;
+}
+    
+export function IfStatement([tIF, s1, l, s2, test, s3, r, s4, consequent]: [
     Token,
     any,
     Token,
@@ -433,12 +572,14 @@ export function IfStatement([i, s1, l, s2, test, s3, r, s4, [annos, consequent]]
     any,
     Token,
     any,
-    [parsed.Anno[], parsed.Statement]
+    AnnosAndStm
 ]): parsed.IfStatement {
+    assertSyn(test);
+    assertAnnoAndStm(consequent);
     return {
         tag: "IfStatement",
         test: test,
-        consequent: [annos, consequent]
+        consequent: consequent
     };
 }
 
@@ -498,8 +639,7 @@ export function WhileStatement([w, s1, l, s2, test, s3, r, annos, s4, body]: [
     return {
         tag: "WhileStatement",
         test: test,
-        annos: annos,
-        body: body
+        body: [annos, body]
     };
 }
 
@@ -540,11 +680,10 @@ export function ForStatement([
 ]): parsed.ForStatement {
     return {
         tag: "ForStatement",
-        init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
+        init: init === null ? null : null, // SimpleStatement([init[1], s2, semi1]),
         test: test,
         update: update === null ? null : update[1],
-        annos: annos,
-        body: body
+        body: [annos, body]
     };
 }
 
@@ -562,8 +701,8 @@ export function ReturnStatement([r, argument, s1, semi]: [
 
 export function BlockStatement([l, stms, annos, s, r]: [
     Token,
-    [any, [parsed.Anno[], parsed.Statement]][],
-    [any, [parsed.Anno]][],
+    [WS, [parsed.Anno[], parsed.Statement]][],
+    parsed.Anno[],
     any,
     Token
 ]): parsed.BlockStatement {
@@ -572,7 +711,7 @@ export function BlockStatement([l, stms, annos, s, r]: [
     );
     const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({
         tag: "AnnoStatement",
-        anno: x[1][0]
+        anno: x
     }));
     const stmsAll: parsed.Statement[] = stms1
         .concat([stms2])
@@ -592,7 +731,7 @@ export function ContinueStatement([stm, s1, semi]: [Token, any, Token]): ast.Con
     return { tag: "ContinueStatement" };
 }
 
-export function Anno1(
+export function AnnoSet(
     annos: [Token, any, parsed.Anno[], Token] | [Token, any, parsed.Anno[], Token, any, Token]
 ): parsed.Anno[] {
     const start: Token = annos[0];

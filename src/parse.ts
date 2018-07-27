@@ -37,7 +37,7 @@ function* semicolonSplit(s: string) {
     while (ndx > 0) {
         yield { last: false, segment: s.slice(0, ndx) };
         s = s.slice(ndx + 1);
-        ndx = s.indexOf(";")
+        ndx = s.indexOf(";");
     }
     yield { last: true, segment: s };
 }
@@ -73,14 +73,20 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
             // parsed.length === 1
             const parsedGlobalDecls = parsed[0];
             for (let i = size; i < parsedGlobalDecls.length - 1; i++) {
-                if (parsedGlobalDecls[i].tag === "TypeDefinition" || parsedGlobalDecls[i].tag === "FunctionTypeDefinition") 
-                   throw new Error(`typedef is missing its trailing semicolon`);
+                if (
+                    parsedGlobalDecls[i].tag === "TypeDefinition" ||
+                    parsedGlobalDecls[i].tag === "FunctionTypeDefinition"
+                )
+                    throw new Error(`typedef is missing its trailing semicolon`);
             }
             if (segment.last) {
                 if (parsedGlobalDecls.length > size) {
                     const possibleTypeDef: ast.Declaration = parsedGlobalDecls[parsedGlobalDecls.length - 1];
-                    if (possibleTypeDef.tag === "TypeDefinition" || possibleTypeDef.tag === "FunctionTypeDefinition") 
-                    throw new Error(`typedef without a final semicolon at the end of the file`);
+                    if (
+                        possibleTypeDef.tag === "TypeDefinition" ||
+                        possibleTypeDef.tag === "FunctionTypeDefinition"
+                    )
+                        throw new Error(`typedef without a final semicolon at the end of the file`);
                 }
                 decls = decls.concat(parsedGlobalDecls);
             } else {

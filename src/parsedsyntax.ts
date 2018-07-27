@@ -219,8 +219,7 @@ export interface IfStatement extends ast.Syn {
 export interface WhileStatement extends ast.Syn {
     readonly tag: "WhileStatement";
     readonly test: Expression;
-    readonly annos: Anno[];
-    readonly body: Statement;
+    readonly body: [Anno[], Statement];
 }
 
 export interface ForStatement extends ast.Syn {
@@ -228,8 +227,7 @@ export interface ForStatement extends ast.Syn {
     readonly init: VariableDeclaration | ExpressionStatement | null;
     readonly test: Expression;
     readonly update: Expression | null;
-    readonly annos: Anno[];
-    readonly body: Statement;
+    readonly body: [Anno[], Statement];
 }
 
 export interface ReturnStatement extends ast.Syn {
