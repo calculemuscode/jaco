@@ -21,14 +21,14 @@
  *    "Type void is used only as the return type of functions".
  *  - Arbitrary pragmas are accepted (this matches the actual behavior of the C0 compiler, which only warns on
  *    unknown pragmas)
- * 
+ *
  * At the same time, this AST attempts to maintain all the non-whitespace formatting that a user provided.
- * 
+ *
  * Exceptions:
  *  - Does not keep annotations in groups or remember whether an annotation is single or multiline
  *    Example: cannot distinguish:
  *      {
- *        //@assert e1; 
+ *        //@assert e1;
  *        //@assert e2
  *        x++;
  *      }
@@ -41,13 +41,13 @@
  *      if (e)
  *        //@assert e;
  *        x++;
- * 
+ *
  *    as
  *      if (e) {
  *         //@assert e;
  *         x++;
  *      }
- * 
+ *
  * Loosely based on Esprima, with the notable and stubborn distinction of using "tag" instead of "type."
  * Esprima Spec: https://esprima.readthedocs.io/en/latest/syntax-tree-format.html
  * Esprima Demo: http://esprima.org/demo/parse.html

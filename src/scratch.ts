@@ -6,11 +6,11 @@ import { checkProgram } from "./typecheck/programs";
 import Lang from "./lang";
 
 function testfile(lang: Lang, filepath: string) {
-//    const contents = `
-//    int main() { 
-//        while(x) while(y) while(z) x++;
-//    }
-//    `; 
+    //    const contents = `
+    //    int main() {
+    //        while(x) while(y) while(z) x++;
+    //    }
+    //    `;
     const contents = readFileSync(filepath, { encoding: "binary" });
 
     let ast = parseProgram(lang, contents);

@@ -25,8 +25,8 @@ function assertAnnoAndStm(x: any) {
     if (!x[0].forEach) throw new Error(`${x[0]}`);
     x[0].forEach((y: any, i: number) => {
         if (!y || !y.tag) throw new Error(`[${i}] => ${y}`);
-    }) 
-    if (!x[1] || !x[1].tag) throw new Error(`${x}`); 
+    });
+    if (!x[1] || !x[1].tag) throw new Error(`${x}`);
 }
 
 export function Identifier([{ value, text, offset, lineBreaks, line, col }]: Token[]): ast.Identifier {
@@ -562,7 +562,7 @@ export function Statement([wrappers, annos, stm]: [
     );
     return x;
 }
-    
+
 export function IfStatement([tIF, s1, l, s2, test, s3, r, s4, consequent]: [
     Token,
     any,
