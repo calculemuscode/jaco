@@ -60,7 +60,7 @@
     },
     "nyc": {
         "include": [
-            "lib/*-rules.js",
+            "lib/**/*.js",
             "src/**/*.ts"
         ],
         "exclude": [
