@@ -13,13 +13,52 @@
 
 import * as ast from "../ast";
 
+export interface Syn {
+    readonly tag: string;
+    readonly range: [number, number];
+}
+
+export type Identifier = ast.Identifier & Syn;
+
+export type Type =
+    | IntType
+    | BoolType
+    | StringType
+    | CharType
+    | VoidType
+    | PointerType
+    | ArrayType
+    | StructType
+    | Identifier;
+
+export type IntType = ast.IntType & Syn;
+export type BoolType = ast.BoolType & Syn;
+export type StringType = ast.StringType & Syn;
+export type CharType = ast.CharType & Syn;
+export type VoidType = ast.VoidType & Syn;
+
+export interface PointerType extends Syn {
+    readonly tag: "PointerType";
+    readonly argument: Type;
+}
+
+export interface ArrayType extends Syn {
+    readonly tag: "ArrayType";
+    readonly argument: Type;
+}
+
+export interface StructType extends Syn {
+    readonly tag: "StructType";
+    readonly id: Identifier;
+}
+
 export type Expression =
-    | ast.Identifier
+    | Identifier
     | IntLiteral
     | StringLiteral
     | CharLiteral
-    | ast.BoolLiteral
-    | ast.NullLiteral
+    | BoolLiteral
+    | NullLiteral
     | ArrayMemberExpression
     | StructMemberExpression
     | CallExpression
@@ -39,53 +78,56 @@ export type Expression =
     | AssertExpression
     | ErrorExpression;
 
-export interface IntLiteral extends ast.Syn {
+export interface IntLiteral extends Syn {
     readonly tag: "IntLiteral";
     readonly raw: string;
 }
 
-export interface StringLiteral extends ast.Syn {
+export interface StringLiteral extends Syn {
     readonly tag: "StringLiteral";
     readonly raw: string[];
 }
 
-export interface CharLiteral extends ast.Syn {
+export interface CharLiteral extends Syn {
     readonly tag: "CharLiteral";
     readonly raw: string;
 }
 
-export interface ArrayMemberExpression extends ast.Syn {
+export type BoolLiteral = ast.BoolLiteral & Syn
+export type NullLiteral = ast.NullLiteral & Syn
+
+export interface ArrayMemberExpression extends Syn {
     readonly tag: "ArrayMemberExpression";
     readonly object: Expression;
     readonly index: Expression;
 }
 
-export interface StructMemberExpression extends ast.Syn {
+export interface StructMemberExpression extends Syn {
     readonly tag: "StructMemberExpression";
     readonly deref: boolean;
     readonly object: Expression;
-    readonly field: ast.Identifier;
+    readonly field: Identifier;
 }
 
-export interface CallExpression extends ast.Syn {
+export interface CallExpression extends Syn {
     readonly tag: "CallExpression";
-    readonly callee: ast.Identifier;
+    readonly callee: Identifier;
     readonly arguments: Expression[];
 }
 
-export interface IndirectCallExpression extends ast.Syn {
+export interface IndirectCallExpression extends Syn {
     readonly tag: "IndirectCallExpression";
     readonly callee: Expression;
     readonly arguments: Expression[];
 }
 
-export interface CastExpression extends ast.Syn {
+export interface CastExpression extends Syn {
     readonly tag: "CastExpression";
-    readonly kind: ast.Type;
+    readonly kind: Type;
     readonly argument: Expression;
 }
 
-export interface UnaryExpression extends ast.Syn {
+export interface UnaryExpression extends Syn {
     readonly tag: "UnaryExpression";
     readonly operator: "&" | "!" | "~" | "-" | "*";
     readonly argument: Expression;
@@ -94,7 +136,7 @@ export interface UnaryExpression extends ast.Syn {
 /**
  * Eager binary operations `e+e` and friends
  */
-export interface BinaryExpression extends ast.Syn {
+export interface BinaryExpression extends Syn {
     readonly tag: "BinaryExpression";
     readonly operator:
         | "*"
@@ -117,68 +159,71 @@ export interface BinaryExpression extends ast.Syn {
     readonly right: Expression;
 }
 
-export interface LogicalExpression extends ast.Syn {
+export interface LogicalExpression extends Syn {
     readonly tag: "LogicalExpression";
     readonly operator: "||" | "&&";
     readonly left: Expression;
     readonly right: Expression;
 }
 
-export interface ConditionalExpression extends ast.Syn {
+export interface ConditionalExpression extends Syn {
     readonly tag: "ConditionalExpression";
     readonly test: Expression;
     readonly consequent: Expression;
     readonly alternate: Expression;
 }
 
-export interface AllocExpression extends ast.Syn {
+export interface AllocExpression extends Syn {
     readonly tag: "AllocExpression";
-    readonly kind: ast.Type;
+    readonly kind: Type;
 }
 
-export interface AllocArrayExpression extends ast.Syn {
+export interface AllocArrayExpression extends Syn {
     readonly tag: "AllocArrayExpression";
-    readonly kind: ast.Type;
+    readonly kind: Type;
     readonly size: Expression;
 }
 
-export interface ResultExpression extends ast.Syn {
+export interface ResultExpression extends Syn {
     readonly tag: "ResultExpression";
 }
 
-export interface LengthExpression extends ast.Syn {
+export interface LengthExpression extends Syn {
     readonly tag: "LengthExpression";
     readonly argument: Expression;
 }
 
-export interface HasTagExpression extends ast.Syn {
+export interface HasTagExpression extends Syn {
     readonly tag: "HasTagExpression";
-    readonly kind: ast.Type;
+    readonly kind: Type;
     readonly argument: Expression;
 }
 
-export interface AssignmentExpression extends ast.Syn {
+export interface AssignmentExpression extends Syn {
     readonly tag: "AssignmentExpression";
     readonly operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=";
     readonly left: Expression;
     readonly right: Expression;
 }
 
-export interface UpdateExpression extends ast.Syn {
+export interface UpdateExpression extends Syn {
     readonly tag: "UpdateExpression";
     readonly operator: "++" | "--";
     readonly argument: Expression;
 }
 
-export interface AssertExpression extends ast.Syn {
+export interface AssertExpression extends Syn {
     readonly tag: "AssertExpression";
     readonly test: Expression;
 }
 
-export interface ErrorExpression extends ast.Syn {
+export interface ErrorExpression extends Syn {
     readonly tag: "ErrorExpression";
     readonly argument: Expression;
 }
+
+export type BreakStatement = ast.BreakStatement & Syn;
+export type ContinueStatement = ast.ContinueStatement & Syn;
 
 export type Statement =
     | AnnoStatement
@@ -189,91 +234,87 @@ export type Statement =
     | ForStatement
     | ReturnStatement
     | BlockStatement
-    | ast.BreakStatement
-    | ast.ContinueStatement;
+    | BreakStatement
+    | ContinueStatement;
 
-export interface Anno {
-    readonly tag: "requires" | "ensures" | "loop_invariant" | "assert";
+export interface AnnoStatement extends Syn {
+    readonly tag: "AnnoStatement";
+    readonly anno: "requires" | "ensures" | "loop_invariant" | "assert";
     readonly test: Expression;
 }
 
-export interface AnnoStatement extends ast.Syn {
-    readonly tag: "AnnoStatement";
-    readonly anno: Anno;
-}
-
-export interface ExpressionStatement extends ast.Syn {
+export interface ExpressionStatement extends Syn {
     readonly tag: "ExpressionStatement";
     readonly expression: Expression;
 }
 
-export interface VariableDeclaration extends ast.Syn {
+export interface VariableDeclaration extends Syn {
     readonly tag: "VariableDeclaration";
-    readonly kind: ast.Type;
-    readonly id: ast.Identifier;
+    readonly kind: Type;
+    readonly id: Identifier;
     readonly init: Expression | null;
 }
 
-export interface IfStatement extends ast.Syn {
+export interface IfStatement extends Syn {
     readonly tag: "IfStatement";
     readonly test: Expression;
-    readonly consequent: [Anno[], Statement];
-    readonly alternate?: [Anno[], Statement];
+    readonly consequent: [AnnoStatement[], Statement];
+    readonly alternate?: [AnnoStatement[], Statement];
 }
 
-export interface WhileStatement extends ast.Syn {
+export interface WhileStatement extends Syn {
     readonly tag: "WhileStatement";
     readonly test: Expression;
-    readonly body: [Anno[], Statement];
+    readonly body: [AnnoStatement[], Statement];
 }
 
-export interface ForStatement extends ast.Syn {
+export interface ForStatement extends Syn {
     readonly tag: "ForStatement";
     readonly init: VariableDeclaration | ExpressionStatement | null;
     readonly test: Expression;
     readonly update: Expression | null;
-    readonly body: [Anno[], Statement];
+    readonly body: [AnnoStatement[], Statement];
 }
 
-export interface ReturnStatement extends ast.Syn {
+export interface ReturnStatement extends Syn {
     readonly tag: "ReturnStatement";
     readonly argument: Expression | null;
 }
 
-export interface BlockStatement extends ast.Syn {
+export interface BlockStatement extends Syn {
     readonly tag: "BlockStatement";
     readonly body: Statement[];
 }
 
 export type Declaration = FunctionDeclaration | StructDeclaration | TypeDefinition | FunctionTypeDefinition;
 
-export interface VariableDeclarationOnly extends ast.Syn {
+export interface VariableDeclarationOnly extends Syn {
     readonly tag: "VariableDeclaration";
-    readonly kind: ast.Type;
-    readonly id: ast.Identifier;
+    readonly kind: Type;
+    readonly id: Identifier;
 }
 
-export interface StructDeclaration {
+export interface StructDeclaration extends Syn {
     readonly tag: "StructDeclaration";
-    readonly id: ast.Identifier;
+    readonly id: Identifier;
     readonly definitions: null | VariableDeclarationOnly[];
 }
 
-export interface FunctionDeclaration extends ast.Syn {
+export interface FunctionDeclaration extends Syn {
     readonly tag: "FunctionDeclaration";
-    readonly returns: ast.Type;
-    readonly id: ast.Identifier;
+    readonly returns: Type;
+    readonly id: Identifier;
     readonly params: VariableDeclarationOnly[];
-    readonly annos: Anno[];
+    readonly annos: AnnoStatement[];
     readonly body: null | BlockStatement;
 }
 
-export interface TypeDefinition {
+export interface TypeDefinition extends Syn {
     readonly tag: "TypeDefinition";
     readonly definition: VariableDeclarationOnly;
 }
 
-export interface FunctionTypeDefinition extends ast.Syn {
+export interface FunctionTypeDefinition extends Syn {
     readonly tag: "FunctionTypeDefinition";
     readonly definition: FunctionDeclaration & { body: null };
 }

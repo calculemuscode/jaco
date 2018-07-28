@@ -1,5 +1,4 @@
 import { impossible } from "@calculemus/impossible";
-import { Map } from "immutable";
 import { error } from "./error";
 import { ActualType, actualType, GlobalEnv, getStructDefinition } from "./globalenv";
 import * as ast from "../ast";

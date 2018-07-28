@@ -1,5 +1,4 @@
 import { readdirSync, readFileSync, lstatSync } from "fs";
-import { List, Set } from "immutable";
 import { expect } from "chai";
 import { join, extname, basename } from "path";
 import { createAnnoLexer } from "../lex";
@@ -10,7 +9,7 @@ import { checkProgram } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
 
-function extractTypedefs(decls: List<ast.Declaration>): Set<string> {
+function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
         switch (decl.tag) {
             case "TypeDefinition":
@@ -19,7 +18,7 @@ function extractTypedefs(decls: List<ast.Declaration>): Set<string> {
             default:
                 return set;
         }
-    }, Set<string>());
+    }, new Set<string>());
 }
 
 function testfile(filenameLang: Lang, libs: string[], filepath: string) {
@@ -51,8 +50,8 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
             if (spec.files.length > 0 || spec.libs.length > 0) return;
 
             /* Step 2: Try to parse */
-            let libAst: List<ast.Declaration> = List();
-            let ast: List<ast.Declaration> = List();
+            let libAst: ast.Declaration[] = [];
+            let ast: ast.Declaration[] = [];
             if (spec.outcome === "error_parse") {
                 expect(() => {
                     libAst = libcontents.reduce(

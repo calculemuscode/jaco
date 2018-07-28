@@ -2,7 +2,6 @@ import { parseProgram } from "../parse/index";
 import { checkProgram } from "../typecheck/programs";
 
 import * as CodeMirror from "codemirror";
-import { List } from "../../node_modules/immutable";
 
 declare global {
     interface Window {
@@ -20,7 +19,7 @@ function draw(prog: string) {
     try {
         const program = parseProgram("C1", prog);
         try {
-            checkProgram(List(), program);
+            checkProgram([], program);
             output.innerText = JSON.stringify(program, null, 2);
         } catch (e) {
             output.innerText = e.message + "\n\n====\n\n" + JSON.stringify(program, null, 2);

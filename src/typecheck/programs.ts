@@ -1,5 +1,4 @@
 import { impossible } from "@calculemus/impossible";
-import { Map, List, Set } from "immutable";
 import * as ast from "../ast";
 import { error } from "./error";
 import {
@@ -24,7 +23,7 @@ import { checkStatements } from "./statements";
 import { expressionFreeVars, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./flow";
 
 function getDefinedFromParams(params: ast.VariableDeclarationOnly[]): Set<string> {
-    return params.reduce((set, param) => set.add(param.id.name), Set<string>());
+    return params.reduce((set, param) => set.add(param.id.name), new Set<string>());
 }
 
 function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarationOnly[]): Env {
@@ -35,16 +34,16 @@ function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarati
         } else {
             return env.set(param.id.name, param.kind);
         }
-    }, Map<string, ast.Type>());
+    }, new Map<string, ast.Type>());
 }
 
 function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declaration): Set<string> {
     switch (decl.tag) {
         case "Pragma": {
-            return Set();
+            return new Set();
         }
         case "StructDeclaration": {
-            if (decl.definitions === null) return Set();
+            if (decl.definitions === null) return new Set();
             if (!library && isLibraryStruct(genv, decl.id.name))
                 return error(`struct ${decl.id.name} is declared in a library and cannot be defined here`);
             const previousStruct = getStructDefinition(genv, decl.id.name);
@@ -66,8 +65,8 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                     );
                 }
                 return set.add(definition.id.name);
-            }, Set<string>());
-            return Set();
+            }, new Set<string>());
+            return new Set();
         }
         case "TypeDefinition": {
             const previousTypeDef = getTypeDef(genv, decl.definition.id.name);
@@ -80,7 +79,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                         previousFunction.body === null ? "declaration" : "definition"
                     }`
                 );
-            return Set();
+            return new Set();
         }
         case "FunctionTypeDefinition": {
             const previousTypeDef = getTypeDef(genv, decl.definition.id.name);
@@ -99,14 +98,18 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             let functionsUsed = decl.definition.preconditions.reduce(
                 (functionsUsed, anno) => {
                     checkExpression(genv, env, { tag: "@requires" }, anno, { tag: "BoolType" });
-                    return functionsUsed.union(checkExpressionUsesGetFreeFunctions(defined, defined, anno));
+                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno);
+                    functionsUsed.forEach(x => freeFunctions.add(x));
+                    return freeFunctions;
                 },
                 decl.definition.postconditions.reduce((functionsUsed, anno) => {
                     checkExpression(genv, env, { tag: "@ensures", returns: decl.definition.returns }, anno, {
                         tag: "BoolType"
                     });
-                    return functionsUsed.union(checkExpressionUsesGetFreeFunctions(defined, defined, anno));
-                }, Set())
+                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno); 
+                    functionsUsed.forEach(x => freeFunctions.add(x));
+                    return freeFunctions;
+                }, new Set())
             );
             return functionsUsed;
         }
@@ -117,14 +120,18 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             let functionsUsed = decl.preconditions.reduce(
                 (functionsUsed, anno) => {
                     checkExpression(genv, env, { tag: "@requires" }, anno, { tag: "BoolType" });
-                    return functionsUsed.union(checkExpressionUsesGetFreeFunctions(defined, defined, anno));
+                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno);
+                    functionsUsed.forEach(x => freeFunctions.add(x));
+                    return freeFunctions;
                 },
                 decl.postconditions.reduce((functionsUsed, anno) => {
                     checkExpression(genv, env, { tag: "@ensures", returns: decl.returns }, anno, {
                         tag: "BoolType"
                     });
-                    return functionsUsed.union(checkExpressionUsesGetFreeFunctions(defined, defined, anno));
-                }, Set())
+                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno);
+                    functionsUsed.forEach(x => freeFunctions.add(x));
+                    return freeFunctions;
+                }, new Set())
             );
 
             const previousFunction = getFunctionDeclaration(genv, decl.id.name);
@@ -144,7 +151,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                 if (library) error(`functions cannot be defined in a library header file`);
                 if (isLibraryFunction(genv, decl.id.name))
                     error(`function ${decl.id.name} is declared in a library header and cannot be defined`);
-                const recursiveGlobalEnv = addDecl(false, genv, {
+                addDecl(false, genv, {
                     tag: "FunctionDeclaration",
                     id: decl.id,
                     returns: decl.returns,
@@ -153,10 +160,13 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                     postconditions: [],
                     body: null
                 });
-                checkStatements(recursiveGlobalEnv, env, decl.body.body, decl.returns, false);
-                let constants = decl.postconditions.reduce(
-                    (constants, anno) => constants.union(expressionFreeVars(anno).intersect(defined)),
-                    Set()
+                checkStatements(genv, env, decl.body.body, decl.returns, false);
+                let constants = new Set();
+                decl.postconditions.forEach(anno => {
+                        expressionFreeVars(anno).forEach(x => {
+                            if (defined.has(x)) constants.add(x);
+                        })
+                    }
                 );
                 const functionAnalysis = checkStatementFlow(defined, constants, defined, decl.body);
                 if (decl.returns.tag !== "VoidType" && !functionAnalysis.returns)
@@ -165,7 +175,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                             decl.id.name
                         } has non-void return type but does not return along every path`
                     );
-                functionsUsed = functionAnalysis.functions.union(functionsUsed);
+                functionAnalysis.functions.forEach(f => functionsUsed.add(f));
             }
 
             return functionsUsed;
@@ -177,29 +187,23 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
     }
 }
 
-export function checkProgram(libs: List<ast.Declaration>, decls: List<ast.Declaration>) {
-    const libenv = libs.reduce(
-        ({ genv, functionsUsed }, decl) => {
-            const newFunctions = checkDeclaration(true, genv, decl);
-            return {
-                genv: addDecl(true, genv, decl),
-                functionsUsed: newFunctions.union(functionsUsed)
-            };
-        },
-        { genv: initMain, functionsUsed: Set<string>() }
-    );
-    const progenv = decls.reduce(({ genv, functionsUsed }, decl) => {
-        const newFunctions = checkDeclaration(false, genv, decl);
-        return {
-            genv: addDecl(false, genv, decl),
-            functionsUsed: newFunctions.union(functionsUsed)
-        };
-    }, libenv);
+export function checkProgram(libs: ast.Declaration[], decls: ast.Declaration[]) {
+    const genv = initMain();
+    const functionsUsed = new Set<string>();
+    libs.forEach(decl => {
+        checkDeclaration(true, genv, decl).forEach(f => functionsUsed.add(f))
+        addDecl(true, genv, decl);
+    });
+    decls.forEach((decl) => {
+        checkDeclaration(false, genv, decl).forEach(f => functionsUsed.add(f));
+        addDecl(false, genv, decl)
+    });
 
-    progenv.functionsUsed.union(Set<string>(["main"])).forEach((name): void => {
-        const def = getFunctionDeclaration(progenv.genv, name);
+    functionsUsed.add("main");
+    functionsUsed.forEach((name): void => {
+        const def = getFunctionDeclaration(genv, name);
         if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
-        if (def.body === null && !isLibraryFunction(progenv.genv, def.id.name))
+        if (def.body === null && !isLibraryFunction(genv, def.id.name))
             return error(`function ${name} is never defined`);
     });
 }

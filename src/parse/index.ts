@@ -1,4 +1,3 @@
-import { List, Set } from "immutable";
 import { Grammar, Parser } from "nearley";
 import { TypeLexer } from "../lex";
 import { restrictExpression, restrictDeclaration } from "./restrictsyntax";
@@ -13,7 +12,7 @@ const programRules = require("../../lib/program-rules");
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(expressionRules));
-    parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || Set());
+    parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || new Set());
     parser.feed(str);
     const parsed: parsed.Expression[] = parser.finish();
     if (parsed.length > 1) {
@@ -44,11 +43,11 @@ function* semicolonSplit(s: string) {
     yield { last: true, segment: s };
 }
 
-export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): List<parsed.Declaration> {
+export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): parsed.Declaration[] {
     const parser = new Parser(Grammar.fromCompiled(programRules));
-    const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, typedefs || Set()));
+    const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, typedefs || new Set()));
     const segments = semicolonSplit(str);
-    let decls: List<parsed.Declaration> = List();
+    let decls: parsed.Declaration[] = [];
     let size = 0;
     for (let segment of segments) {
         parser.feed(segment.segment);
@@ -119,7 +118,7 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
     return decls;
 }
 
-export function parseProgram(lang: Lang, str: string, typedefs?: Set<string>): List<ast.Declaration> {
+export function parseProgram(lang: Lang, str: string, typedefs?: Set<string>): ast.Declaration[] {
     return parseProgramRaw(lang, str, typedefs).map(decl => {
         return restrictDeclaration(lang, decl);
     });

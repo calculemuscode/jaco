@@ -1,5 +1,5 @@
 /**
- * This is where most of the bodies are buried.
+ * This is where the bodies (of ugly non-type-safe code) are buried.
  *
  * Consumes (and sort-of documents) the messy output produced by the parser, and turns it into parsedsyntax.ts
  * types. This file will produce garbage output if there's a mismatch between the documented types and the
@@ -13,14 +13,13 @@
 
 import { Token } from "moo";
 import { impossible } from "@calculemus/impossible";
-import * as ast from "../ast";
-import * as parsed from "./parsedsyntax";
+import * as syn from "./parsedsyntax";
 
 // This is incorrect, but Typescript doesn't check anyway
 // If whitespace gets captured or analyzed in the future this needs revisiting
 export type WS = { contents: (Token | WS)[] };
 
-export function Identifier([tok]: [Token]): ast.Identifier {
+export function Identifier([tok]: [Token]): syn.Identifier {
     return {
         tag: "Identifier",
         name: tok.text,
@@ -28,66 +27,66 @@ export function Identifier([tok]: [Token]): ast.Identifier {
     };
 }
 
-export function IntType([tok]: [Token]): ast.IntType {
+export function IntType([tok]: [Token]): syn.IntType {
     return {
         tag: "IntType",
         range: [tok.offset, tok.offset + tok.text.length]
     };
 }
 
-export function BoolType([tok]: [Token]): ast.BoolType {
+export function BoolType([tok]: [Token]): syn.BoolType {
     return {
         tag: "BoolType",
         range: [tok.offset, tok.offset + tok.text.length]
     };
 }
 
-export function StringType([tok]: [Token]): ast.StringType {
+export function StringType([tok]: [Token]): syn.StringType {
     return {
         tag: "StringType",
         range: [tok.offset, tok.offset + tok.text.length]
     };
 }
 
-export function CharType([tok]: [Token]): ast.CharType {
+export function CharType([tok]: [Token]): syn.CharType {
     return {
         tag: "CharType",
         range: [tok.offset, tok.offset + tok.text.length]
     };
 }
 
-export function VoidType([tok]: [Token]): ast.VoidType {
+export function VoidType([tok]: [Token]): syn.VoidType {
     return {
         tag: "VoidType",
         range: [tok.offset, tok.offset + tok.text.length]
     };
 }
 
-export function PointerType([tp, s, tok]: [ast.Type, WS, Token]): ast.PointerType {
+export function PointerType([tp, s, tok]: [syn.Type, WS, Token]): syn.PointerType {
     return {
         tag: "PointerType",
         argument: tp,
-        range: tp.range && [tp.range[0], tok.offset + tok.text.length]
+        range: [tp.range[0], tok.offset + tok.text.length]
     };
 }
 
-export function ArrayType([tp, s1, l, s2, r]: [ast.Type, WS, Token, WS, Token]): ast.ArrayType {
+export function ArrayType([tp, s1, l, s2, r]: [syn.Type, WS, Token, WS, Token]): syn.ArrayType {
     return {
         tag: "ArrayType",
         argument: tp,
-        range: tp.range && [tp.range[0], r.offset + r.text.length]
+        range: [tp.range[0], r.offset + r.text.length]
     };
 }
 
-export function StructType([str, s, id]: [Token, WS, ast.Identifier]): ast.StructType {
+export function StructType([str, s, id]: [Token, WS, syn.Identifier]): syn.StructType {
     return {
         tag: "StructType",
         id: id,
-        range: id.range && [str.offset, id.range[1]]
+        range: [str.offset, id.range[1]]
     };
 }
 
-export function IntLiteral([tok]: Token[]): parsed.IntLiteral {
+export function IntLiteral([tok]: Token[]): syn.IntLiteral {
     return {
         tag: "IntLiteral",
         raw: tok.text,
@@ -95,7 +94,7 @@ export function IntLiteral([tok]: Token[]): parsed.IntLiteral {
     };
 }
 
-export function StringLiteral([[start, toks, end]]: [[Token, [Token][], Token]]): parsed.StringLiteral {
+export function StringLiteral([[start, toks, end]]: [[Token, [Token][], Token]]): syn.StringLiteral {
     return {
         tag: "StringLiteral",
         raw: toks.map(x => x[0].value),
@@ -103,7 +102,7 @@ export function StringLiteral([[start, toks, end]]: [[Token, [Token][], Token]])
     };
 }
 
-export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): parsed.CharLiteral {
+export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): syn.CharLiteral {
     return {
         tag: "CharLiteral",
         raw: tok.value,
@@ -111,7 +110,7 @@ export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): p
     };
 }
 
-export function BoolLiteral([tok]: [Token]): ast.BoolLiteral {
+export function BoolLiteral([tok]: [Token]): syn.BoolLiteral {
     return {
         tag: "BoolLiteral",
         value: tok.value === "true",
@@ -119,7 +118,7 @@ export function BoolLiteral([tok]: [Token]): ast.BoolLiteral {
     };
 }
 
-export function NullLiteral([tok]: [Token]): ast.NullLiteral {
+export function NullLiteral([tok]: [Token]): syn.NullLiteral {
     return {
         tag: "NullLiteral",
         range: [tok.offset, tok.offset + tok.text.length]
@@ -127,60 +126,60 @@ export function NullLiteral([tok]: [Token]): ast.NullLiteral {
 }
 
 export function ArrayMemberExpression([object, s1, l, s2, index, s3, r]: [
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.ArrayMemberExpression {
+]): syn.ArrayMemberExpression {
     return {
         tag: "ArrayMemberExpression",
         object: object,
         index: index,
-        range: object.range && [object.range[0], r.offset + r.text.length]
+        range: [object.range[0], r.offset + r.text.length]
     };
 }
 
 export function StructMemberExpression([object, s1, deref, s2, field]: [
-    parsed.Expression,
+    syn.Expression,
     WS,
     [Token, Token] | Token,
     WS,
-    ast.Identifier
-]): parsed.StructMemberExpression {
+    syn.Identifier
+]): syn.StructMemberExpression {
     return {
         tag: "StructMemberExpression",
         deref: deref instanceof Array, // ["-", ">"] vs. "."
         object: object,
         field: field,
-        range: object.range && field.range && [object.range[0], field.range[1]]
+        range: [object.range[0], field.range[1]]
     };
 }
 
 /**
  * Helper type and helper function for function arguments
  */
-export type Arguments = [WS, null | [parsed.Expression, [WS, Token, WS, parsed.Expression][], WS]];
+export type Arguments = [WS, null | [syn.Expression, [WS, Token, WS, syn.Expression][], WS]];
 
-export function Arguments([s1, args]: Arguments): parsed.Expression[] {
+export function Arguments([s1, args]: Arguments): syn.Expression[] {
     if (args === null) return [];
     return [args[0]].concat(args[1].map(x => x[3]));
 }
 
 export function CallExpression([f, ws, l, args, r]: [
-    ast.Identifier,
+    syn.Identifier,
     WS,
     Token,
     Arguments,
     Token
-]): parsed.CallExpression {
+]): syn.CallExpression {
     return {
         tag: "CallExpression",
         callee: f,
         arguments: Arguments(args),
-        range: f.range && [f.range[0], r.offset + r.text.length]
+        range: [f.range[0], r.offset + r.text.length]
     };
 }
 
@@ -189,14 +188,14 @@ export function IndirectCallExpression([l1, s1, s, s2, f, s3, r1, s4, l2, args, 
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
     Token,
     Arguments,
     Token
-]): parsed.IndirectCallExpression {
+]): syn.IndirectCallExpression {
     return {
         tag: "IndirectCallExpression",
         callee: f,
@@ -206,10 +205,10 @@ export function IndirectCallExpression([l1, s1, s, s2, f, s3, r1, s4, l2, args, 
 }
 
 export function UnaryExpression([operator, s, argument]: [
-    [Token] | [Token, WS, ast.Type, WS, Token],
+    [Token] | [Token, WS, syn.Type, WS, Token],
     Token,
-    parsed.Expression
-]): parsed.UnaryExpression | parsed.CastExpression {
+    syn.Expression
+]): syn.UnaryExpression | syn.CastExpression {
     if (operator.length == 1) {
         const oper = operator[0];
         switch (oper.value) {
@@ -222,7 +221,7 @@ export function UnaryExpression([operator, s, argument]: [
                     tag: "UnaryExpression",
                     operator: oper.value,
                     argument: argument,
-                    range: argument.range && [oper.offset, argument.range[1]]
+                    range: [oper.offset, argument.range[1]]
                 };
 
             default:
@@ -233,18 +232,18 @@ export function UnaryExpression([operator, s, argument]: [
             tag: "CastExpression",
             kind: operator[2],
             argument: argument,
-            range: argument.range && [operator[0].offset, argument.range[1]]
+            range: [operator[0].offset, argument.range[1]]
         };
     }
 }
 
 export function BinaryExpression([left, s1, opertoks, s2, right]: [
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token[],
     WS,
-    parsed.Expression
-]): parsed.BinaryExpression | parsed.LogicalExpression | parsed.AssignmentExpression {
+    syn.Expression
+]): syn.BinaryExpression | syn.LogicalExpression | syn.AssignmentExpression {
     const operator = opertoks.map((tok: Token) => tok.text).join("");
     switch (operator) {
         case "*":
@@ -268,7 +267,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: left.range && right.range && [left.range[0], right.range[1]]
+                range: [left.range[0], right.range[1]]
             };
         case "&&":
         case "||":
@@ -277,7 +276,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: left.range && right.range && [left.range[0], right.range[1]]
+                range: [left.range[0], right.range[1]]
             };
         case "=":
         case "+=":
@@ -295,7 +294,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: left.range && right.range && [left.range[0], right.range[1]]
+                range: [left.range[0], right.range[1]]
             };
 
         default:
@@ -304,22 +303,22 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
 }
 
 export function ConditionalExpression([test, s1, op1, s2, consequent, s3, op2, s4, alternate]: [
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
-    parsed.Expression
-]): parsed.ConditionalExpression {
+    syn.Expression
+]): syn.ConditionalExpression {
     return {
         tag: "ConditionalExpression",
         test: test,
         consequent: consequent,
         alternate: alternate,
-        range: test.range && alternate.range && [test.range[0], alternate.range[1]]
+        range: [test.range[0], alternate.range[1]]
     };
 }
 
@@ -328,10 +327,10 @@ export function AllocExpression([alloc, s1, l, s2, typ, s3, r]: [
     WS,
     Token,
     WS,
-    ast.Type,
+    syn.Type,
     WS,
     Token
-]): parsed.AllocExpression {
+]): syn.AllocExpression {
     return {
         tag: "AllocExpression",
         kind: typ,
@@ -344,14 +343,14 @@ export function AllocArrayExpression([alloc, s1, l, s2, typ, s3, c, s4, size, sp
     WS,
     Token,
     WS,
-    ast.Type,
+    syn.Type,
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.AllocArrayExpression {
+]): syn.AllocArrayExpression {
     return {
         tag: "AllocArrayExpression",
         kind: typ,
@@ -360,7 +359,7 @@ export function AllocArrayExpression([alloc, s1, l, s2, typ, s3, c, s4, size, sp
     };
 }
 
-export function ResultExpression([b, res]: [Token, Token]): parsed.ResultExpression {
+export function ResultExpression([b, res]: [Token, Token]): syn.ResultExpression {
     return {
         tag: "ResultExpression",
         range: [b.offset, res.offset + res.text.length]
@@ -373,10 +372,10 @@ export function LengthExpression([b, length, s1, l, s2, argument, s3, r]: [
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.LengthExpression {
+]): syn.LengthExpression {
     return {
         tag: "LengthExpression",
         argument: argument,
@@ -390,14 +389,14 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
     WS,
     Token,
     WS,
-    ast.Type,
+    syn.Type,
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.HasTagExpression {
+]): syn.HasTagExpression {
     return {
         tag: "HasTagExpression",
         kind: typ,
@@ -411,15 +410,15 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
  */
 
 export function UpdateExpression([argument, s1, op]: [
-    parsed.Expression,
+    syn.Expression,
     WS,
     [Token]
-]): parsed.UpdateExpression {
+]): syn.UpdateExpression {
     return {
         tag: "UpdateExpression",
         argument: argument,
         operator: op[0].value === "++" ? "++" : "--",
-        range: argument.range && [argument.range[0], op[0].offset + op[0].text.length]
+        range: [argument.range[0], op[0].offset + op[0].text.length]
     };
 }
 
@@ -428,13 +427,14 @@ export function AssertExpression([assert, s1, l, s2, test, s3, r]: [
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.AssertExpression {
+]): syn.AssertExpression {
     return {
         tag: "AssertExpression",
-        test: test
+        test: test,
+        range: [assert.offset, r.offset + r.text.length]
     };
 }
 
@@ -443,10 +443,10 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token
-]): parsed.ErrorExpression {
+]): syn.ErrorExpression {
     return {
         tag: "ErrorExpression",
         argument: argument,
@@ -455,11 +455,11 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
 }
 
 export type SimpleParsed =
-    | parsed.Expression
-    | [ast.Type, WS, ast.Identifier, null | [WS, Token, WS, parsed.Expression]];
+    | syn.Expression
+    | [syn.Type, WS, syn.Identifier, null | [WS, Token, WS, syn.Expression]];
 export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
-    | parsed.VariableDeclaration
-    | parsed.ExpressionStatement {
+    | syn.VariableDeclaration
+    | syn.ExpressionStatement {
     if (stm instanceof Array) {
         const init = stm[3];
         return {
@@ -467,36 +467,36 @@ export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
             kind: stm[0],
             id: stm[2],
             init: init === null ? null : init[3],
-            range: stm[0].range && [stm[0].range![0], semi.offset + semi.text.length]
+            range: [stm[0].range[0], semi.offset + semi.text.length]
         };
     } else {
         return {
             tag: "ExpressionStatement",
             expression: stm,
-            range: stm.range && [stm.range[0], semi.offset + semi.text.length]
+            range: [stm.range[0], semi.offset + semi.text.length]
         };
     }
 }
 
 // Helper types for dangling-if-handling
-export type AnnosAndStm = [parsed.Anno[], parsed.Statement];
+export type AnnosAndStm = [syn.AnnoStatement[], syn.Statement];
 export type Wrapper =
-    | { tag: "while"; offset: number; test: parsed.Expression }
+    | { tag: "while"; offset: number; test: syn.Expression }
     | {
           tag: "for";
           offset: number;
-          init: null | parsed.ExpressionStatement | parsed.VariableDeclaration;
-          test: parsed.Expression;
-          update: null | parsed.Expression;
+          init: null | syn.ExpressionStatement | syn.VariableDeclaration;
+          test: syn.Expression;
+          update: null | syn.Expression;
       }
-    | { tag: "ifelse"; offset: number; test: parsed.Expression; consequent: AnnosAndStm };
+    | { tag: "ifelse"; offset: number; test: syn.Expression; consequent: AnnosAndStm };
 
 export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
     Token,
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
@@ -521,10 +521,10 @@ export function For([tFOR, s1, l, init, s2, semi1, s3, test, s4, semi2, update, 
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
-    null | [WS, parsed.Expression],
+    null | [WS, syn.Expression],
     WS,
     Token,
     WS
@@ -543,7 +543,7 @@ export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS
@@ -552,9 +552,9 @@ export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
 }
 
 export function Statement([wrappers, annos, stm]: [
-    [parsed.Anno[], Wrapper][],
-    parsed.Anno[],
-    [parsed.Statement]
+    [syn.AnnoStatement[], Wrapper][],
+    syn.AnnoStatement[],
+    [syn.Statement]
 ]): AnnosAndStm {
     return wrappers.reduceRight<AnnosAndStm>(
         (stm, [newannos, wrap]) => {
@@ -567,7 +567,7 @@ export function Statement([wrappers, annos, stm]: [
                             test: wrap.test,
                             consequent: wrap.consequent,
                             alternate: stm,
-                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
+                            range: [wrap.offset, stm[1].range[1]]
                         }
                     ];
                 case "while":
@@ -577,7 +577,7 @@ export function Statement([wrappers, annos, stm]: [
                             tag: "WhileStatement",
                             test: wrap.test,
                             body: stm,
-                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
+                            range: [wrap.offset, stm[1].range[1]]
                         }
                     ];
                 case "for":
@@ -589,7 +589,7 @@ export function Statement([wrappers, annos, stm]: [
                             test: wrap.test,
                             update: wrap.update,
                             body: stm,
-                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
+                            range: [wrap.offset, stm[1].range[1]]
                         }
                     ];
                 default:
@@ -605,26 +605,26 @@ export function IfStatement([tIF, s1, l, s2, test, s3, r, s4, consequent]: [
     WS,
     Token,
     WS,
-    parsed.Expression,
+    syn.Expression,
     WS,
     Token,
     WS,
     AnnosAndStm
-]): parsed.IfStatement {
+]): syn.IfStatement {
     return {
         tag: "IfStatement",
         test: test,
         consequent: consequent,
-        range: consequent[1].range && [tIF.offset, consequent[1].range![1]]
+        range: [tIF.offset, consequent[1].range[1]]
     };
 }
 
 export function ReturnStatement([r, argument, s1, semi]: [
     Token,
-    null | [WS, parsed.Expression],
+    null | [WS, syn.Expression],
     WS,
     Token
-]): parsed.ReturnStatement {
+]): syn.ReturnStatement {
     return {
         tag: "ReturnStatement",
         argument: argument === null ? null : argument[1],
@@ -634,20 +634,16 @@ export function ReturnStatement([r, argument, s1, semi]: [
 
 export function BlockStatement([l, stms, annos, s, r]: [
     Token,
-    [WS, [parsed.Anno[], parsed.Statement]][],
-    parsed.Anno[],
+    [WS, [syn.AnnoStatement[], syn.Statement]][],
+    syn.AnnoStatement[],
     WS,
     Token
-]): parsed.BlockStatement {
-    const stms1: parsed.Statement[][] = stms.map(x =>
-        x[1][0].map((y): parsed.Statement => ({ tag: "AnnoStatement", anno: y })).concat([x[1][1]])
+]): syn.BlockStatement {
+    const stms1: syn.Statement[][] = stms.map(x =>
+        x[1][0].map<syn.Statement>(x => x).concat([x[1][1]])
     );
-    const stms2: parsed.Statement[] = annos.map((x): parsed.Statement => ({
-        tag: "AnnoStatement",
-        anno: x
-    }));
-    const stmsAll: parsed.Statement[] = stms1
-        .concat([stms2])
+    const stmsAll: syn.Statement[] = stms1
+        .concat([annos])
         .reduce((collect, stms) => collect.concat(stms), []);
 
     return {
@@ -657,111 +653,138 @@ export function BlockStatement([l, stms, annos, s, r]: [
     };
 }
 
-export function BreakStatement([stm, s1, semi]: [Token, any, Token]): ast.BreakStatement {
+export function BreakStatement([stm, s1, semi]: [Token, WS, Token]): syn.BreakStatement {
     return { tag: "BreakStatement", range: [stm.offset, semi.offset + semi.text.length] };
 }
 
-export function ContinueStatement([stm, s1, semi]: [Token, any, Token]): ast.ContinueStatement {
+export function ContinueStatement([stm, s1, semi]: [Token, WS, Token]): syn.ContinueStatement {
     return { tag: "ContinueStatement", range: [stm.offset, semi.offset + semi.text.length] };
 }
 
+export function Anno([anno, s1, test, s2, semi, s3]: [[Token], WS, syn.Expression, WS, Token, WS]): syn.AnnoStatement {
+    const annotxt = anno[0].text;
+    switch (annotxt) {
+        case "assert":
+        case "loop_invariant":
+        case "requires":
+        case "ensures":
+        return {
+            tag: "AnnoStatement",
+            anno: annotxt,
+            test: test,
+            range: [anno[0].offset, semi.offset + semi.text.length]
+        }
+        default:
+        throw new Error(`Unknown annotation @${annotxt}`)
+        }
+}
+
 export function AnnoSet(
-    annos: [Token, any, parsed.Anno[], Token] | [Token, any, parsed.Anno[], Token, any, Token]
-): parsed.Anno[] {
+    annos: [Token, WS, syn.AnnoStatement[], Token] | [Token, WS, syn.AnnoStatement[], Token, any, Token]
+): syn.AnnoStatement[] {
     const start: Token = annos[0];
     const end: Token = annos[5] ? annos[5] : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
+    // XXX ERROR IN FILE
         throw new Error(
             `Single-line annotations cannot be extended onto multiple lines with multiline comments.`
         );
     return annos[2];
 }
 
-export function FunctionDeclarationArgs([l, s1, params, r]: [
-    Token,
-    any,
-    null | [ast.Type, any, ast.Identifier, any, [Token, any, ast.Type, any, ast.Identifier, any][]],
-    Token
-]): parsed.VariableDeclarationOnly[] {
+export function FunctionDeclarationArgs([s1, params]: [
+    WS,
+    null | [syn.Type, WS, syn.Identifier, WS, [Token, WS, syn.Type, WS, syn.Identifier, WS][]]
+]): syn.VariableDeclarationOnly[] {
     if (params === null) return [];
-    const first: parsed.VariableDeclarationOnly = {
+    const first: syn.VariableDeclarationOnly = {
         tag: "VariableDeclaration",
         kind: params[0],
-        id: params[2]
+        id: params[2],
+        range: [params[0].range[0], params[2].range[1]]
     };
     return [first].concat(
-        params[4].map((x): parsed.VariableDeclarationOnly => ({
+        params[4].map((x): syn.VariableDeclarationOnly => ({
             tag: "VariableDeclaration",
             kind: x[2],
-            id: x[4]
+            id: x[4],
+            range: [x[2].range[0], x[4].range[1]]
         }))
     );
 }
 
 export function StructDeclaration([struct, s1, s, s2, semi]: [
-    any,
-    any,
-    ast.Identifier,
-    any,
-    any
-]): ast.StructDeclaration {
+    Token,
+    WS,
+    syn.Identifier,
+    WS,
+    Token
+]): syn.StructDeclaration {
     return {
         tag: "StructDeclaration",
         id: s,
-        definitions: null
+        definitions: null,
+        range: [struct.offset, semi.offset + semi.text.length]
     };
 }
 
 export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: [
-    any,
-    any,
-    ast.Identifier,
-    any,
-    any,
-    any,
-    [ast.Type, any, ast.Identifier, any, any, any][],
-    any,
-    any,
-    any
-]): parsed.StructDeclaration {
+    Token,
+    WS,
+    syn.Identifier,
+    WS,
+    Token,
+    WS,
+    [syn.Type, WS, syn.Identifier, WS, Token, WS][],
+    Token,
+    WS,
+    Token
+]): syn.StructDeclaration {
     return {
         tag: "StructDeclaration",
         id: s,
-        definitions: defs.map((value): parsed.VariableDeclarationOnly => ({
+        definitions: defs.map((value): syn.VariableDeclarationOnly => ({
             tag: "VariableDeclaration",
             id: value[2],
-            kind: value[0]
-        }))
+            kind: value[0],
+            range: [value[0].range[0], value[4].offset + value[4].text.length]
+        })),
+        range: [struct.offset, semi.offset + semi.text.length]
     };
 }
 
 export function TypeDefinition([typedef, s1, tp, s2, id]: [
-    any,
-    any,
-    ast.Type,
-    any,
-    ast.Identifier
-]): parsed.TypeDefinition {
+    Token,
+    WS,
+    syn.Type,
+    WS,
+    syn.Identifier
+]): syn.TypeDefinition {
     return {
         tag: "TypeDefinition",
         definition: {
             tag: "VariableDeclaration",
             id: id,
-            kind: tp
-        }
+            kind: tp,
+            range: [tp.range[0], id.range[1]]
+        },
+        range: [typedef.offset, id.range[1]]
     };
 }
 
-export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, args, annos]: [
-    any,
-    any,
-    ast.Type,
-    any,
-    ast.Identifier,
-    any,
-    ast.VariableDeclarationOnly[],
-    parsed.Anno[]
-]): parsed.FunctionTypeDefinition {
+export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, l, args, r, annos]: [
+    Token,
+    WS,
+    syn.Type,
+    WS,
+    syn.Identifier,
+    WS,
+    Token,
+    syn.VariableDeclarationOnly[],
+    Token,
+    syn.AnnoStatement[]
+]): syn.FunctionTypeDefinition {
+    const right = annos.length === 0 ? r.offset + r.text.length : annos[annos.length-1].range[1];
     return {
         tag: "FunctionTypeDefinition",
         definition: {
@@ -770,27 +793,33 @@ export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, args, annos]
             id: f,
             params: args,
             annos: annos,
-            body: null
-        }
+            body: null,
+            range: [ty.range[0], right]
+        },
+        range: [typedef.offset, right]
     };
 }
 
-export function FunctionDeclaration([ty, s1, f, s2, args, annos, s3, def]: [
-    ast.Type,
-    any,
-    ast.Identifier,
-    any,
-    ast.VariableDeclarationOnly[],
-    parsed.Anno[],
-    any,
-    null | parsed.BlockStatement
-]): parsed.FunctionDeclaration {
+export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]: [
+    syn.Type,
+    WS,
+    syn.Identifier,
+    WS,
+    Token,
+    syn.VariableDeclarationOnly[],
+    Token,
+    syn.AnnoStatement[],
+    WS,
+    null | syn.BlockStatement
+]): syn.FunctionDeclaration {
+    const right = def !== null ? def.range[1] : annos.length === 0 ? r.offset + r.text.length : annos[annos.length-1].range[1];
     return {
         tag: "FunctionDeclaration",
         returns: ty,
         id: f,
         params: args,
         annos: annos,
-        body: def
+        body: def,
+        range: [ty.range[0], right]
     };
 }

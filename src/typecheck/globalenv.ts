@@ -1,10 +1,9 @@
-import { List, Set } from "immutable";
 import * as ast from "../ast";
 
 export type GlobalEnv = {
     readonly libstructs: Set<string>;
     readonly libfuncs: Set<string>;
-    readonly decls: List<ast.Declaration>;
+    readonly decls: ast.Declaration[];
 };
 
 export type ActualType =
@@ -31,10 +30,10 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
     return null;
 }
 
-export const initMain: GlobalEnv = {
-    libstructs: Set<string>(),
-    libfuncs: Set<string>(),
-    decls: List<ast.Declaration>([
+export function initMain(): GlobalEnv {
+    return {libstructs: new Set<string>(),
+    libfuncs: new Set<string>(),
+    decls: [
         {
             tag: "FunctionDeclaration",
             returns: { tag: "IntType" },
@@ -44,17 +43,16 @@ export const initMain: GlobalEnv = {
             postconditions: [],
             body: null
         }
-    ])
+    ]
 };
+}
 
-export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration): GlobalEnv {
-    return {
-        libstructs:
-            library && decl.tag == "StructDeclaration" ? genv.libstructs.add(decl.id.name) : genv.libstructs,
-        libfuncs:
-            library && decl.tag == "FunctionDeclaration" ? genv.libfuncs.add(decl.id.name) : genv.libfuncs,
-        decls: genv.decls.push(decl)
-    };
+export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration) {
+    genv.decls.push(decl);
+    if (library) {
+        if (decl.tag === "StructDeclaration") genv.libstructs.add(decl.id.name);
+        if (decl.tag === "FunctionDeclaration") genv.libfuncs.add(decl.id.name);
+    }
 }
 
 export function isLibraryFunction(genv: GlobalEnv, t: string): boolean {

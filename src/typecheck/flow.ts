@@ -1,5 +1,4 @@
 import { impossible } from "@calculemus/impossible";
-import { Set } from "immutable";
 import * as ast from "../ast";
 import { error } from "./error";
 
@@ -8,9 +7,10 @@ import { error } from "./error";
  * disjoint within any top-level declaration.)
  */
 export function expressionFreeVars(exp: ast.Expression): Set<string> {
+    const freeVars = new Set<string>();
     switch (exp.tag) {
         case "Identifier":
-            return Set([exp.name]);
+            freeVars.add(exp.name);
         case "IntLiteral":
         case "StringLiteral":
         case "CharLiteral":
@@ -18,31 +18,36 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
         case "NullLiteral":
         case "AllocExpression":
         case "ResultExpression":
-            return Set();
+            return freeVars;
         case "ArrayMemberExpression":
-            return expressionFreeVars(exp.object).union(expressionFreeVars(exp.index));
+            expressionFreeVars(exp.index).forEach(x => freeVars.add(x));
         case "StructMemberExpression":
-            return expressionFreeVars(exp.object);
+            expressionFreeVars(exp.object).forEach(x => freeVars.add(x));
+            return freeVars
         case "CallExpression":
         case "IndirectCallExpression":
-            return exp.arguments.reduce(
-                (fv, arg) => fv.union(expressionFreeVars(arg)),
-                expressionFreeVars(exp.callee)
-            );
+            expressionFreeVars(exp.callee).forEach(x => freeVars.add(x));
+            exp.arguments.forEach(arg => expressionFreeVars(arg).forEach(x => freeVars.add(x)));
+            return freeVars;
         case "UnaryExpression":
         case "CastExpression":
         case "LengthExpression":
         case "HasTagExpression":
-            return expressionFreeVars(exp.argument);
-        case "BinaryExpression":
+        expressionFreeVars(exp.argument).forEach(x => freeVars.add(x));
+        return freeVars;
+    case "BinaryExpression":
         case "LogicalExpression":
-            return expressionFreeVars(exp.left).union(expressionFreeVars(exp.right));
+        expressionFreeVars(exp.left).forEach(x => freeVars.add(x));
+        expressionFreeVars(exp.right).forEach(x => freeVars.add(x));
+        return freeVars;
         case "ConditionalExpression":
-            return expressionFreeVars(exp.test)
-                .union(expressionFreeVars(exp.consequent))
-                .union(expressionFreeVars(exp.alternate));
+        expressionFreeVars(exp.test).forEach(x => freeVars.add(x));
+        expressionFreeVars(exp.consequent).forEach(x => freeVars.add(x));
+        expressionFreeVars(exp.alternate).forEach(x => freeVars.add(x));
+        return freeVars;
         case "AllocArrayExpression":
-            return expressionFreeVars(exp.size);
+        expressionFreeVars(exp.size).forEach(x => freeVars.add(x));
+        return freeVars;
         default:
             return impossible(exp);
     }
@@ -61,13 +66,16 @@ export function checkExpressionUsesGetFreeFunctions(
     defined: Set<string>,
     exp: ast.Expression
 ): Set<string> {
-    const freeVars = expressionFreeVars(exp);
-    const freeLocals = freeVars.intersect(locals);
-    const undefinedFreeLocals = freeLocals.subtract(defined);
-    for (let badLocal of undefinedFreeLocals.values()) {
-        return error(`local ${badLocal} used without necessarily being defined`);
-    }
-    return freeVars.subtract(locals);
+    const freeFunctions = new Set<string>();
+    expressionFreeVars(exp).forEach(x => {
+        if (locals.has(x)) {
+            if (!defined.has(x))
+            error(`local ${x} used without necessarily being defined`);
+        } else {
+            freeFunctions.add(x);
+        }
+    })
+    return freeFunctions;
 }
 
 /**
@@ -101,7 +109,7 @@ export function checkStatementFlow(
                 }
                 defined = defined.add(stm.left.name);
             } else {
-                functions = functions.union(checkExpressionUsesGetFreeFunctions(locals, defined, stm.left));
+                checkExpressionUsesGetFreeFunctions(locals, defined, stm.left).forEach(f => functions.add(f))
             }
             return { locals: locals, defined: defined, functions: functions, returns: false };
         }
@@ -126,7 +134,7 @@ export function checkStatementFlow(
                 return {
                     locals: locals.add(stm.id.name),
                     defined: defined,
-                    functions: Set(),
+                    functions: new Set<string>(),
                     returns: false
                 };
             return {
@@ -139,33 +147,36 @@ export function checkStatementFlow(
         case "IfStatement": {
             const test = checkExpressionUsesGetFreeFunctions(locals, defined, stm.test);
             const consequent = checkStatementFlow(locals, constants, defined, stm.consequent);
+            consequent.functions.forEach(x => test.add(x));
             if (stm.alternate) {
                 const alternate = checkStatementFlow(locals, constants, defined, stm.alternate);
+                const intersection = new Set<string>();
+                consequent.functions.forEach(x => alternate.functions.has(x) ? intersection.add(x): null)
+                alternate.functions.forEach(x => test.add(x));
                 return {
                     locals: locals,
-                    defined: consequent.defined.intersect(alternate.defined),
-                    functions: test.union(consequent.functions).union(alternate.functions),
+                    defined: intersection,
+                    functions: test,
                     returns: consequent.returns && alternate.returns
                 };
             } else {
                 return {
                     locals: locals,
                     defined: defined,
-                    functions: test.union(consequent.functions),
+                    functions: test,
                     returns: false
                 };
             }
         }
         case "WhileStatement": {
-            const test = stm.invariants.reduce(
-                (set, exp) => set.union(checkExpressionUsesGetFreeFunctions(locals, defined, exp)),
-                checkExpressionUsesGetFreeFunctions(locals, defined, stm.test)
-            );
+            const freeFunctions = checkExpressionUsesGetFreeFunctions(locals, defined, stm.test);
+            stm.invariants.forEach(exp => checkExpressionUsesGetFreeFunctions(locals, defined, exp).forEach(x => freeFunctions.add(x)));
             const body = checkStatementFlow(locals, constants, defined, stm.body);
+            body.functions.forEach(x => freeFunctions.add(x))
             return {
                 locals: locals,
                 defined: defined,
-                functions: test.union(body.functions),
+                functions: freeFunctions,
                 returns: false
             };
         }
@@ -176,10 +187,9 @@ export function checkStatementFlow(
                 defined,
                 stm.init || { tag: "BlockStatement", body: [] }
             );
-            const test = stm.invariants.reduce(
-                (set, exp) => set.union(checkExpressionUsesGetFreeFunctions(init.locals, init.defined, exp)),
-                checkExpressionUsesGetFreeFunctions(init.locals, init.defined, stm.test)
-            );
+            const freeFunctions = init.functions;
+            checkExpressionUsesGetFreeFunctions(init.locals, init.defined, stm.test).forEach(f => freeFunctions.add(f));
+            stm.invariants.forEach(exp => checkExpressionUsesGetFreeFunctions(init.locals, init.defined, exp).forEach(f => freeFunctions.add(f)));
             const body = checkStatementFlow(init.locals, constants, init.defined, stm.body);
             const update = checkStatementFlow(
                 init.locals,
@@ -187,13 +197,12 @@ export function checkStatementFlow(
                 body.defined,
                 stm.update || { tag: "BlockStatement", body: [] }
             );
+            body.functions.forEach(f => freeFunctions.add(f));
+            update.functions.forEach(f => freeFunctions.add(f));
             return {
                 locals: locals,
                 defined: init.defined,
-                functions: init.functions
-                    .union(test)
-                    .union(body.functions)
-                    .union(update.functions),
+                functions: freeFunctions,
                 returns: false
             };
         }
@@ -203,28 +212,31 @@ export function checkStatementFlow(
                 defined: locals,
                 functions:
                     stm.argument === null
-                        ? Set()
+                        ? new Set()
                         : checkExpressionUsesGetFreeFunctions(locals, defined, stm.argument),
                 returns: true
             };
         }
         case "BlockStatement": {
+            const freeFunctions = new Set<string>();
             const body = stm.body.reduce(
-                ({ locals, defined, functions, returns }, stm) => {
+                ({ locals, defined, returns }, stm) => {
                     const result = checkStatementFlow(locals, constants, defined, stm);
+                    result.functions.forEach(f => freeFunctions.add(f));
                     return {
                         locals: result.locals,
                         defined: result.defined,
-                        functions: functions.union(result.functions),
                         returns: returns || result.returns
                     };
                 },
-                { locals: locals, defined: defined, functions: Set(), returns: false }
+                { locals: locals, defined: defined,  returns: false }
             );
+            const intersection = new Set<string>();
+            body.defined.forEach(x => locals.has(x) ? intersection.add(x) : null)
             return {
                 locals: locals,
-                defined: body.defined.intersect(locals),
-                functions: body.functions,
+                defined: intersection,
+                functions: freeFunctions,
                 returns: body.returns
             };
         }
@@ -246,7 +258,7 @@ export function checkStatementFlow(
         }
         case "BreakStatement":
         case "ContinueStatement": {
-            return { locals: locals, defined: locals, functions: Set(), returns: false };
+            return { locals: locals, defined: locals, functions: new Set(), returns: false };
         }
         default:
             return impossible(stm);

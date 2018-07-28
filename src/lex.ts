@@ -1,5 +1,4 @@
 import { states, Token, Lexer, LexerState } from "moo";
-import { Set } from "immutable";
 import Lang from "./lang";
 import { impossible } from "../node_modules/@calculemus/impossible";
 
@@ -182,7 +181,7 @@ export class TypeLexer {
                 this.coreLexer = impossible(lang);
             }
         }
-        this.parsePragma = parsePragma || (() => Set());
+        this.parsePragma = parsePragma || (() => new Set());
     }
     addIdentifier(typeIdentifier: string) {
         this.typeIds = this.typeIds.add(typeIdentifier);
@@ -191,7 +190,7 @@ export class TypeLexer {
         const tok = this.coreLexer.next();
         if (!tok) return undefined;
         else if (tok["type"] === "pragma") {
-            this.typeIds = this.typeIds.union(this.parsePragma(tok.text));
+            this.parsePragma(tok.text).forEach(x => this.typeIds.add(x));
             return tok;
         } else if (tok["type"] === "identifier" && this.typeIds.has(tok.value)) {
             tok["type"] = "type_identifier";
@@ -216,4 +215,4 @@ export class TypeLexer {
     }
 }
 
-export const lexer = new TypeLexer("C1", Set());
+export const lexer = new TypeLexer("C1", new Set());

@@ -3,7 +3,6 @@
  */
 
 import Lang, { parse as parseLang } from "../lang";
-import { Set } from "immutable";
 import { Parser, Grammar } from "nearley";
 const testSpecRules = require("../../lib/spec-rules");
 
@@ -90,7 +89,7 @@ export function parseSpec(defaultLang: Lang, spec: string, filename?: string): S
         let purity = true;
         let libs: string[] = [];
         let files: string[] = [];
-        let libSet: Set<string> = Set();
+        let libSet: Set<string> = new Set();
         let lang: Lang | null = null;
 
         const flags = spec[1] ? spec[1][1] : [];

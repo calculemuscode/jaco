@@ -449,7 +449,7 @@ export type Declaration =
  * If definitions.length === 0, this represents a struct declaration
  * `struct id;`
  */
-export interface StructDeclaration {
+export interface StructDeclaration extends Syn {
     readonly tag: "StructDeclaration";
     readonly id: Identifier;
     readonly definitions: null | VariableDeclarationOnly[];

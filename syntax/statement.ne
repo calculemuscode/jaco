@@ -12,7 +12,7 @@ BlockStatement -> "{" (_ Statement):* _Annos _ "}"          {% util.BlockStateme
 
 # A single annotation is a keyword, an expression, and a semicolon
 Anno_          -> ("loop_invariant" | "assert" | "requires" | "ensures") _ Expression _ ";" _
-                                                            {% x => ({ tag: x[0][0].value, test: x[2] }) %}
+                                                            {% util.Anno %}
 
 # Annotations are grouped and surrounded either by /*@ ... @*/ or //@ ... \n delimiters
 # Annotations can include normal comments of their own; 

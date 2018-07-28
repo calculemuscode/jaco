@@ -1,6 +1,6 @@
 import Lang from "../lang";
+import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
-import * as parsed from "./parsedsyntax";
 import { impossible } from "@calculemus/impossible";
 
 export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
@@ -57,7 +57,7 @@ export function restrictValueType(lang: Lang, syn: ast.Type): ast.ValueType {
     return type;
 }
 
-export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expression {
+export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Expression {
     switch (syn.tag) {
         case "StringLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
@@ -296,7 +296,7 @@ export function restrictExpression(lang: Lang, syn: parsed.Expression): ast.Expr
     }
 }
 
-export function restrictLValue(lang: Lang, syn: parsed.Expression): ast.LValue {
+export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
     switch (syn.tag) {
         case "Identifier":
             return syn;
@@ -356,17 +356,17 @@ export function restrictLValue(lang: Lang, syn: parsed.Expression): ast.LValue {
     }
 }
 
-export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statement {
+export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement {
     switch (syn.tag) {
         case "AnnoStatement": {
-            if (syn.anno.tag !== "assert")
+            if (syn.anno !== "assert")
                 throw new Error(
-                    `Only assert annotations are allowed here, ${syn.anno.tag} is not permitted.`
+                    `Only assert annotations are allowed here, ${syn.anno} is not permitted.`
                 );
             return {
                 tag: "AssertStatement",
                 contract: true,
-                test: restrictExpression(lang, syn.anno.test)
+                test: restrictExpression(lang, syn.test)
             };
         }
         case "ExpressionStatement": {
@@ -493,7 +493,8 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
             } else {
                 const candidate = restrictStatement(lang, {
                     tag: "ExpressionStatement",
-                    expression: syn.update
+                    expression: syn.update,
+                    range: syn.range
                 });
                 switch (candidate.tag) {
                     case "AssignmentStatement":
@@ -539,10 +540,10 @@ export function restrictStatement(lang: Lang, syn: parsed.Statement): ast.Statem
     }
 }
 
-function restrictAssert(lang: Lang, [annos, stm]: [parsed.Anno[], parsed.Statement]): ast.Statement {
+function restrictAssert(lang: Lang, [annos, stm]: [syn.AnnoStatement[], syn.Statement]): ast.Statement {
     if (annos.length === 0) return restrictStatement(lang, stm);
     const asserts: ast.Statement[] = annos.map((x): ast.Statement => {
-        if (x.tag !== "assert")
+        if (x.anno !== "assert")
             throw new Error(
                 `The only annotations allowed with if-statements are assertions, ${x.tag} is not permitted`
             );
@@ -558,9 +559,9 @@ function restrictAssert(lang: Lang, [annos, stm]: [parsed.Anno[], parsed.Stateme
     };
 }
 
-function restrictLoopInvariants(lang: Lang, annos: parsed.Anno[]): ast.Expression[] {
+function restrictLoopInvariants(lang: Lang, annos: syn.AnnoStatement[]): ast.Expression[] {
     return annos.map(x => {
-        if (x.tag !== "loop_invariant")
+        if (x.anno !== "loop_invariant")
             throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
         return restrictExpression(lang, x.test);
     });
@@ -568,18 +569,18 @@ function restrictLoopInvariants(lang: Lang, annos: parsed.Anno[]): ast.Expressio
 
 function restrictFunctionAnnos(
     lang: Lang,
-    annos: parsed.Anno[]
+    annos: syn.AnnoStatement[]
 ): { pre: ast.Expression[]; post: ast.Expression[] } {
     const preconditions: ast.Expression[] = [];
     const postconditions: ast.Expression[] = [];
     annos.map(x => {
-        if (x.tag === "requires") {
+        if (x.anno === "requires") {
             preconditions.push(restrictExpression(lang, x.test));
-        } else if (x.tag === "ensures") {
+        } else if (x.anno === "ensures") {
             postconditions.push(restrictExpression(lang, x.test));
         } else {
             throw new Error(
-                `The only annotations allowed are requires and ensures, ${x.tag} is not permitted`
+                `The only annotations allowed are requires and ensures, ${x.anno} is not permitted`
             );
         }
     });
@@ -588,7 +589,7 @@ function restrictFunctionAnnos(
 
 export function restrictParams(
     lang: Lang,
-    params: parsed.VariableDeclarationOnly[]
+    params: syn.VariableDeclarationOnly[]
 ): ast.VariableDeclarationOnly[] {
     return params.map(param => ({
         tag: param.tag,
@@ -597,7 +598,7 @@ export function restrictParams(
     }));
 }
 
-export function restrictDeclaration(lang: Lang, decl: parsed.Declaration): ast.Declaration {
+export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Declaration {
     if (typeof decl === "string") return decl;
     switch (decl.tag) {
         case "FunctionDeclaration": {
