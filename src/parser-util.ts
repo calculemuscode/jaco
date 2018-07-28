@@ -1,11 +1,11 @@
 /**
  * This is where most of the bodies are buried.
- * 
- * Consumes (and sort-of documents) the messy output produced by the parser, and turns it into parsedsyntax.ts 
- * types. This file will produce garbage output if there's a mismatch between the documented types and the 
+ *
+ * Consumes (and sort-of documents) the messy output produced by the parser, and turns it into parsedsyntax.ts
+ * types. This file will produce garbage output if there's a mismatch between the documented types and the
  * types that the parser produces, since Typescript refuses to document that.
- * 
- * Convention: this file should ***only throw errors to document invariants of the parser*** 
+ *
+ * Convention: this file should ***only throw errors to document invariants of the parser***
  * Any non-implementation (user-facing) errors should be thrown in restrictsyntax.ts.
  *
  * The structure of this file should match ast.ts as much as practical.
@@ -63,7 +63,7 @@ export function VoidType([tok]: [Token]): ast.VoidType {
     };
 }
 
-export function PointerType([tp, s, tok]: [ast.Type, any, Token]): ast.PointerType {
+export function PointerType([tp, s, tok]: [ast.Type, WS, Token]): ast.PointerType {
     return {
         tag: "PointerType",
         argument: tp,
@@ -71,7 +71,7 @@ export function PointerType([tp, s, tok]: [ast.Type, any, Token]): ast.PointerTy
     };
 }
 
-export function ArrayType([tp, s1, l, s2, r]: [ast.Type, any, Token, any, Token]): ast.ArrayType {
+export function ArrayType([tp, s1, l, s2, r]: [ast.Type, WS, Token, WS, Token]): ast.ArrayType {
     return {
         tag: "ArrayType",
         argument: tp,
@@ -79,7 +79,7 @@ export function ArrayType([tp, s1, l, s2, r]: [ast.Type, any, Token, any, Token]
     };
 }
 
-export function StructType([str, s, id]: [Token, any, ast.Identifier]): ast.StructType {
+export function StructType([str, s, id]: [Token, WS, ast.Identifier]): ast.StructType {
     return {
         tag: "StructType",
         id: id,
@@ -162,17 +162,20 @@ export function StructMemberExpression([object, s1, deref, s2, field]: [
 /**
  * Helper type and helper function for function arguments
  */
-export type Arguments = [
-    WS,
-    null | [parsed.Expression, [WS, Token, WS, parsed.Expression][], WS]
-];
+export type Arguments = [WS, null | [parsed.Expression, [WS, Token, WS, parsed.Expression][], WS]];
 
 export function Arguments([s1, args]: Arguments): parsed.Expression[] {
     if (args === null) return [];
     return [args[0]].concat(args[1].map(x => x[3]));
 }
 
-export function CallExpression([f, ws, l, args, r]: [ast.Identifier, WS, Token, Arguments, Token]): parsed.CallExpression {
+export function CallExpression([f, ws, l, args, r]: [
+    ast.Identifier,
+    WS,
+    Token,
+    Arguments,
+    Token
+]): parsed.CallExpression {
     return {
         tag: "CallExpression",
         callee: f,
@@ -202,9 +205,11 @@ export function IndirectCallExpression([l1, s1, s, s2, f, s3, r1, s4, l2, args, 
     };
 }
 
-export function UnaryExpression([operator, s, argument]: [[Token] | [Token, WS, ast.Type, WS, Token], Token, parsed.Expression]):
-    | parsed.UnaryExpression
-    | parsed.CastExpression {
+export function UnaryExpression([operator, s, argument]: [
+    [Token] | [Token, WS, ast.Type, WS, Token],
+    Token,
+    parsed.Expression
+]): parsed.UnaryExpression | parsed.CastExpression {
     if (operator.length == 1) {
         const oper = operator[0];
         switch (oper.value) {
@@ -365,59 +370,66 @@ export function ResultExpression([b, res]: [Token, Token]): parsed.ResultExpress
 export function LengthExpression([b, length, s1, l, s2, argument, s3, r]: [
     Token,
     Token,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     parsed.Expression,
-    any,
+    WS,
     Token
 ]): parsed.LengthExpression {
     return {
         tag: "LengthExpression",
-        argument: argument
+        argument: argument,
+        range: [b.offset, r.offset + r.text.length]
     };
 }
 
 export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument, s5, r]: [
     Token,
     Token,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     ast.Type,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     parsed.Expression,
-    any,
+    WS,
     Token
 ]): parsed.HasTagExpression {
     return {
         tag: "HasTagExpression",
         kind: typ,
-        argument: argument
+        argument: argument,
+        range: [b.offset, r.offset + r.text.length]
     };
 }
 
+/**
+ * The next section are all the C0 statements that get initally parsed as expressions
+ */
+
 export function UpdateExpression([argument, s1, op]: [
     parsed.Expression,
-    any,
+    WS,
     [Token]
 ]): parsed.UpdateExpression {
     return {
         tag: "UpdateExpression",
         argument: argument,
-        operator: op[0].value === "++" ? "++" : "--"
+        operator: op[0].value === "++" ? "++" : "--",
+        range: argument.range && [argument.range[0], op[0].offset + op[0].text.length]
     };
 }
 
 export function AssertExpression([assert, s1, l, s2, test, s3, r]: [
     Token,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     parsed.Expression,
-    any,
+    WS,
     Token
 ]): parsed.AssertExpression {
     return {
@@ -428,16 +440,17 @@ export function AssertExpression([assert, s1, l, s2, test, s3, r]: [
 
 export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
     Token,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     parsed.Expression,
-    any,
+    WS,
     Token
 ]): parsed.ErrorExpression {
     return {
         tag: "ErrorExpression",
-        argument: argument
+        argument: argument,
+        range: [error.offset, r.offset + r.text.length]
     };
 }
 
@@ -453,29 +466,31 @@ export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
             tag: "VariableDeclaration",
             kind: stm[0],
             id: stm[2],
-            init: init === null ? null : init[3]
+            init: init === null ? null : init[3],
+            range: stm[0].range && [stm[0].range![0], semi.offset + semi.text.length]
         };
     } else {
         return {
             tag: "ExpressionStatement",
-            expression: stm
+            expression: stm,
+            range: stm.range && [stm.range[0], semi.offset + semi.text.length]
         };
     }
 }
 
+// Helper types for dangling-if-handling
+export type AnnosAndStm = [parsed.Anno[], parsed.Statement];
 export type Wrapper =
-    | { tag: "while"; test: parsed.Expression }
+    | { tag: "while"; offset: number; test: parsed.Expression }
     | {
           tag: "for";
+          offset: number;
           init: null | parsed.ExpressionStatement | parsed.VariableDeclaration;
           test: parsed.Expression;
           update: null | parsed.Expression;
       }
-    | { tag: "ifelse"; test: parsed.Expression; consequent: AnnosAndStm };
+    | { tag: "ifelse"; offset: number; test: parsed.Expression; consequent: AnnosAndStm };
 
-export type AnnosAndStm = [parsed.Anno[], parsed.Statement];
-
-// "if" _ "(" _ Expression _ ")" _ StatementNoDangle _ "else" _
 export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
     Token,
     WS,
@@ -493,11 +508,12 @@ export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
     return {
         tag: "ifelse",
         test: test,
-        consequent: stm
+        consequent: stm,
+        offset: tIF.offset
     };
 }
 
-export function For([tok, s1, l, init, s2, semi1, s3, test, s4, semi2, update, s5, r, s6]: [
+export function For([tFOR, s1, l, init, s2, semi1, s3, test, s4, semi2, update, s5, r, s6]: [
     Token,
     WS,
     Token,
@@ -517,11 +533,12 @@ export function For([tok, s1, l, init, s2, semi1, s3, test, s4, semi2, update, s
         tag: "for",
         init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
         test: test,
-        update: update === null ? null : update[1]
+        update: update === null ? null : update[1],
+        offset: tFOR.offset
     };
 }
 
-export function While([tok, s1, l, s2, test, s3, r, s4]: [
+export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
     Token,
     WS,
     Token,
@@ -530,8 +547,8 @@ export function While([tok, s1, l, s2, test, s3, r, s4]: [
     WS,
     Token,
     WS
-]) {
-    return { tag: "while", test: test };
+]): Wrapper {
+    return { tag: "while", test: test, offset: tWHILE.offset };
 }
 
 export function Statement([wrappers, annos, stm]: [
@@ -539,7 +556,7 @@ export function Statement([wrappers, annos, stm]: [
     parsed.Anno[],
     [parsed.Statement]
 ]): AnnosAndStm {
-    const x = wrappers.reduceRight<AnnosAndStm>(
+    return wrappers.reduceRight<AnnosAndStm>(
         (stm, [newannos, wrap]) => {
             switch (wrap.tag) {
                 case "ifelse":
@@ -549,7 +566,8 @@ export function Statement([wrappers, annos, stm]: [
                             tag: "IfStatement",
                             test: wrap.test,
                             consequent: wrap.consequent,
-                            alternate: stm
+                            alternate: stm,
+                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
                         }
                     ];
                 case "while":
@@ -558,7 +576,8 @@ export function Statement([wrappers, annos, stm]: [
                         {
                             tag: "WhileStatement",
                             test: wrap.test,
-                            body: stm
+                            body: stm,
+                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
                         }
                     ];
                 case "for":
@@ -569,7 +588,8 @@ export function Statement([wrappers, annos, stm]: [
                             init: wrap.init,
                             test: wrap.test,
                             update: wrap.update,
-                            body: stm
+                            body: stm,
+                            range: stm[1].range && [wrap.offset, stm[1].range![1]]
                         }
                     ];
                 default:
@@ -578,140 +598,37 @@ export function Statement([wrappers, annos, stm]: [
         },
         [annos, stm[0]]
     );
-    return x;
 }
 
 export function IfStatement([tIF, s1, l, s2, test, s3, r, s4, consequent]: [
     Token,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     parsed.Expression,
-    any,
+    WS,
     Token,
-    any,
+    WS,
     AnnosAndStm
 ]): parsed.IfStatement {
     return {
         tag: "IfStatement",
         test: test,
-        consequent: consequent
-    };
-}
-
-export function IfElseStatement([
-    i,
-    s1,
-    l1,
-    s2,
-    test,
-    s3,
-    r,
-    annos1,
-    s4,
-    consequent,
-    s5,
-    e,
-    annos2,
-    s6,
-    alternate
-]: [
-    Token,
-    any,
-    Token,
-    any,
-    parsed.Expression,
-    any,
-    Token,
-    parsed.Anno[],
-    any,
-    parsed.Statement,
-    any,
-    Token,
-    parsed.Anno[],
-    any,
-    parsed.Statement
-]): parsed.IfStatement {
-    return {
-        tag: "IfStatement",
-        test: test,
-        consequent: [annos1, consequent],
-        alternate: [annos2, alternate]
-    };
-}
-
-export function WhileStatement([w, s1, l, s2, test, s3, r, annos, s4, body]: [
-    Token,
-    any,
-    Token,
-    any,
-    parsed.Expression,
-    any,
-    Token,
-    parsed.Anno[],
-    any,
-    parsed.Statement
-]): parsed.WhileStatement {
-    return {
-        tag: "WhileStatement",
-        test: test,
-        body: [annos, body]
-    };
-}
-
-export function ForStatement([
-    f,
-    s1,
-    l,
-    init,
-    s2,
-    semi1,
-    s3,
-    test,
-    s4,
-    semi2,
-    update,
-    s5,
-    r,
-    annos,
-    s6,
-    body
-]: [
-    Token,
-    any,
-    Token,
-    null | [any, SimpleParsed],
-    any,
-    Token,
-    any,
-    parsed.Expression,
-    any,
-    Token,
-    null | [any, parsed.Expression],
-    any,
-    Token,
-    parsed.Anno[],
-    any,
-    parsed.Statement
-]): parsed.ForStatement {
-    return {
-        tag: "ForStatement",
-        init: init === null ? null : null, // SimpleStatement([init[1], s2, semi1]),
-        test: test,
-        update: update === null ? null : update[1],
-        body: [annos, body]
+        consequent: consequent,
+        range: consequent[1].range && [tIF.offset, consequent[1].range![1]]
     };
 }
 
 export function ReturnStatement([r, argument, s1, semi]: [
     Token,
-    null | [any, parsed.Expression],
-    any,
+    null | [WS, parsed.Expression],
+    WS,
     Token
 ]): parsed.ReturnStatement {
     return {
         tag: "ReturnStatement",
-        argument: argument === null ? null : argument[1]
+        argument: argument === null ? null : argument[1],
+        range: [r.offset, semi.offset + semi.text.length]
     };
 }
 
@@ -719,7 +636,7 @@ export function BlockStatement([l, stms, annos, s, r]: [
     Token,
     [WS, [parsed.Anno[], parsed.Statement]][],
     parsed.Anno[],
-    any,
+    WS,
     Token
 ]): parsed.BlockStatement {
     const stms1: parsed.Statement[][] = stms.map(x =>
@@ -735,16 +652,17 @@ export function BlockStatement([l, stms, annos, s, r]: [
 
     return {
         tag: "BlockStatement",
-        body: stmsAll
+        body: stmsAll,
+        range: [l.offset, r.offset + r.text.length]
     };
 }
 
 export function BreakStatement([stm, s1, semi]: [Token, any, Token]): ast.BreakStatement {
-    return { tag: "BreakStatement" };
+    return { tag: "BreakStatement", range: [stm.offset, semi.offset + semi.text.length] };
 }
 
 export function ContinueStatement([stm, s1, semi]: [Token, any, Token]): ast.ContinueStatement {
-    return { tag: "ContinueStatement" };
+    return { tag: "ContinueStatement", range: [stm.offset, semi.offset + semi.text.length] };
 }
 
 export function AnnoSet(
