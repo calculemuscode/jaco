@@ -1,4 +1,4 @@
-import { parseProgram } from "../parse";
+import { parseProgram } from "../parse/index";
 import { checkProgram } from "../typecheck/programs";
 
 import * as CodeMirror from "codemirror";

@@ -1,7 +1,7 @@
 import { List } from "immutable";
 import { readFileSync } from "fs";
 import * as ast from "./ast";
-import { parseProgram } from "./parse";
+import { parseProgram } from "./parse/index";
 import { checkProgram } from "./typecheck/programs";
 import Lang from "./lang";
 

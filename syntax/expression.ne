@@ -13,7 +13,7 @@
 
 @{%
 const lexer = require('./lex').lexer;
-const util = require('./parser-util');
+const util = require('./parse/nearley-helper');
 %}
 
 @lexer lexer

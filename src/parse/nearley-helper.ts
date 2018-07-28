@@ -13,7 +13,7 @@
 
 import { Token } from "moo";
 import { impossible } from "@calculemus/impossible";
-import * as ast from "./ast";
+import * as ast from "../ast";
 import * as parsed from "./parsedsyntax";
 
 // This is incorrect, but Typescript doesn't check anyway

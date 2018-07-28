@@ -11,7 +11,7 @@
  * ast.ts as much as practical.
  */
 
-import * as ast from "./ast";
+import * as ast from "../ast";
 
 export type Expression =
     | ast.Identifier

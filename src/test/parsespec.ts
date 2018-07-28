@@ -5,7 +5,7 @@
 import Lang, { parse as parseLang } from "../lang";
 import { Set } from "immutable";
 import { Parser, Grammar } from "nearley";
-const testSpecRules = require("../../lib/test/spec-rules");
+const testSpecRules = require("../../lib/spec-rules");
 
 export type Outcome =
     | number

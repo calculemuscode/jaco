@@ -3,7 +3,7 @@ import { List, Set } from "immutable";
 import { expect } from "chai";
 import { join, extname, basename } from "path";
 import { createAnnoLexer } from "../lex";
-import { parseProgram } from "../parse";
+import { parseProgram } from "../parse/index";
 import Lang, { parse as parseLang } from "../lang";
 import { parseSpec, Spec } from "./parsespec";
 import { checkProgram } from "../typecheck/programs";

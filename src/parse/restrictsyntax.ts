@@ -1,5 +1,5 @@
-import Lang from "./lang";
-import * as ast from "./ast";
+import Lang from "../lang";
+import * as ast from "../ast";
 import * as parsed from "./parsedsyntax";
 import { impossible } from "@calculemus/impossible";
 
