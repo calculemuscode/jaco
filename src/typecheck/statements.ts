@@ -12,7 +12,13 @@ export function checkStatements(
     returning: ast.Type | null,
     inLoop: boolean
 ) {
-    stms.reduce((env, stm) => checkStatement(genv, env, stm, returning, inLoop), env);
+    stms.forEach(stm => checkStatement(genv, env, stm, returning, inLoop));
+}
+
+function copyEnv(env: Env) {
+    const envCopy = new Map<string, ast.Type>();
+    env.forEach((v, k) => envCopy.set(k, v));
+    return envCopy;
 }
 
 function checkStatement(
@@ -21,29 +27,16 @@ function checkStatement(
     stm: ast.Statement,
     returning: ast.Type | null,
     inLoop: boolean
-): Env {
+): void {
     switch (stm.tag) {
         case "AssignmentStatement": {
             const left = synthLValue(genv, env, null, stm.left);
-            const right = checkExpression(genv, env, null, stm.right, left);
-            left;
-            right; // TODO bogus
-            return env;
-            /*
-            if (left.tag === "AmbiguousNullPointer") {
-                throw new Error(
-                    "LValue cannot have ambiguous pointer type (should be impossible, please report)"
-                );
-            } else if (!isSubtype(genv, right, left)) {
-                return error("sides of assignment have different type"); // TODO: types
-            } else {
-                return env;
-            }
-            */
+            checkExpression(genv, env, null, stm.right, left);
+            return;
         }
         case "UpdateStatement": {
             checkExpression(genv, env, null, stm.argument, { tag: "IntType" });
-            return env;
+            return;
         }
         case "ExpressionStatement": {
             const expType = actualSynthed(genv, synthExpression(genv, env, null, stm.expression));
@@ -53,7 +46,7 @@ function checkStatement(
                 return error(
                     `expression used as statements cannot have function type '${expType.definition.id.name}'`
                 );
-            return env;
+            return;
         }
         case "VariableDeclaration": {
             checkTypeInDeclaration(genv, stm.kind);
@@ -62,31 +55,33 @@ function checkStatement(
             } else if (stm.init !== null) {
                 checkExpression(genv, env, null, stm.init, stm.kind);
             }
-            return env.set(stm.id.name, stm.kind);
+            env.set(stm.id.name, stm.kind);
+            return;
         }
         case "IfStatement": {
             checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
-            checkStatement(genv, env, stm.consequent, returning, inLoop);
-            if (stm.alternate) checkStatement(genv, env, stm.alternate, returning, inLoop);
-            return env;
+            checkStatement(genv, copyEnv(env), stm.consequent, returning, inLoop);
+            if (stm.alternate) checkStatement(genv, copyEnv(env), stm.alternate, returning, inLoop);
+            return;
         }
         case "WhileStatement": {
             checkExpression(genv, env, null, stm.test, { tag: "BoolType" });
             stm.invariants.forEach(anno =>
                 checkExpression(genv, env, { tag: "@loop_invariant" }, anno, { tag: "BoolType" })
             );
-            checkStatement(genv, env, stm.body, returning, true);
-            return env;
+            checkStatement(genv, copyEnv(env), stm.body, returning, true);
+            return;
         }
         case "ForStatement": {
-            const env0 = stm.init ? checkStatement(genv, env, stm.init, null, false) : env;
+            const env0 = copyEnv(env);
+            if (stm.init) checkStatement(genv, env0, stm.init, null, false);
             checkExpression(genv, env0, null, stm.test, { tag: "BoolType" });
             if (stm.update) checkStatement(genv, env0, stm.update, null, false);
             stm.invariants.forEach(anno =>
                 checkExpression(genv, env0, { tag: "@loop_invariant" }, anno, { tag: "BoolType" })
             );
             checkStatement(genv, env0, stm.body, returning, true);
-            return env;
+            return;
         }
         case "ReturnStatement": {
             if (returning === null) {
@@ -102,21 +97,21 @@ function checkStatement(
                     checkExpression(genv, env, null, stm.argument, returning);
                 }
             }
-            return env;
+            return;
         }
         case "BlockStatement": {
-            checkStatements(genv, env, stm.body, returning, inLoop);
-            return env;
+            checkStatements(genv, copyEnv(env), stm.body, returning, inLoop);
+            return;
         }
         case "AssertStatement": {
             checkExpression(genv, env, stm.contract ? { tag: "@assert" } : null, stm.test, {
                 tag: "BoolType"
             });
-            return env;
+            return;
         }
         case "ErrorStatement": {
             checkExpression(genv, env, null, stm.argument, { tag: "StringType" });
-            return env;
+            return;
         }
         case "BreakStatement": {
             if (!inLoop)
@@ -124,7 +119,7 @@ function checkStatement(
                     "break statement not allowed",
                     "break statements must be inside the body of a for-loop or while-loop"
                 );
-            return env;
+            return;
         }
         case "ContinueStatement": {
             if (!inLoop)
@@ -132,7 +127,7 @@ function checkStatement(
                     "continue statement not allowed",
                     "continue statements must be inside the body of a for-loop or while-loop"
                 );
-            return env;
+            return;
         }
         default: {
             return impossible(stm);
