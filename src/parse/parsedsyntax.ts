@@ -93,8 +93,8 @@ export interface CharLiteral extends Syn {
     readonly raw: string;
 }
 
-export type BoolLiteral = ast.BoolLiteral & Syn
-export type NullLiteral = ast.NullLiteral & Syn
+export type BoolLiteral = ast.BoolLiteral & Syn;
+export type NullLiteral = ast.NullLiteral & Syn;
 
 export interface ArrayMemberExpression extends Syn {
     readonly tag: "ArrayMemberExpression";

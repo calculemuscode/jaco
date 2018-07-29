@@ -360,9 +360,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
     switch (syn.tag) {
         case "AnnoStatement": {
             if (syn.anno !== "assert")
-                throw new Error(
-                    `Only assert annotations are allowed here, ${syn.anno} is not permitted.`
-                );
+                throw new Error(`Only assert annotations are allowed here, ${syn.anno} is not permitted.`);
             return {
                 tag: "AssertStatement",
                 contract: true,
@@ -542,17 +540,21 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
 
 function restrictAssert(lang: Lang, [annos, stm]: [syn.AnnoStatement[], syn.Statement]): ast.Statement {
     if (annos.length === 0) return restrictStatement(lang, stm);
-    const asserts: ast.Statement[] = annos.map((x): ast.Statement => {
-        if (x.anno !== "assert")
-            throw new Error(
-                `The only annotations allowed with if-statements are assertions, ${x.tag} is not permitted`
-            );
-        return {
-            tag: "AssertStatement",
-            contract: true,
-            test: restrictExpression(lang, x.test)
-        };
-    });
+    const asserts: ast.Statement[] = annos.map(
+        (x): ast.Statement => {
+            if (x.anno !== "assert")
+                throw new Error(
+                    `The only annotations allowed with if-statements are assertions, ${
+                        x.tag
+                    } is not permitted`
+                );
+            return {
+                tag: "AssertStatement",
+                contract: true,
+                test: restrictExpression(lang, x.test)
+            };
+        }
+    );
     return {
         tag: "BlockStatement",
         body: asserts.concat([restrictStatement(lang, stm)])

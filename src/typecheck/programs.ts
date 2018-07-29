@@ -106,7 +106,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                     checkExpression(genv, env, { tag: "@ensures", returns: decl.definition.returns }, anno, {
                         tag: "BoolType"
                     });
-                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno); 
+                    const freeFunctions = checkExpressionUsesGetFreeFunctions(defined, defined, anno);
                     functionsUsed.forEach(x => freeFunctions.add(x));
                     return freeFunctions;
                 }, new Set())
@@ -163,11 +163,10 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
                 checkStatements(genv, env, decl.body.body, decl.returns, false);
                 let constants = new Set();
                 decl.postconditions.forEach(anno => {
-                        expressionFreeVars(anno).forEach(x => {
-                            if (defined.has(x)) constants.add(x);
-                        })
-                    }
-                );
+                    expressionFreeVars(anno).forEach(x => {
+                        if (defined.has(x)) constants.add(x);
+                    });
+                });
                 const functionAnalysis = checkStatementFlow(defined, constants, defined, decl.body);
                 if (decl.returns.tag !== "VoidType" && !functionAnalysis.returns)
                     return error(
@@ -191,19 +190,21 @@ export function checkProgram(libs: ast.Declaration[], decls: ast.Declaration[]) 
     const genv = initMain();
     const functionsUsed = new Set<string>();
     libs.forEach(decl => {
-        checkDeclaration(true, genv, decl).forEach(f => functionsUsed.add(f))
+        checkDeclaration(true, genv, decl).forEach(f => functionsUsed.add(f));
         addDecl(true, genv, decl);
     });
-    decls.forEach((decl) => {
+    decls.forEach(decl => {
         checkDeclaration(false, genv, decl).forEach(f => functionsUsed.add(f));
-        addDecl(false, genv, decl)
+        addDecl(false, genv, decl);
     });
 
     functionsUsed.add("main");
-    functionsUsed.forEach((name): void => {
-        const def = getFunctionDeclaration(genv, name);
-        if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
-        if (def.body === null && !isLibraryFunction(genv, def.id.name))
-            return error(`function ${name} is never defined`);
-    });
+    functionsUsed.forEach(
+        (name): void => {
+            const def = getFunctionDeclaration(genv, name);
+            if (def === null) return error(`No definition for ${name} (should be impossible, please report)`);
+            if (def.body === null && !isLibraryFunction(genv, def.id.name))
+                return error(`function ${name} is never defined`);
+        }
+    );
 }

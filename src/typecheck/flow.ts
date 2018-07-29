@@ -23,7 +23,7 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
             expressionFreeVars(exp.index).forEach(x => freeVars.add(x));
         case "StructMemberExpression":
             expressionFreeVars(exp.object).forEach(x => freeVars.add(x));
-            return freeVars
+            return freeVars;
         case "CallExpression":
         case "IndirectCallExpression":
             expressionFreeVars(exp.callee).forEach(x => freeVars.add(x));
@@ -33,21 +33,21 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
         case "CastExpression":
         case "LengthExpression":
         case "HasTagExpression":
-        expressionFreeVars(exp.argument).forEach(x => freeVars.add(x));
-        return freeVars;
-    case "BinaryExpression":
+            expressionFreeVars(exp.argument).forEach(x => freeVars.add(x));
+            return freeVars;
+        case "BinaryExpression":
         case "LogicalExpression":
-        expressionFreeVars(exp.left).forEach(x => freeVars.add(x));
-        expressionFreeVars(exp.right).forEach(x => freeVars.add(x));
-        return freeVars;
+            expressionFreeVars(exp.left).forEach(x => freeVars.add(x));
+            expressionFreeVars(exp.right).forEach(x => freeVars.add(x));
+            return freeVars;
         case "ConditionalExpression":
-        expressionFreeVars(exp.test).forEach(x => freeVars.add(x));
-        expressionFreeVars(exp.consequent).forEach(x => freeVars.add(x));
-        expressionFreeVars(exp.alternate).forEach(x => freeVars.add(x));
-        return freeVars;
+            expressionFreeVars(exp.test).forEach(x => freeVars.add(x));
+            expressionFreeVars(exp.consequent).forEach(x => freeVars.add(x));
+            expressionFreeVars(exp.alternate).forEach(x => freeVars.add(x));
+            return freeVars;
         case "AllocArrayExpression":
-        expressionFreeVars(exp.size).forEach(x => freeVars.add(x));
-        return freeVars;
+            expressionFreeVars(exp.size).forEach(x => freeVars.add(x));
+            return freeVars;
         default:
             return impossible(exp);
     }
@@ -69,12 +69,11 @@ export function checkExpressionUsesGetFreeFunctions(
     const freeFunctions = new Set<string>();
     expressionFreeVars(exp).forEach(x => {
         if (locals.has(x)) {
-            if (!defined.has(x))
-            error(`local ${x} used without necessarily being defined`);
+            if (!defined.has(x)) error(`local ${x} used without necessarily being defined`);
         } else {
             freeFunctions.add(x);
         }
-    })
+    });
     return freeFunctions;
 }
 
@@ -109,7 +108,7 @@ export function checkStatementFlow(
                 }
                 defined = defined.add(stm.left.name);
             } else {
-                checkExpressionUsesGetFreeFunctions(locals, defined, stm.left).forEach(f => functions.add(f))
+                checkExpressionUsesGetFreeFunctions(locals, defined, stm.left).forEach(f => functions.add(f));
             }
             return { locals: locals, defined: defined, functions: functions, returns: false };
         }
@@ -151,7 +150,7 @@ export function checkStatementFlow(
             if (stm.alternate) {
                 const alternate = checkStatementFlow(locals, constants, defined, stm.alternate);
                 const intersection = new Set<string>();
-                consequent.defined.forEach(x => alternate.defined.has(x) ? intersection.add(x): null)
+                consequent.defined.forEach(x => (alternate.defined.has(x) ? intersection.add(x) : null));
                 alternate.functions.forEach(x => test.add(x));
                 return {
                     locals: locals,
@@ -170,9 +169,11 @@ export function checkStatementFlow(
         }
         case "WhileStatement": {
             const freeFunctions = checkExpressionUsesGetFreeFunctions(locals, defined, stm.test);
-            stm.invariants.forEach(exp => checkExpressionUsesGetFreeFunctions(locals, defined, exp).forEach(x => freeFunctions.add(x)));
+            stm.invariants.forEach(exp =>
+                checkExpressionUsesGetFreeFunctions(locals, defined, exp).forEach(x => freeFunctions.add(x))
+            );
             const body = checkStatementFlow(locals, constants, defined, stm.body);
-            body.functions.forEach(x => freeFunctions.add(x))
+            body.functions.forEach(x => freeFunctions.add(x));
             return {
                 locals: locals,
                 defined: defined,
@@ -188,8 +189,14 @@ export function checkStatementFlow(
                 stm.init || { tag: "BlockStatement", body: [] }
             );
             const freeFunctions = init.functions;
-            checkExpressionUsesGetFreeFunctions(init.locals, init.defined, stm.test).forEach(f => freeFunctions.add(f));
-            stm.invariants.forEach(exp => checkExpressionUsesGetFreeFunctions(init.locals, init.defined, exp).forEach(f => freeFunctions.add(f)));
+            checkExpressionUsesGetFreeFunctions(init.locals, init.defined, stm.test).forEach(f =>
+                freeFunctions.add(f)
+            );
+            stm.invariants.forEach(exp =>
+                checkExpressionUsesGetFreeFunctions(init.locals, init.defined, exp).forEach(f =>
+                    freeFunctions.add(f)
+                )
+            );
             const body = checkStatementFlow(init.locals, constants, init.defined, stm.body);
             const update = checkStatementFlow(
                 init.locals,
@@ -229,10 +236,10 @@ export function checkStatementFlow(
                         returns: returns || result.returns
                     };
                 },
-                { locals: locals, defined: defined,  returns: false }
+                { locals: locals, defined: defined, returns: false }
             );
             const intersection = new Set<string>();
-            body.defined.forEach(x => locals.has(x) ? intersection.add(x) : null)
+            body.defined.forEach(x => (locals.has(x) ? intersection.add(x) : null));
             return {
                 locals: locals,
                 defined: intersection,

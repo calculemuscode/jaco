@@ -409,11 +409,7 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
  * The next section are all the C0 statements that get initally parsed as expressions
  */
 
-export function UpdateExpression([argument, s1, op]: [
-    syn.Expression,
-    WS,
-    [Token]
-]): syn.UpdateExpression {
+export function UpdateExpression([argument, s1, op]: [syn.Expression, WS, [Token]]): syn.UpdateExpression {
     return {
         tag: "UpdateExpression",
         argument: argument,
@@ -639,9 +635,7 @@ export function BlockStatement([l, stms, annos, s, r]: [
     WS,
     Token
 ]): syn.BlockStatement {
-    const stms1: syn.Statement[][] = stms.map(x =>
-        x[1][0].map<syn.Statement>(x => x).concat([x[1][1]])
-    );
+    const stms1: syn.Statement[][] = stms.map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]));
     const stmsAll: syn.Statement[] = stms1
         .concat([annos])
         .reduce((collect, stms) => collect.concat(stms), []);
@@ -661,22 +655,29 @@ export function ContinueStatement([stm, s1, semi]: [Token, WS, Token]): syn.Cont
     return { tag: "ContinueStatement", range: [stm.offset, semi.offset + semi.text.length] };
 }
 
-export function Anno([anno, s1, test, s2, semi, s3]: [[Token], WS, syn.Expression, WS, Token, WS]): syn.AnnoStatement {
+export function Anno([anno, s1, test, s2, semi, s3]: [
+    [Token],
+    WS,
+    syn.Expression,
+    WS,
+    Token,
+    WS
+]): syn.AnnoStatement {
     const annotxt = anno[0].text;
     switch (annotxt) {
         case "assert":
         case "loop_invariant":
         case "requires":
         case "ensures":
-        return {
-            tag: "AnnoStatement",
-            anno: annotxt,
-            test: test,
-            range: [anno[0].offset, semi.offset + semi.text.length]
-        }
+            return {
+                tag: "AnnoStatement",
+                anno: annotxt,
+                test: test,
+                range: [anno[0].offset, semi.offset + semi.text.length]
+            };
         default:
-        throw new Error(`Unknown annotation @${annotxt}`)
-        }
+            throw new Error(`Unknown annotation @${annotxt}`);
+    }
 }
 
 export function AnnoSet(
@@ -685,7 +686,7 @@ export function AnnoSet(
     const start: Token = annos[0];
     const end: Token = annos[5] ? annos[5] : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
-    // XXX ERROR IN FILE
+        // XXX ERROR IN FILE
         throw new Error(
             `Single-line annotations cannot be extended onto multiple lines with multiline comments.`
         );
@@ -704,12 +705,14 @@ export function FunctionDeclarationArgs([s1, params]: [
         range: [params[0].range[0], params[2].range[1]]
     };
     return [first].concat(
-        params[4].map((x): syn.VariableDeclarationOnly => ({
-            tag: "VariableDeclaration",
-            kind: x[2],
-            id: x[4],
-            range: [x[2].range[0], x[4].range[1]]
-        }))
+        params[4].map(
+            (x): syn.VariableDeclarationOnly => ({
+                tag: "VariableDeclaration",
+                kind: x[2],
+                id: x[4],
+                range: [x[2].range[0], x[4].range[1]]
+            })
+        )
     );
 }
 
@@ -743,12 +746,14 @@ export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: 
     return {
         tag: "StructDeclaration",
         id: s,
-        definitions: defs.map((value): syn.VariableDeclarationOnly => ({
-            tag: "VariableDeclaration",
-            id: value[2],
-            kind: value[0],
-            range: [value[0].range[0], value[4].offset + value[4].text.length]
-        })),
+        definitions: defs.map(
+            (value): syn.VariableDeclarationOnly => ({
+                tag: "VariableDeclaration",
+                id: value[2],
+                kind: value[0],
+                range: [value[0].range[0], value[4].offset + value[4].text.length]
+            })
+        ),
         range: [struct.offset, semi.offset + semi.text.length]
     };
 }
@@ -784,7 +789,7 @@ export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, l, args, r, 
     Token,
     syn.AnnoStatement[]
 ]): syn.FunctionTypeDefinition {
-    const right = annos.length === 0 ? r.offset + r.text.length : annos[annos.length-1].range[1];
+    const right = annos.length === 0 ? r.offset + r.text.length : annos[annos.length - 1].range[1];
     return {
         tag: "FunctionTypeDefinition",
         definition: {
@@ -812,7 +817,12 @@ export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]:
     WS,
     null | syn.BlockStatement
 ]): syn.FunctionDeclaration {
-    const right = def !== null ? def.range[1] : annos.length === 0 ? r.offset + r.text.length : annos[annos.length-1].range[1];
+    const right =
+        def !== null
+            ? def.range[1]
+            : annos.length === 0
+                ? r.offset + r.text.length
+                : annos[annos.length - 1].range[1];
     return {
         tag: "FunctionDeclaration",
         returns: ty,

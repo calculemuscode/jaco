@@ -31,20 +31,21 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
 }
 
 export function initMain(): GlobalEnv {
-    return {libstructs: new Set<string>(),
-    libfuncs: new Set<string>(),
-    decls: [
-        {
-            tag: "FunctionDeclaration",
-            returns: { tag: "IntType" },
-            id: { tag: "Identifier", name: "main" },
-            params: [],
-            preconditions: [],
-            postconditions: [],
-            body: null
-        }
-    ]
-};
+    return {
+        libstructs: new Set<string>(),
+        libfuncs: new Set<string>(),
+        decls: [
+            {
+                tag: "FunctionDeclaration",
+                returns: { tag: "IntType" },
+                id: { tag: "Identifier", name: "main" },
+                params: [],
+                preconditions: [],
+                postconditions: [],
+                body: null
+            }
+        ]
+    };
 }
 
 export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration) {
