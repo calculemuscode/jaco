@@ -151,7 +151,7 @@ export function checkStatementFlow(
             if (stm.alternate) {
                 const alternate = checkStatementFlow(locals, constants, defined, stm.alternate);
                 const intersection = new Set<string>();
-                consequent.functions.forEach(x => alternate.functions.has(x) ? intersection.add(x): null)
+                consequent.defined.forEach(x => alternate.defined.has(x) ? intersection.add(x): null)
                 alternate.functions.forEach(x => test.add(x));
                 return {
                     locals: locals,
