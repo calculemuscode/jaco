@@ -89,6 +89,12 @@ export function checkExpressionUsesGetFreeFunctions(
  *   - functions: free functions in this statement
  *   - returns: does
  */
+function add(s: Set<string>, x: string): Set<string> {
+    const sCopy = new Set<string>();
+    s.forEach(x => sCopy.add(x));
+    sCopy.add(x);
+    return sCopy;
+}
 export function checkStatementFlow(
     locals: Set<string>,
     constants: Set<string>,
@@ -106,7 +112,7 @@ export function checkStatementFlow(
                         } is used in postcondition`
                     );
                 }
-                defined = defined.add(stm.left.name);
+                defined = add(defined, stm.left.name);
             } else {
                 checkExpressionUsesGetFreeFunctions(locals, defined, stm.left).forEach(f => functions.add(f));
             }
@@ -131,14 +137,14 @@ export function checkStatementFlow(
         case "VariableDeclaration": {
             if (stm.init === null)
                 return {
-                    locals: locals.add(stm.id.name),
+                    locals: add(locals,stm.id.name),
                     defined: defined,
                     functions: new Set<string>(),
                     returns: false
                 };
             return {
-                locals: locals.add(stm.id.name),
-                defined: defined.add(stm.id.name),
+                locals: add(locals, stm.id.name),
+                defined: add(defined, stm.id.name),
                 functions: checkExpressionUsesGetFreeFunctions(locals, defined, stm.init),
                 returns: false
             };
