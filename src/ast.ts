@@ -461,7 +461,7 @@ export interface VariableDeclarationOnly extends Syn {
     readonly id: Identifier;
 }
 
-export interface FunctionDeclaration {
+export interface FunctionDeclaration extends Syn {
     readonly tag: "FunctionDeclaration";
     readonly returns: Type;
     readonly id: Identifier;
@@ -471,12 +471,12 @@ export interface FunctionDeclaration {
     readonly body: null | BlockStatement;
 }
 
-export interface TypeDefinition {
+export interface TypeDefinition extends Syn {
     readonly tag: "TypeDefinition";
     readonly definition: VariableDeclarationOnly;
 }
 
-export interface FunctionTypeDefinition {
+export interface FunctionTypeDefinition extends Syn {
     readonly tag: "FunctionTypeDefinition";
     readonly definition: FunctionDeclaration;
 }
