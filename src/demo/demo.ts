@@ -3,6 +3,7 @@ import { checkProgram } from "../typecheck/programs";
 
 import * as CodeMirror from "codemirror";
 import { ParsingError } from "../error";
+import { Position } from "../ast";
 
 declare global {
     interface Window {
@@ -14,8 +15,15 @@ const inputDoc = CodeMirror(document.getElementById("input")!, {
     value: "int main() {\n  return 17;\n}",
     lineNumbers: true
 });
+const doc = inputDoc.getDoc();
 const output = document.getElementById("output")!;
 
+function pos(p: Position): CodeMirror.Position {
+    return {
+        line: p.line - 1,
+        ch: p.column - 1
+    };
+}
 function draw(prog: string) {
     try {
         const program = parseProgram("C0", prog);
@@ -26,38 +34,26 @@ function draw(prog: string) {
             output.innerText = e.message + "\n\n====\n\n" + JSON.stringify(program, null, 2);
         }
     } catch (e) {
-        if (e instanceof Error && e.name === "ParsingError" && (e as ParsingError).range) {
-            let start = (e as ParsingError).range![0];
-            let end = (e as ParsingError).range![1];
-            let linum = 1;
-            let pos: number;
-            let position;
-            console.log([start, end])
-            while ((pos = prog.indexOf("\n")) !== -1) {
-                if (start <= pos) {
-                    position = {
-                        begin: { line: linum, ch: start },
-                        end: { line: linum, ch: end <= pos ? end : pos }
-                    };
-                    break;
-                }
-                prog = prog.slice(pos + 1);
-                console.log(prog);
-                linum += 1;
-                start -= pos + 1;
-                end -= pos + 1;
-            }
-            position = {
-                begin: { line: linum, ch: start },
-                end: { line: linum, ch: end }
-            };
-            console.log(position);
+        if (e instanceof Error && e.name === "ParsingError" && (e as ParsingError).loc) {
+            const loc = (e as ParsingError).loc!;
+            doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
+        } else if ("token" in e) {
+            doc.markText(
+                pos({ line: e.token.line, column: e.token.col }),
+                pos({ line: e.token.line, column: e.token.col + e.token.text.length }),
+                { className: "error", title: e.message }
+            );
         }
         output.innerText = e.message;
     }
 }
 
+let text = inputDoc.getValue();
 inputDoc.on("update", (x: any) => {
-    draw(inputDoc.getValue());
+    if (text !== inputDoc.getValue()) {
+        text = inputDoc.getValue();
+        doc.getAllMarks().forEach(x => x.clear());
+        draw(inputDoc.getValue());
+    }
 });
 draw(inputDoc.getValue());

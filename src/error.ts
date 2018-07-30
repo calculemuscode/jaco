@@ -1,10 +1,19 @@
+import { SourceLocation } from "./ast";
+import Lang from "./lang";
+
 export class ParsingError extends Error {
     public readonly name: "ParsingError";
-    range: null | [number, number];
-    constructor(syn: [number, number] | { range?: [number, number] }, msg: string) {
-        super(`${syn}\n${msg}`);
+    loc: null | SourceLocation;
+    constructor(syn: SourceLocation | { loc?: SourceLocation }, msg: string) {
+        super(`${msg}`);
         this.name = "ParsingError";
-        this.range = syn instanceof Array ? syn : syn.range ? syn.range : null;
+        this.loc = "start" in syn ? syn : syn.loc ? syn.loc : null;
+    }
+}
+
+export class StandardError extends ParsingError {
+    constructor(syn: { loc?: SourceLocation }, lang: Lang, msg: string) {
+        super(syn, `${msg} not a part of the language '${lang}'`);
     }
 }
 

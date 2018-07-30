@@ -2,51 +2,50 @@ import Lang from "../lang";
 import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
-import { ParsingError } from "../error";
+import { ParsingError, StandardError } from "../error";
+
+function standard(syn: ast.Syn, lang: Lang, allowed: Lang[], msg: string) {
+    for (let ok of allowed) if (lang === ok) return;
+    throw new StandardError(syn, lang, msg);
+}
 
 export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
     switch (syn.tag) {
         case "IntType":
             return syn;
         case "BoolType":
-            if (lang === "L1") throw new ParsingError(syn, `The type 'bool' is not a part of ${lang}`);
+            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "type 'bool'");
             return syn;
         case "StringType":
-            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new ParsingError(syn, `The type 'string' is not a part of ${lang}`);
+            standard(syn, lang, ["C0", "C1"], "type 'string");
             return syn;
         case "CharType":
-            if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new ParsingError(syn, `The type 'char' is not a part of ${lang}`);
+            standard(syn, lang, ["C0", "C1"], "type 'char");
             return syn;
         case "VoidType":
-            if (lang === "L1" || lang === "L2")
-                throw new ParsingError(syn, `The type 'void' is not a part of ${lang}`);
+            standard(syn, lang, ["L3", "L4", "C0", "C1"], "type 'void'");
             return syn;
         case "PointerType":
-            if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new ParsingError(syn, `Pointer types are not a part of ${lang}`);
+            standard(syn, lang, ["L4", "C0", "C1"], "pointer types");
             const argument = restrictType(lang, syn.argument);
-            if ((lang === "L4" || lang === "C0") && argument.tag === "VoidType")
-                throw new ParsingError(syn, `The type 'void*' is not a part of ${lang}`);
+            if (argument.tag === "VoidType") standard(syn, lang, ["C1"], "type 'void*'");
             return {
                 tag: "PointerType",
                 argument: argument
             };
         case "ArrayType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new ParsingError(syn, `Array types are not a part of ${lang}`);
+                throw new StandardError(syn, lang, "array types");
             return {
                 tag: "ArrayType",
                 argument: restrictType(lang, syn.argument)
             };
         case "StructType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new ParsingError(syn, `Struct types are not a part of ${lang}`);
+                throw new StandardError(syn, lang, "struct types");
             return syn;
         case "Identifier":
-            if (lang === "L1" || lang === "L2")
-                throw new ParsingError(syn, `Defined types are not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2") throw new StandardError(syn, lang, "defined types"); // Impossible?
             return syn;
         default:
             return impossible(syn);
@@ -65,12 +64,14 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
     switch (syn.tag) {
         case "StringLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new ParsingError(syn, `String and char literals are not a part of ${lang}`);
+                throw new StandardError(syn, lang, "string literals");
             syn.raw.map(x => {
                 if (x.length === 2 && x[0] === "\\") {
-                    if (!x.match(/\\[ntvbrfa\\'"]/)) throw new Error(`Invalid escape '${x}' in string`);
+                    if (!x.match(/\\[ntvbrfa\\'"]/))
+                        throw new ParsingError(syn, `Invalid escape '${x}' in string`);
                 } else if (!x.match(/\\[ntvbrfa\\'"]+/)) {
-                    if (!x.match(/[ !#-~]+/)) throw new Error(`Invalid character in string '${x}'`);
+                    if (!x.match(/[ !#-~]+/))
+                        throw new ParsingError(syn, `Invalid character in string '${x}'`);
                 }
             });
             return {
@@ -81,12 +82,12 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
         }
         case "CharLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`String and char literals are not a part of ${lang}`);
+                throw new StandardError(syn, lang, "character literals");
             if (syn.raw.length === 1) {
-                if (!syn.raw.match(/[ !#-~]/)) throw new Error(`Invalid character '${syn.raw}'`);
+                if (!syn.raw.match(/[ !#-~]/)) throw new ParsingError(syn, `Invalid character '${syn.raw}'`);
             } else {
                 if (!syn.raw.match(/\\[ntvbrfa\\'"0]/))
-                    throw new Error(`Invalid escape character '${syn.raw}'`);
+                    throw new ParsingError(syn, `Invalid escape character '${syn.raw}'`);
             }
             return {
                 tag: "CharLiteral",
@@ -95,11 +96,10 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "BoolLiteral":
-            if (lang === "L1") throw new Error(`Boolean literals 'true' and 'false' are not part of ${lang}`);
+            if (lang === "L1") throw new StandardError(syn, lang, syn.value ? "'true'" : "'false'");
             return { tag: "BoolLiteral", value: syn.value };
         case "NullLiteral":
-            if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`'NULL' is not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2" || lang === "L3") throw new StandardError(syn, lang, "'NULL'");
             return { tag: "NullLiteral" };
         case "Identifier":
             return syn;
@@ -110,19 +110,21 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 const match = syn.raw.match(/^0[xX](0*)([0-9a-fA-F]+)$/);
                 if (match === null) {
                     if (syn.raw[1].toLowerCase() !== "x")
-                        throw new Error(
+                        throw new ParsingError(
+                            syn,
                             `Bad numeric constant: ${
                                 syn.raw
                             }\nIdentifiers beginning with '0' must be hex constants starting as '0X' or '0x'`
                         );
-                    throw new Error(
+                    throw new ParsingError(
+                        syn,
                         `Invalid hex constant: ${
                             syn.raw
                         }\nHex constants must only have the characters '0123456789abcdefABCDEF'`
                     );
                 }
                 const hex = match[2];
-                if (hex.length > 8) throw new Error(`Hex constant too large: ${syn.raw}`);
+                if (hex.length > 8) throw new ParsingError(syn, `Hex constant too large: ${syn.raw}`);
                 const value = parseInt(hex, 16);
                 return {
                     tag: "IntLiteral",
@@ -131,10 +133,11 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 };
             } else {
                 const match = syn.raw.match(/^[0-9]+$/);
-                if (match === null) throw new Error(`Invalid integer constant: ${syn.raw}`);
-                if (syn.raw.length > 10) throw new Error(`Decimal constant too large: ${syn.raw}`);
+                if (match === null) throw new ParsingError(syn, `Invalid integer constant: ${syn.raw}`);
+                if (syn.raw.length > 10)
+                    throw new ParsingError(syn, `Decimal constant too large: ${syn.raw}`);
                 const dec = parseInt(syn.raw, 10);
-                if (dec > 2147483648) throw new Error(`Decimal constant too large: ${syn.raw}`);
+                if (dec > 2147483648) throw new ParsingError(syn, `Decimal constant too large: ${syn.raw}`);
                 return {
                     tag: "IntLiteral",
                     raw: syn.raw,
@@ -143,7 +146,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             }
         case "ArrayMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Array access is not a part of ${lang}`);
+                throw new StandardError(syn, lang, "Array access");
             return {
                 tag: "ArrayMemberExpression",
                 object: restrictExpression(lang, syn.object),
@@ -152,7 +155,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
         }
         case "StructMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Struct access is not a part of ${lang}`);
+                throw new StandardError(syn, lang, "struct access");
             return {
                 tag: "StructMemberExpression",
                 deref: syn.deref,
@@ -161,7 +164,8 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "CallExpression": {
-            if (lang === "L1" || lang === "L2") throw new Error(`Functions are not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2")
+                throw new ParsingError(syn, `Functions are not a part of ${lang}`);
             return {
                 tag: "CallExpression",
                 callee: syn.callee,
@@ -169,7 +173,8 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "IndirectCallExpression": {
-            if (lang !== "C1") throw new Error(`Calls from function pointers not a part of ${lang}`);
+            if (lang !== "C1")
+                throw new ParsingError(syn, `Calls from function pointers not a part of ${lang}`);
             return {
                 tag: "IndirectCallExpression",
                 callee: restrictExpression(lang, syn.callee),
@@ -177,7 +182,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "CastExpression": {
-            if (lang !== "C1") throw new Error(`Casts not a part of ${lang}`);
+            if (lang !== "C1") throw new ParsingError(syn, `Casts not a part of ${lang}`);
             return {
                 tag: "CastExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -185,11 +190,12 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "UnaryExpression": {
-            if (syn.operator === "&" && lang !== "C1") throw new Error(`Address-of not a part of ${lang}`);
+            if (syn.operator === "&" && lang !== "C1")
+                throw new ParsingError(syn, `Address-of not a part of ${lang}`);
             if (syn.operator === "!" && lang === "L1")
-                throw new Error(`Boolean negation not a part of ${lang}`);
+                throw new ParsingError(syn, `Boolean negation not a part of ${lang}`);
             if (syn.operator === "*" && (lang === "L1" || lang === "L2" || lang === "L3"))
-                throw new Error(`Pointer dereference not a part of ${lang}`);
+                throw new ParsingError(syn, `Pointer dereference not a part of ${lang}`);
 
             return {
                 tag: "UnaryExpression",
@@ -207,7 +213,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                     case "-":
                         break;
                     default:
-                        throw new Error(`Operator ${syn.operator} not a part of ${lang}`);
+                        throw new ParsingError(syn, `Operator ${syn.operator} not a part of ${lang}`);
                 }
             }
             return {
@@ -218,7 +224,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "LogicalExpression": {
-            if (lang === "L1") throw new Error(`Logical operators not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `Logical operators not a part of ${lang}`);
             return {
                 tag: "LogicalExpression",
                 operator: syn.operator,
@@ -227,7 +233,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "ConditionalExpression": {
-            if (lang === "L1") throw new Error(`Conditional expression is not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `Conditional expression is not a part of ${lang}`);
             return {
                 tag: "ConditionalExpression",
                 test: restrictExpression(lang, syn.test),
@@ -237,7 +243,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
         }
         case "AllocExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Allocation not a part of ${lang}`);
+                throw new ParsingError(syn, `Allocation not a part of ${lang}`);
             return {
                 tag: "AllocExpression",
                 kind: restrictValueType(lang, syn.kind)
@@ -245,7 +251,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
         }
         case "AllocArrayExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Allocation not a part of ${lang}`);
+                throw new ParsingError(syn, `Allocation not a part of ${lang}`);
             return {
                 tag: "AllocArrayExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -254,21 +260,21 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
         }
         case "ResultExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`Contracts not a part of ${lang}`);
+                throw new ParsingError(syn, `Contracts not a part of ${lang}`);
             return {
                 tag: "ResultExpression"
             };
         }
         case "LengthExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`Contracts not a part of ${lang}`);
+                throw new ParsingError(syn, `Contracts not a part of ${lang}`);
             return {
                 tag: "LengthExpression",
                 argument: restrictExpression(lang, syn.argument)
             };
         }
         case "HasTagExpression": {
-            if (lang !== "C1") throw new Error(`Tag contracts not a part of ${lang}`);
+            if (lang !== "C1") throw new ParsingError(syn, `Tag contracts not a part of ${lang}`);
             return {
                 tag: "HasTagExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -276,23 +282,27 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "AssignmentExpression":
-            throw new Error(
+            throw new ParsingError(
+                syn,
                 `Assignments 'x ${
                     syn.operator
                 } e2' must be used as statements, and not inside of expressions.`
             );
         case "UpdateExpression":
-            throw new Error(
+            throw new ParsingError(
+                syn,
                 `Increment/decrement operations 'e${
                     syn.operator
                 }' must be used as statements, and not inside of expressions.`
             );
         case "AssertExpression":
-            throw new Error(
+            throw new ParsingError(
+                syn,
                 `The 'assert()' function must be used as a statement, and not inside of expressions.`
             );
         case "ErrorExpression":
-            throw new Error(
+            throw new ParsingError(
+                syn,
                 `The 'error()' function must be used as a statement, and not inside of expressions.`
             );
         default:
@@ -306,7 +316,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
             return syn;
         case "StructMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Struct access not a part of ${lang}`);
+                throw new ParsingError(syn, `Struct access not a part of ${lang}`);
             return {
                 tag: "StructMemberExpression",
                 deref: syn.deref,
@@ -315,9 +325,9 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
             };
         }
         case "UnaryExpression": {
-            if (syn.operator !== "*") throw new Error(`Not an LValue`);
+            if (syn.operator !== "*") throw new ParsingError(syn, `Not an LValue`);
             if (lang == "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Pointer dereference not a part of ${lang}`);
+                throw new ParsingError(syn, `Pointer dereference not a part of ${lang}`);
             return {
                 tag: "UnaryExpression",
                 operator: "*",
@@ -326,7 +336,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
         }
         case "ArrayMemberExpression": {
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Array access not a part of ${lang}`);
+                throw new ParsingError(syn, `Array access not a part of ${lang}`);
             return {
                 tag: "ArrayMemberExpression",
                 object: restrictLValue(lang, syn.object),
@@ -354,7 +364,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
         case "AssignmentExpression":
         case "AssertExpression":
         case "ErrorExpression":
-            throw new Error(`Not a valid LValue ${JSON.stringify(syn)}`);
+            throw new ParsingError(syn, `${syn.tag} is not a valid LValue`);
         default:
             return impossible(syn);
     }
@@ -364,7 +374,10 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
     switch (syn.tag) {
         case "AnnoStatement": {
             if (syn.anno !== "assert")
-                throw new Error(`Only assert annotations are allowed here, ${syn.anno} is not permitted.`);
+                throw new ParsingError(
+                    syn,
+                    `Only assert annotations are allowed here, ${syn.anno} is not permitted.`
+                );
             return {
                 tag: "AssertStatement",
                 contract: true,
@@ -384,7 +397,8 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                             case "-=":
                                 break;
                             default:
-                                throw new Error(
+                                throw new ParsingError(
+                                    syn,
                                     `Assignment operator ${syn.expression.operator} not a part of ${lang}`
                                 );
                         }
@@ -398,7 +412,10 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                 }
                 case "UpdateExpression": {
                     if (lang === "L1")
-                        throw new Error(`Postfix update 'x${syn.expression.operator}' not a part of ${lang}`);
+                        throw new ParsingError(
+                            syn,
+                            `Postfix update 'x${syn.expression.operator}' not a part of ${lang}`
+                        );
 
                     return {
                         tag: "UpdateStatement",
@@ -408,7 +425,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                 }
                 case "AssertExpression": {
                     if (lang === "L1" || lang === "L2") {
-                        throw new Error(`Assertions not a part of ${lang}`);
+                        throw new ParsingError(syn, `Assertions not a part of ${lang}`);
                     }
                     return {
                         tag: "AssertStatement",
@@ -418,7 +435,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                 }
                 case "ErrorExpression": {
                     if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4") {
-                        throw new Error(`The 'error()' function is not a part of ${lang}`);
+                        throw new ParsingError(syn, `The 'error()' function is not a part of ${lang}`);
                     }
                     return {
                         tag: "ErrorStatement",
@@ -442,7 +459,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             };
         }
         case "IfStatement": {
-            if (lang === "L1") throw new Error(`Conditionals not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `Conditionals not a part of ${lang}`);
             if (!syn.alternate) {
                 return {
                     tag: "IfStatement",
@@ -459,7 +476,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             }
         }
         case "WhileStatement": {
-            if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `Loops not a part of ${lang}`);
             return {
                 tag: "WhileStatement",
                 invariants: restrictLoopInvariants(lang, syn.body[0]),
@@ -468,7 +485,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             };
         }
         case "ForStatement": {
-            if (lang === "L1") throw new Error(`Loops not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `Loops not a part of ${lang}`);
             let init: ast.SimpleStatement | ast.VariableDeclaration | null;
             let update: ast.SimpleStatement | null;
 
@@ -484,7 +501,8 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                         init = candidate;
                         break;
                     default:
-                        throw new Error(
+                        throw new ParsingError(
+                            syn,
                             `A ${candidate.tag} is not allowed as the first argument of a for statement`
                         );
                 }
@@ -496,7 +514,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                 const candidate = restrictStatement(lang, {
                     tag: "ExpressionStatement",
                     expression: syn.update,
-                    range: syn.range
+                    loc: syn.loc
                 });
                 switch (candidate.tag) {
                     case "AssignmentStatement":
@@ -505,7 +523,8 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                         update = candidate;
                         break;
                     default:
-                        throw new Error(
+                        throw new ParsingError(
+                            syn,
                             `A ${candidate.tag} is not allowed as the third argument of a for statement`
                         );
                 }
@@ -534,7 +553,8 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
         }
         case "BreakStatement":
         case "ContinueStatement": {
-            if (lang !== "C1") throw new Error(`Control with 'break' and 'continue' not a part of ${lang}`);
+            if (lang !== "C1")
+                throw new ParsingError(syn, `Control with 'break' and 'continue' not a part of ${lang}`);
             return syn;
         }
         default:
@@ -547,7 +567,8 @@ function restrictAssert(lang: Lang, [annos, stm]: [syn.AnnoStatement[], syn.Stat
     const asserts: ast.Statement[] = annos.map(
         (x): ast.Statement => {
             if (x.anno !== "assert")
-                throw new Error(
+                throw new ParsingError(
+                    syn,
                     `The only annotations allowed with if-statements are assertions, ${
                         x.tag
                     } is not permitted`
@@ -568,7 +589,10 @@ function restrictAssert(lang: Lang, [annos, stm]: [syn.AnnoStatement[], syn.Stat
 function restrictLoopInvariants(lang: Lang, annos: syn.AnnoStatement[]): ast.Expression[] {
     return annos.map(x => {
         if (x.anno !== "loop_invariant")
-            throw new Error(`The only annotations allowed are loop invariants, ${x.tag} is not permitted`);
+            throw new ParsingError(
+                syn,
+                `The only annotations allowed are loop invariants, ${x.tag} is not permitted`
+            );
         return restrictExpression(lang, x.test);
     });
 }
@@ -585,7 +609,8 @@ function restrictFunctionAnnos(
         } else if (x.anno === "ensures") {
             postconditions.push(restrictExpression(lang, x.test));
         } else {
-            throw new Error(
+            throw new ParsingError(
+                syn,
                 `The only annotations allowed are requires and ensures, ${x.anno} is not permitted`
             );
         }
@@ -609,9 +634,10 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
     switch (decl.tag) {
         case "FunctionDeclaration": {
             if (lang == "L1" || lang == "L2") {
-                if (decl.body === null) throw new Error(`function declarations are not a part of ${lang}`);
+                if (decl.body === null)
+                    throw new ParsingError(syn, `function declarations are not a part of ${lang}`);
                 if (decl.id.name !== "main")
-                    throw new Error(`only function 'main' can be defined in ${lang}`);
+                    throw new ParsingError(syn, `only function 'main' can be defined in ${lang}`);
             }
 
             const annos = restrictFunctionAnnos(lang, decl.annos);
@@ -632,7 +658,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
             };
         }
         case "FunctionTypeDefinition": {
-            if (lang != "C1") throw new Error(`function types are not a part of ${lang}`);
+            if (lang != "C1") throw new ParsingError(syn, `function types are not a part of ${lang}`);
 
             const annos = restrictFunctionAnnos(lang, decl.definition.annos);
             return {
@@ -650,7 +676,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
         }
         case "StructDeclaration": {
             if (lang == "L1" || lang == "L2" || lang == "L3")
-                throw new Error(`structs are not a part of ${lang}`);
+                throw new ParsingError(syn, `structs are not a part of ${lang}`);
 
             return {
                 tag: "StructDeclaration",
@@ -659,7 +685,8 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
             };
         }
         case "TypeDefinition": {
-            if (lang == "L1" || lang == "L2") throw new Error(`typedefs are not a part of ${lang}`);
+            if (lang == "L1" || lang == "L2")
+                throw new ParsingError(syn, `typedefs are not a part of ${lang}`);
 
             return {
                 tag: "TypeDefinition",

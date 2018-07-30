@@ -1,3 +1,7 @@
 .code {
     width: 100%;
 }
+
+.error {
+    background-color: darksalmon;
+}

@@ -14,52 +14,62 @@
 import { Token } from "moo";
 import { impossible } from "@calculemus/impossible";
 import * as syn from "./parsedsyntax";
+import { Position } from "../ast";
 import { ImpossibleError, ParsingError } from "../error";
 
 // This is incorrect, but Typescript doesn't check anyway
 // If whitespace gets captured or analyzed in the future this needs revisiting
 export type WS = { contents: (Token | WS)[] };
 
+function tokloc(tok: Token) {
+    return {
+        start: { line: tok.line, column: tok.col },
+        end: tok.lineBreaks
+            ? { line: tok.line + 1, column: 1 }
+            : { line: tok.line, column: tok.col + tok.text.length }
+    };
+}
+
 export function Identifier([tok]: [Token]): syn.Identifier {
     return {
         tag: "Identifier",
         name: tok.text,
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function IntType([tok]: [Token]): syn.IntType {
     return {
         tag: "IntType",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function BoolType([tok]: [Token]): syn.BoolType {
     return {
         tag: "BoolType",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function StringType([tok]: [Token]): syn.StringType {
     return {
         tag: "StringType",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function CharType([tok]: [Token]): syn.CharType {
     return {
         tag: "CharType",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function VoidType([tok]: [Token]): syn.VoidType {
     return {
         tag: "VoidType",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
@@ -67,7 +77,7 @@ export function PointerType([tp, s, tok]: [syn.Type, WS, Token]): syn.PointerTyp
     return {
         tag: "PointerType",
         argument: tp,
-        range: [tp.range[0], tok.offset + tok.text.length]
+        loc: { start: tp.loc.start, end: tokloc(tok).end }
     };
 }
 
@@ -75,7 +85,7 @@ export function ArrayType([tp, s1, l, s2, r]: [syn.Type, WS, Token, WS, Token]):
     return {
         tag: "ArrayType",
         argument: tp,
-        range: [tp.range[0], r.offset + r.text.length]
+        loc: { start: tp.loc.start, end: tokloc(r).end }
     };
 }
 
@@ -83,7 +93,7 @@ export function StructType([str, s, id]: [Token, WS, syn.Identifier]): syn.Struc
     return {
         tag: "StructType",
         id: id,
-        range: [str.offset, id.range[1]]
+        loc: { start: tokloc(str).start, end: id.loc.end }
     };
 }
 
@@ -91,7 +101,7 @@ export function IntLiteral([tok]: Token[]): syn.IntLiteral {
     return {
         tag: "IntLiteral",
         raw: tok.text,
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
@@ -99,7 +109,7 @@ export function StringLiteral([[start, toks, end]]: [[Token, [Token][], Token]])
     return {
         tag: "StringLiteral",
         raw: toks.map(x => x[0].value),
-        range: [start.offset, end.offset + end.text.length]
+        loc: { start: tokloc(start).start, end: tokloc(end).end }
     };
 }
 
@@ -107,7 +117,7 @@ export function CharLiteral([[start, [tok], end]]: [[Token, [Token], Token]]): s
     return {
         tag: "CharLiteral",
         raw: tok.value,
-        range: [start.offset, end.offset + end.text.length]
+        loc: { start: tokloc(start).start, end: tokloc(end).end }
     };
 }
 
@@ -115,14 +125,14 @@ export function BoolLiteral([tok]: [Token]): syn.BoolLiteral {
     return {
         tag: "BoolLiteral",
         value: tok.value === "true",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
 export function NullLiteral([tok]: [Token]): syn.NullLiteral {
     return {
         tag: "NullLiteral",
-        range: [tok.offset, tok.offset + tok.text.length]
+        loc: tokloc(tok)
     };
 }
 
@@ -139,7 +149,7 @@ export function ArrayMemberExpression([object, s1, l, s2, index, s3, r]: [
         tag: "ArrayMemberExpression",
         object: object,
         index: index,
-        range: [object.range[0], r.offset + r.text.length]
+        loc: { start: object.loc.start, end: tokloc(r).end }
     };
 }
 
@@ -155,7 +165,7 @@ export function StructMemberExpression([object, s1, deref, s2, field]: [
         deref: deref instanceof Array, // ["-", ">"] vs. "."
         object: object,
         field: field,
-        range: [object.range[0], field.range[1]]
+        loc: { start: object.loc.start, end: field.loc.end }
     };
 }
 
@@ -180,7 +190,7 @@ export function CallExpression([f, ws, l, args, r]: [
         tag: "CallExpression",
         callee: f,
         arguments: Arguments(args),
-        range: [f.range[0], r.offset + r.text.length]
+        loc: { start: f.loc.start, end: tokloc(r).end }
     };
 }
 
@@ -201,7 +211,7 @@ export function IndirectCallExpression([l1, s1, s, s2, f, s3, r1, s4, l2, args, 
         tag: "IndirectCallExpression",
         callee: f,
         arguments: Arguments(args),
-        range: [l1.offset, r2.offset + r2.text.length]
+        loc: { start: tokloc(l1).start, end: tokloc(r2).end }
     };
 }
 
@@ -222,7 +232,7 @@ export function UnaryExpression([operator, s, argument]: [
                     tag: "UnaryExpression",
                     operator: oper.value,
                     argument: argument,
-                    range: [oper.offset, argument.range[1]]
+                    loc: { start: tokloc(oper).start, end: argument.loc.end }
                 };
 
             default:
@@ -233,7 +243,7 @@ export function UnaryExpression([operator, s, argument]: [
             tag: "CastExpression",
             kind: operator[2],
             argument: argument,
-            range: [operator[0].offset, argument.range[1]]
+            loc: { start: tokloc(operator[0]).start, end: argument.loc.end }
         };
     }
 }
@@ -268,7 +278,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: [left.range[0], right.range[1]]
+                loc: { start: left.loc.start, end: right.loc.end }
             };
         case "&&":
         case "||":
@@ -277,7 +287,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: [left.range[0], right.range[1]]
+                loc: { start: left.loc.start, end: right.loc.end }
             };
         case "=":
         case "+=":
@@ -295,7 +305,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
                 operator: operator,
                 left: left,
                 right: right,
-                range: [left.range[0], right.range[1]]
+                loc: { start: left.loc.start, end: right.loc.end }
             };
 
         default:
@@ -319,7 +329,7 @@ export function ConditionalExpression([test, s1, op1, s2, consequent, s3, op2, s
         test: test,
         consequent: consequent,
         alternate: alternate,
-        range: [test.range[0], alternate.range[1]]
+        loc: { start: test.loc.start, end: alternate.loc.end }
     };
 }
 
@@ -335,7 +345,7 @@ export function AllocExpression([alloc, s1, l, s2, typ, s3, r]: [
     return {
         tag: "AllocExpression",
         kind: typ,
-        range: [alloc.offset, r.offset + r.text.length]
+        loc: { start: tokloc(alloc).start, end: tokloc(r).end }
     };
 }
 
@@ -356,14 +366,14 @@ export function AllocArrayExpression([alloc, s1, l, s2, typ, s3, c, s4, size, sp
         tag: "AllocArrayExpression",
         kind: typ,
         size: size,
-        range: [alloc.offset, r.offset + r.text.length]
+        loc: { start: tokloc(alloc).start, end: tokloc(r).end }
     };
 }
 
 export function ResultExpression([b, res]: [Token, Token]): syn.ResultExpression {
     return {
         tag: "ResultExpression",
-        range: [b.offset, res.offset + res.text.length]
+        loc: { start: tokloc(b).start, end: tokloc(res).end }
     };
 }
 
@@ -380,7 +390,7 @@ export function LengthExpression([b, length, s1, l, s2, argument, s3, r]: [
     return {
         tag: "LengthExpression",
         argument: argument,
-        range: [b.offset, r.offset + r.text.length]
+        loc: { start: tokloc(b).start, end: tokloc(r).end }
     };
 }
 
@@ -402,7 +412,7 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
         tag: "HasTagExpression",
         kind: typ,
         argument: argument,
-        range: [b.offset, r.offset + r.text.length]
+        loc: { start: tokloc(b).start, end: tokloc(r).end }
     };
 }
 
@@ -415,7 +425,7 @@ export function UpdateExpression([argument, s1, op]: [syn.Expression, WS, [Token
         tag: "UpdateExpression",
         argument: argument,
         operator: op[0].value === "++" ? "++" : "--",
-        range: [argument.range[0], op[0].offset + op[0].text.length]
+        loc: { start: argument.loc.start, end: tokloc(op[0]).end }
     };
 }
 
@@ -431,7 +441,7 @@ export function AssertExpression([assert, s1, l, s2, test, s3, r]: [
     return {
         tag: "AssertExpression",
         test: test,
-        range: [assert.offset, r.offset + r.text.length]
+        loc: { start: tokloc(assert).start, end: tokloc(r).end }
     };
 }
 
@@ -447,7 +457,7 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
     return {
         tag: "ErrorExpression",
         argument: argument,
-        range: [error.offset, r.offset + r.text.length]
+        loc: { start: tokloc(error).start, end: tokloc(r).end }
     };
 }
 
@@ -464,13 +474,13 @@ export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
             kind: stm[0],
             id: stm[2],
             init: init === null ? null : init[3],
-            range: [stm[0].range[0], semi.offset + semi.text.length]
+            loc: { start: stm[0].loc.start, end: tokloc(semi).end }
         };
     } else {
         return {
             tag: "ExpressionStatement",
             expression: stm,
-            range: [stm.range[0], semi.offset + semi.text.length]
+            loc: { start: stm.loc.start, end: tokloc(semi).end }
         };
     }
 }
@@ -478,15 +488,15 @@ export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
 // Helper types for dangling-if-handling
 export type AnnosAndStm = [syn.AnnoStatement[], syn.Statement];
 export type Wrapper =
-    | { tag: "while"; offset: number; test: syn.Expression }
+    | { tag: "while"; start: Position; test: syn.Expression }
     | {
           tag: "for";
-          offset: number;
+          start: Position;
           init: null | syn.ExpressionStatement | syn.VariableDeclaration;
           test: syn.Expression;
           update: null | syn.Expression;
       }
-    | { tag: "ifelse"; offset: number; test: syn.Expression; consequent: AnnosAndStm };
+    | { tag: "ifelse"; start: Position; test: syn.Expression; consequent: AnnosAndStm };
 
 export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
     Token,
@@ -506,7 +516,7 @@ export function IfElse([tIF, s1, l, s2, test, s3, r, s4, stm, s5, tELSE, s6]: [
         tag: "ifelse",
         test: test,
         consequent: stm,
-        offset: tIF.offset
+        start: tokloc(tIF).start
     };
 }
 
@@ -531,7 +541,7 @@ export function For([tFOR, s1, l, init, s2, semi1, s3, test, s4, semi2, update, 
         init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
         test: test,
         update: update === null ? null : update[1],
-        offset: tFOR.offset
+        start: tokloc(tFOR).start
     };
 }
 
@@ -545,7 +555,7 @@ export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
     Token,
     WS
 ]): Wrapper {
-    return { tag: "while", test: test, offset: tWHILE.offset };
+    return { tag: "while", test: test, start: tokloc(tWHILE).start };
 }
 
 export function Statement([wrappers, annos, stm]: [
@@ -564,7 +574,7 @@ export function Statement([wrappers, annos, stm]: [
                             test: wrap.test,
                             consequent: wrap.consequent,
                             alternate: stm,
-                            range: [wrap.offset, stm[1].range[1]]
+                            loc: { start: wrap.start, end: stm[1].loc.end }
                         }
                     ];
                 case "while":
@@ -574,7 +584,7 @@ export function Statement([wrappers, annos, stm]: [
                             tag: "WhileStatement",
                             test: wrap.test,
                             body: stm,
-                            range: [wrap.offset, stm[1].range[1]]
+                            loc: { start: wrap.start, end: stm[1].loc.end }
                         }
                     ];
                 case "for":
@@ -586,7 +596,7 @@ export function Statement([wrappers, annos, stm]: [
                             test: wrap.test,
                             update: wrap.update,
                             body: stm,
-                            range: [wrap.offset, stm[1].range[1]]
+                            loc: { start: wrap.start, end: stm[1].loc.end }
                         }
                     ];
                 default:
@@ -612,7 +622,7 @@ export function IfStatement([tIF, s1, l, s2, test, s3, r, s4, consequent]: [
         tag: "IfStatement",
         test: test,
         consequent: consequent,
-        range: [tIF.offset, consequent[1].range[1]]
+        loc: { start: tokloc(tIF).start, end: consequent[1].loc.end }
     };
 }
 
@@ -625,7 +635,7 @@ export function ReturnStatement([r, argument, s1, semi]: [
     return {
         tag: "ReturnStatement",
         argument: argument === null ? null : argument[1],
-        range: [r.offset, semi.offset + semi.text.length]
+        loc: { start: tokloc(r).start, end: tokloc(semi).end }
     };
 }
 
@@ -644,16 +654,19 @@ export function BlockStatement([l, stms, annos, s, r]: [
     return {
         tag: "BlockStatement",
         body: stmsAll,
-        range: [l.offset, r.offset + r.text.length]
+        loc: { start: tokloc(l).start, end: tokloc(r).end }
     };
 }
 
 export function BreakStatement([stm, s1, semi]: [Token, WS, Token]): syn.BreakStatement {
-    return { tag: "BreakStatement", range: [stm.offset, semi.offset + semi.text.length] };
+    return {
+        tag: "BreakStatement",
+        loc: { start: tokloc(stm).start, end: tokloc(semi).end }
+    };
 }
 
 export function ContinueStatement([stm, s1, semi]: [Token, WS, Token]): syn.ContinueStatement {
-    return { tag: "ContinueStatement", range: [stm.offset, semi.offset + semi.text.length] };
+    return { tag: "ContinueStatement", loc: { start: tokloc(stm).start, end: tokloc(semi).end } };
 }
 
 export function Anno([anno, s1, test, s2, semi, s3]: [
@@ -674,7 +687,7 @@ export function Anno([anno, s1, test, s2, semi, s3]: [
                 tag: "AnnoStatement",
                 anno: annotxt,
                 test: test,
-                range: [anno[0].offset, semi.offset + semi.text.length]
+                loc: { start: tokloc(anno[0]).start, end: tokloc(semi).end }
             };
         default:
             throw new ImpossibleError(`Unknown annotation @${annotxt}`);
@@ -688,8 +701,8 @@ export function AnnoSet(
     const end: Token = annos[5] ? annos[5] : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
         throw new ParsingError(
-            [start.offset, end.offset],
-            `${JSON.stringify(end)}` + "Single-line annotations cannot be extended to multiple lines with /* multiline comments */"
+            { start: tokloc(start).start, end: tokloc(end).start },
+            "Single-line annotations cannot be extended to multiple lines with /* multiline comments */ like this"
         );
     return annos[2];
 }
@@ -703,7 +716,7 @@ export function FunctionDeclarationArgs([s1, params]: [
         tag: "VariableDeclaration",
         kind: params[0],
         id: params[2],
-        range: [params[0].range[0], params[2].range[1]]
+        loc: { start: params[0].loc.start, end: params[2].loc.end }
     };
     return [first].concat(
         params[4].map(
@@ -711,7 +724,7 @@ export function FunctionDeclarationArgs([s1, params]: [
                 tag: "VariableDeclaration",
                 kind: x[2],
                 id: x[4],
-                range: [x[2].range[0], x[4].range[1]]
+                loc: { start: x[2].loc.start, end: x[4].loc.end }
             })
         )
     );
@@ -728,7 +741,7 @@ export function StructDeclaration([struct, s1, s, s2, semi]: [
         tag: "StructDeclaration",
         id: s,
         definitions: null,
-        range: [struct.offset, semi.offset + semi.text.length]
+        loc: { start: tokloc(struct).start, end: tokloc(semi).end }
     };
 }
 
@@ -752,10 +765,10 @@ export function StructDefinition([struct, s1, s, s2, l, s3, defs, r, s5, semi]: 
                 tag: "VariableDeclaration",
                 id: value[2],
                 kind: value[0],
-                range: [value[0].range[0], value[4].offset + value[4].text.length]
+                loc: { start: tokloc(struct).start, end: tokloc(semi).end }
             })
         ),
-        range: [struct.offset, semi.offset + semi.text.length]
+        loc: { start: tokloc(struct).start, end: tokloc(semi).end }
     };
 }
 
@@ -772,9 +785,9 @@ export function TypeDefinition([typedef, s1, tp, s2, id]: [
             tag: "VariableDeclaration",
             id: id,
             kind: tp,
-            range: [tp.range[0], id.range[1]]
+            loc: { start: tp.loc.start, end: id.loc.end }
         },
-        range: [typedef.offset, id.range[1]]
+        loc: { start: tokloc(typedef).start, end: id.loc.end }
     };
 }
 
@@ -790,7 +803,7 @@ export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, l, args, r, 
     Token,
     syn.AnnoStatement[]
 ]): syn.FunctionTypeDefinition {
-    const right = annos.length === 0 ? r.offset + r.text.length : annos[annos.length - 1].range[1];
+    const end = annos.length === 0 ? tokloc(r).end : annos[annos.length - 1].loc.end;
     return {
         tag: "FunctionTypeDefinition",
         definition: {
@@ -800,9 +813,9 @@ export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, l, args, r, 
             params: args,
             annos: annos,
             body: null,
-            range: [ty.range[0], right]
+            loc: { start: ty.loc.start, end: end }
         },
-        range: [typedef.offset, right]
+        loc: { start: tokloc(typedef).start, end: end }
     };
 }
 
@@ -818,12 +831,8 @@ export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]:
     WS,
     null | syn.BlockStatement
 ]): syn.FunctionDeclaration {
-    const right =
-        def !== null
-            ? def.range[1]
-            : annos.length === 0
-                ? r.offset + r.text.length
-                : annos[annos.length - 1].range[1];
+    const end =
+        def !== null ? def.loc.end : annos.length === 0 ? tokloc(r).end : annos[annos.length - 1].loc.end;
     return {
         tag: "FunctionDeclaration",
         returns: ty,
@@ -831,6 +840,6 @@ export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]:
         params: args,
         annos: annos,
         body: def,
-        range: [ty.range[0], right]
+        loc: { start: ty.loc.start, end: end }
     };
 }

@@ -15,7 +15,7 @@ import * as ast from "../ast";
 
 export interface Syn {
     readonly tag: string;
-    readonly range: [number, number];
+    readonly loc: ast.SourceLocation;
 }
 
 export type Identifier = ast.Identifier & Syn;

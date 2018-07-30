@@ -7,3 +7,5 @@ node_modules/
 demo/jaco.js
 demo/lib
 l*-*
+demo/codemirror.min.css
+demo/codemirror.min.js
