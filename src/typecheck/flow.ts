@@ -137,7 +137,7 @@ export function checkStatementFlow(
         case "VariableDeclaration": {
             if (stm.init === null)
                 return {
-                    locals: add(locals,stm.id.name),
+                    locals: add(locals, stm.id.name),
                     defined: defined,
                     functions: new Set<string>(),
                     returns: false

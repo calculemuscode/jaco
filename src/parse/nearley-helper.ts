@@ -5,8 +5,8 @@
  * types. This file will produce garbage output if there's a mismatch between the documented types and the
  * types that the parser produces, since Typescript refuses to document that.
  *
- * Convention: this file should ***only throw errors to document invariants of the parser***
- * Any non-implementation (user-facing) errors should be thrown in restrictsyntax.ts.
+ * Convention: as much as possible, this file should ***only throw errors to document invariants of the parser***
+ * Non-implementation (user-facing) errors should be thrown in restrictsyntax.ts.
  *
  * The structure of this file should match ast.ts as much as practical.
  */
@@ -14,6 +14,7 @@
 import { Token } from "moo";
 import { impossible } from "@calculemus/impossible";
 import * as syn from "./parsedsyntax";
+import { ImpossibleError, ParsingError } from "../error";
 
 // This is incorrect, but Typescript doesn't check anyway
 // If whitespace gets captured or analyzed in the future this needs revisiting
@@ -225,7 +226,7 @@ export function UnaryExpression([operator, s, argument]: [
                 };
 
             default:
-                throw new Error(operator[0].value);
+                throw new ImpossibleError(`Unknown unary expression ${oper.value}`);
         }
     } else {
         return {
@@ -298,7 +299,7 @@ export function BinaryExpression([left, s1, opertoks, s2, right]: [
             };
 
         default:
-            throw new Error(operator);
+            throw new ImpossibleError(`Unknown assignment expression ${operator}`);
     }
 }
 
@@ -676,7 +677,7 @@ export function Anno([anno, s1, test, s2, semi, s3]: [
                 range: [anno[0].offset, semi.offset + semi.text.length]
             };
         default:
-            throw new Error(`Unknown annotation @${annotxt}`);
+            throw new ImpossibleError(`Unknown annotation @${annotxt}`);
     }
 }
 
@@ -686,9 +687,9 @@ export function AnnoSet(
     const start: Token = annos[0];
     const end: Token = annos[5] ? annos[5] : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
-        // XXX ERROR IN FILE
-        throw new Error(
-            `Single-line annotations cannot be extended onto multiple lines with multiline comments.`
+        throw new ParsingError(
+            [start.offset, end.offset],
+            `${JSON.stringify(end)}` + "Single-line annotations cannot be extended to multiple lines with /* multiline comments */"
         );
     return annos[2];
 }

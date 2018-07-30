@@ -2,47 +2,51 @@ import Lang from "../lang";
 import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
+import { ParsingError } from "../error";
 
 export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
     switch (syn.tag) {
         case "IntType":
             return syn;
         case "BoolType":
-            if (lang === "L1") throw new Error(`The type 'bool' is not a part of ${lang}`);
+            if (lang === "L1") throw new ParsingError(syn, `The type 'bool' is not a part of ${lang}`);
             return syn;
         case "StringType":
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`The type 'string' is not a part of ${lang}`);
+                throw new ParsingError(syn, `The type 'string' is not a part of ${lang}`);
             return syn;
         case "CharType":
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`The type 'char' is not a part of ${lang}`);
+                throw new ParsingError(syn, `The type 'char' is not a part of ${lang}`);
+            return syn;
         case "VoidType":
-            if (lang === "L1" || lang === "L2") throw new Error(`The type 'void' is not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2")
+                throw new ParsingError(syn, `The type 'void' is not a part of ${lang}`);
             return syn;
         case "PointerType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Pointer types are not a part of ${lang}`);
+                throw new ParsingError(syn, `Pointer types are not a part of ${lang}`);
             const argument = restrictType(lang, syn.argument);
             if ((lang === "L4" || lang === "C0") && argument.tag === "VoidType")
-                throw new Error(`The type 'void*' is not a part of ${lang}`);
+                throw new ParsingError(syn, `The type 'void*' is not a part of ${lang}`);
             return {
                 tag: "PointerType",
                 argument: argument
             };
         case "ArrayType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Array types are not a part of ${lang}`);
+                throw new ParsingError(syn, `Array types are not a part of ${lang}`);
             return {
                 tag: "ArrayType",
                 argument: restrictType(lang, syn.argument)
             };
         case "StructType":
             if (lang === "L1" || lang === "L2" || lang === "L3")
-                throw new Error(`Struct types are not a part of ${lang}`);
+                throw new ParsingError(syn, `Struct types are not a part of ${lang}`);
             return syn;
         case "Identifier":
-            if (lang === "L1" || lang === "L2") throw new Error(`Defined types are not a part of ${lang}`);
+            if (lang === "L1" || lang === "L2")
+                throw new ParsingError(syn, `Defined types are not a part of ${lang}`);
             return syn;
         default:
             return impossible(syn);
@@ -52,7 +56,7 @@ export function restrictType(lang: Lang, syn: ast.Type): ast.Type {
 export function restrictValueType(lang: Lang, syn: ast.Type): ast.ValueType {
     const type = restrictType(lang, syn);
     if (type.tag === "VoidType") {
-        throw new Error(`Type 'void' can only be used as the return type of a function.`);
+        throw new ParsingError(syn, `Type 'void' can only be used as the return type of a function.`);
     }
     return type;
 }
@@ -61,7 +65,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
     switch (syn.tag) {
         case "StringLiteral": {
             if (lang === "L1" || lang === "L2" || lang === "L3" || lang === "L4")
-                throw new Error(`String and char literals are not a part of ${lang}`);
+                throw new ParsingError(syn, `String and char literals are not a part of ${lang}`);
             syn.raw.map(x => {
                 if (x.length === 2 && x[0] === "\\") {
                     if (!x.match(/\\[ntvbrfa\\'"]/)) throw new Error(`Invalid escape '${x}' in string`);
