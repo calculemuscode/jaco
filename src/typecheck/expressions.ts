@@ -11,6 +11,7 @@ import {
 import { error } from "./error";
 import * as ast from "../ast";
 import { ImpossibleError, TypingError } from "../error";
+import { typeToString } from "../print";
 //import { typeToString } from "../print";
 
 export type mode =
@@ -349,9 +350,8 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             return { tag: "BoolType" };
                         }
                         case "StringType": {
-                            return error(
-                                `cannot compare a string with '${exp.operator}'`,
-                                "use string_compare in library <string>"
+                            throw new TypingError(exp, `cannot compare strings with '${exp.operator}'`,
+                                "use the 'string_compare' function from the library <string>"
                             );
                         }
                         default: {
@@ -366,45 +366,18 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case "==":
                 case "!=": {
                     const left = synthExpression(genv, env, mode, exp.left);
-                    switch (left.tag) {
-                        case "AmbiguousNullPointer": {
-                            const right = synthExpression(genv, env, mode, exp.right);
-                            if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
-                            if (right.tag === "AnonymousFunctionTypePointer") return { tag: "BoolType" };
-                            if (right.tag === "NamedFunctionType")                            
-                                return error("cannot compare NULL and a function");
-                            if (actualType(genv, right).tag === "PointerType") return { tag: "BoolType" };
-                            else
-                                return error(
-                                    `cannot compare 'NULL' to a non-pointer type with ${exp.operator}`
-                                );
-                        }
-                        case "AnonymousFunctionTypePointer": {
-                            const right = synthExpression(genv, env, mode, exp.right);
-                            if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
-                            return error("can only compare an function pointer '&f' against NULL");
-                        }
-                    }
-                    const actualLeft = actualType(genv, left);
-                    switch (actualLeft.tag) {
-                        case "NamedFunctionType":
-                            return error(
-                                `cannot compare functions for equality directly with ${exp.operator}`
-                            );
-                        case "StructType":
-                            return error(
-                                `cannot compare structs for equality directly with ${exp.operator}`,
-                                "pointers to struts can be compared"
-                            );
-                        case "VoidType":
-                            return error(`cannot compare void expressions for equality`);
-                        case "StringType":
-                            return error(
-                                `cannot compare strings with '${exp.operator}'`,
-                                "try using string_equal in library <string>"
-                            );
-                    }
-                    checkExpression(genv, env, mode, exp.right, actualLeft);
+                    const right = synthExpression(genv, env, mode, exp.right);
+                    const lub = leastUpperBoundSynthedType(genv, left, right);
+                    if (lub === null) 
+                        throw new TypingError(exp, `expressions with different types cannot be compared for equality\n   left-hand side has type ${typeToString(left)}\n  right-hand side has type ${right}`);
+                    if (lub.tag === "StringType")
+                        throw new TypingError(exp, `cannot compare strings with '${exp.operator}'`, "use the 'string_equal' function from the library <string>");
+                    if (lub.tag === "NamedFunctionType")
+                        throw new TypingError(exp, `cannot compare functions for equality directly with ${exp.operator}`, "use pointers to functions");
+                    if (lub.tag === "StructType")
+                        throw new TypingError(exp, `cannot compare structs for equality directly with ${exp.operator}`, "pointers to struts can be compared");
+                    if (lub.tag === "VoidType")
+                        throw new TypingError(exp, "cannot compare expressions of type 'void' for equality");
                     return { tag: "BoolType" };
                 }
                 default:

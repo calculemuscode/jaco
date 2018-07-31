@@ -25,22 +25,19 @@ function pos(p: Position): CodeMirror.Position {
     };
 }
 function draw(prog: string) {
+    let outputText = "";
     try {
-        const program = parseProgram("C0", prog);
-        try {
-            checkProgram([], program);
-            output.innerText = JSON.stringify(program, null, 2);
-        } catch (e) {
-            if (e instanceof Error && e.name === "TypingError" && (e as TypingError).loc) {
-                console.log("A");
-                const loc = (e as TypingError).loc!;
-                doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
-            }            
-            output.innerText = e.message + "\n\n====\n\n" + JSON.stringify(program, null, 2);
-        }
+        const program = parseProgram("C1", prog);
+        outputText = JSON.stringify(program, null, 2);
+        checkProgram([], program);
     } catch (e) {
+        outputText = `${JSON.stringify(outputText)}\n===\n${outputText}`;
+        if (e instanceof Error) outputText = `${e.name}\n===\n${e.message}\n===\n${outputText}`;
         if (e instanceof Error && e.name === "ParsingError" && (e as ParsingError).loc) {
             const loc = (e as ParsingError).loc!;
+            doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
+        } else if (e instanceof Error && e.name === "TypingError" && (e as TypingError).loc) {
+            const loc = (e as TypingError).loc!;
             doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
         } else if ("token" in e) {
             doc.markText(
@@ -49,8 +46,9 @@ function draw(prog: string) {
                 { className: "error", title: e.message }
             );
         }
-        output.innerText = e.message;
     }
+    
+    output.innerText = outputText;
 }
 
 let text = inputDoc.getValue();
