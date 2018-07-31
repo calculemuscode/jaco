@@ -77,7 +77,8 @@ export function equalFunctionTypes(
 }
 
 /**
- * Least upper bound is only used by e ? e1 : e2, to determine the type of e1 and e2 from the type of e
+ * Least upper bound is used by e ? e1 : e2, to determine the type of e1 and e2 from the type of e.
+ * While it's somewhat overpowered, this can be reused, because e1 == e2 is only a valid
  */
 function leastUpperBoundType(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): ast.Type | null {
     const actual1 = actualType(genv, t1);

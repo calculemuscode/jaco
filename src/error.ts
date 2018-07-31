@@ -5,11 +5,7 @@ export class ParsingError extends Error {
     loc: null | SourceLocation;
     constructor(syn: SourceLocation | { loc?: SourceLocation }, msg: string) {
         const loc = "start" in syn ? syn : syn.loc ? syn.loc : null;
-        super(
-            loc
-                ? `invalid syntax at line ${loc.start.line} column ${loc.start.column}:\n\n${msg}`
-                : `invalid syntax:\n\n${msg}`
-        );
+        super(msg);
         this.name = "ParsingError";
         this.loc = loc;
     }
@@ -21,11 +17,7 @@ export class TypingError extends Error {
     constructor(syn: { loc?: SourceLocation }, msg: string, ...hints: string[]) {
         const loc = syn.loc ? syn.loc : null;
         const hintstr = hints.length === 0 ? "" : "\n\nHint: " + hints.join("\n      ");
-        super(
-            loc
-                ? `type error at line ${loc.start.line} column ${loc.start.column}:\n\n${msg}${hintstr}`
-                : `type error:\n\n${msg}${hintstr}`
-        );
+        super(`${msg}${hintstr}`);
         this.name = "TypingError";
         this.loc = loc;
     }

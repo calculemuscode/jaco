@@ -2,6 +2,14 @@
     width: 100%;
 }
 
-.error {
+.badsyntax {
+    background-color: lightgoldenrodyellow;
+}
+
+.syntaxerror {
     background-color: darksalmon;
+}
+
+.typeerror {
+    background-color: lightcoral;
 }

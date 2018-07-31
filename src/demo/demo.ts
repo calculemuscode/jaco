@@ -3,7 +3,7 @@ import { checkProgram } from "../typecheck/programs";
 
 import * as CodeMirror from "codemirror";
 import { ParsingError, TypingError } from "../error";
-import { Position } from "../ast";
+import { Position, Declaration } from "../ast";
 
 declare global {
     interface Window {
@@ -25,30 +25,35 @@ function pos(p: Position): CodeMirror.Position {
     };
 }
 function draw(prog: string) {
-    let outputText = "";
+    let program: Declaration[] | null = null;
+    let progJSON = "";
     try {
-        const program = parseProgram("C1", prog);
-        outputText = JSON.stringify(program, null, 2);
+        program = parseProgram("C1", prog);
+        progJSON = JSON.stringify(program, null, 2);
         checkProgram([], program);
+        output.innerText = progJSON;
     } catch (e) {
-        outputText = `${JSON.stringify(outputText)}\n===\n${outputText}`;
-        if (e instanceof Error) outputText = `${e.name}\n===\n${e.message}\n===\n${outputText}`;
+        // if (e instanceof Error) outputText = `${e.name}\n===\n${e.message}\n===\n${outputText}`;
         if (e instanceof Error && e.name === "ParsingError" && (e as ParsingError).loc) {
             const loc = (e as ParsingError).loc!;
-            doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
+            doc.markText(pos(loc.start), pos(loc.end), { className: "syntaxerror", title: e.message });
+            output.innerText = `Syntax error on line ${loc.start.line}:\n\n${e.message}`;
         } else if (e instanceof Error && e.name === "TypingError" && (e as TypingError).loc) {
             const loc = (e as TypingError).loc!;
-            doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
+            doc.markText(pos(loc.start), pos(loc.end), { className: "typeerror", title: e.message });
+            output.innerText = `Type error on line ${loc.start.line}:\n\n${e.message}\n====\n${progJSON}`;
         } else if ("token" in e) {
             doc.markText(
                 pos({ line: e.token.line, column: e.token.col }),
                 pos({ line: e.token.line, column: e.token.col + e.token.text.length }),
-                { className: "error", title: e.message }
+                { className: "badsyntax", title: "syntax error here (or just before here)" }
             );
+        } else if (e instanceof Error && e.message === "Incomplete parse at the end of the file") {
+            output.innerText = "Incompete parse at the end of the file";
+        } else {
+            output.innerText = `Unexpected ${e.name}\n===\n${e}`;
         }
     }
-    
-    output.innerText = outputText;
 }
 
 let text = inputDoc.getValue();

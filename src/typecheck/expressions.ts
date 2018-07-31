@@ -4,11 +4,11 @@ import {
     Env,
     Synthed,
     isSubtype,
-    typeSizeFullyDefined,
     leastUpperBoundSynthedType,
-    actualSynthed
+    actualSynthed,
+    ActualSynthed
 } from "./types";
-import { error } from "./error";
+//import { error } from "./error";
 import * as ast from "../ast";
 import { ImpossibleError, TypingError } from "../error";
 import { typeToString } from "../print";
@@ -280,9 +280,11 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             "address-of operation '&' can only be applied directly to a function name"
                         );
                     const definition = getFunctionDeclaration(genv, exp.argument.name);
-                    if (definition === null) throw new TypingError(exp, `There is no function named ${exp.argument.name}`);
+                    if (definition === null)
+                        throw new TypingError(exp, `There is no function named ${exp.argument.name}`);
                     if (env.has(exp.argument.name))
-                        throw new TypingError(exp, 
+                        throw new TypingError(
+                            exp,
                             `cannot take the address of function ${
                                 exp.argument.name
                             } when it is also the name of a local`
@@ -301,11 +303,16 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             throw new TypingError(exp, "cannot dereference 'NULL'");
                         }
                         case "AnonymousFunctionTypePointer": {
-                            throw new TypingError(exp, "cannot dereference a function pointer immediately", "assign it to a local first");
+                            throw new TypingError(
+                                exp,
+                                "cannot dereference a function pointer immediately",
+                                "assign it to a local first"
+                            );
                         }
                         case "PointerType": {
                             if (pointerType.argument.tag === "VoidType") {
-                                throw new TypingError(exp, 
+                                throw new TypingError(
+                                    exp,
                                     "cannot dereference value of type 'void*'",
                                     "cast to another pointer type with '(t*)'"
                                 );
@@ -314,7 +321,10 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             }
                         }
                         default:
-                            throw new TypingError(exp, `only pointers can be dereferenced ${valueDescription(genv, pointerType)}`);
+                            throw new TypingError(
+                                exp,
+                                `only pointers can be dereferenced ${valueDescription(genv, pointerType)}`
+                            );
                     }
                 }
                 default:
@@ -350,12 +360,15 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             return { tag: "BoolType" };
                         }
                         case "StringType": {
-                            throw new TypingError(exp, `cannot compare strings with '${exp.operator}'`,
+                            throw new TypingError(
+                                exp,
+                                `cannot compare strings with '${exp.operator}'`,
                                 "use the 'string_compare' function from the library <string>"
                             );
                         }
                         default: {
-                            throw new TypingError(exp,
+                            throw new TypingError(
+                                exp,
                                 `cannot compare ${valueDescription(genv, leftType)} with '${exp.operator}'`,
                                 `only values of type 'int' and 'char' can be used with '${exp.operator}'`
                             );
@@ -367,17 +380,13 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case "!=": {
                     const left = synthExpression(genv, env, mode, exp.left);
                     const right = synthExpression(genv, env, mode, exp.right);
-                    const lub = leastUpperBoundSynthedType(genv, left, right);
-                    if (lub === null) 
-                        throw new TypingError(exp, `expressions with different types cannot be compared for equality\n   left-hand side has type ${typeToString(left)}\n  right-hand side has type ${right}`);
+                    const lub = leastUpperBoundSmallSynthedType(genv, exp, left, right, false);
                     if (lub.tag === "StringType")
-                        throw new TypingError(exp, `cannot compare strings with '${exp.operator}'`, "use the 'string_equal' function from the library <string>");
-                    if (lub.tag === "NamedFunctionType")
-                        throw new TypingError(exp, `cannot compare functions for equality directly with ${exp.operator}`, "use pointers to functions");
-                    if (lub.tag === "StructType")
-                        throw new TypingError(exp, `cannot compare structs for equality directly with ${exp.operator}`, "pointers to struts can be compared");
-                    if (lub.tag === "VoidType")
-                        throw new TypingError(exp, "cannot compare expressions of type 'void' for equality");
+                        throw new TypingError(
+                            exp,
+                            `cannot compare strings with '${exp.operator}'`,
+                            "use the 'string_equal' function from the library <string>"
+                        );
                     return { tag: "BoolType" };
                 }
                 default:
@@ -393,85 +402,63 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             checkExpression(genv, env, mode, exp.test, { tag: "BoolType" });
             const left = synthExpression(genv, env, mode, exp.consequent);
             const right = synthExpression(genv, env, mode, exp.alternate);
-            const lub = leastUpperBoundSynthedType(genv, left, right);
-            if (lub === null)
-                return error("Branches of ternary expression 'e ? e1 : e2' have incompatible types"); // todo types
-            const actualLub = actualSynthed(genv, lub);
-            switch (actualLub.tag) {
-                case "VoidType":
-                    return error("condition expression branches cannot have void type");
-                case "NamedFunctionType":
-                    return error(
-                        `functions with type ${
-                            actualLub.definition.id.name
-                        } cannot be returned from a conditional`,
-                        "use function pointers"
-                    );
-                case "StructType":
-                    return error(
-                        `values of type 'struct${actualLub.id.name}' cannot be used in a conditional`,
-                        "use struct pointers"
-                    );
-            }
+            const lub = leastUpperBoundSmallSynthedType(genv, exp, left, right, true);
             return lub;
         }
         case "AllocExpression": {
-            const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
-            if (undefinedTypePart !== null)
-                return error(
-                    "cannot allocate an undefined type",
-                    `give a definition for 'struct ${undefinedTypePart}`
-                );
+            const kind = actualType(genv, exp.kind);
+            if (kind.tag === "NamedFunctionType")
+                throw new TypingError(exp, "cannot allocate functions");
+            if (kind.tag === "StructType") {
+                const decl = getStructDefinition(genv, kind.id.name);
+                if (decl === null || decl.definitions === null) 
+                    throw new TypingError(exp, `cannot allocate struct that has not been defined`, `give a definition for 'struct ${kind.id.name}'`);
+            }
             return { tag: "PointerType", argument: exp.kind };
         }
         case "AllocArrayExpression": {
-            const undefinedTypePart = typeSizeFullyDefined(genv, exp.kind);
-            if (undefinedTypePart !== null)
-                return error(
-                    "cannot allocate an undefined type",
-                    `give a definition for 'struct ${undefinedTypePart}`
-                );
+            const kind = actualType(genv, exp.kind);
+            if (kind.tag === "NamedFunctionType")
+                throw new TypingError(exp, "cannot allocate functions");
+            if (kind.tag === "StructType") {
+                const decl = getStructDefinition(genv, kind.id.name);
+                if (decl === null || decl.definitions === null) 
+                    throw new TypingError(exp, `cannot allocate struct that has not been defined`, `give a definition for 'struct ${kind.id.name}'`);
+            }
             checkExpression(genv, env, mode, exp.size, { tag: "IntType" });
             return { tag: "ArrayType", argument: exp.kind };
         }
         case "ResultExpression": {
             if (mode === null)
-                return error("\\result illegal in ordinary expressions", "use only in @ensures annotations");
-            else if (mode.tag === "@ensures") {
-                if (mode.returns.tag === "VoidType") {
-                    return error("\\result illegal in functions that return 'void'");
-                } else {
+                throw new TypingError(exp, "\\result illegal in ordinary expressions", "use only in @ensures annotations");
+            if (mode.tag !== "@ensures") 
+            throw new TypingError(exp,
+                `\\result illegal in @${mode.tag} annotations`,
+                "use only in @ensures annotations"
+            );
+            if (mode.returns.tag === "VoidType") 
+                    throw new TypingError(exp, "\\result illegal in functions that return 'void'");
                     return mode.returns;
-                }
-            } else {
-                return error(
-                    `\\result illegal in ${mode.tag} annotations`,
-                    "use only in @ensures annotations"
-                );
-            }
         }
         case "LengthExpression": {
             if (mode === null)
-                return error("\\length illegal in ordinary expressions", "use only in annotations");
-            const tp = synthExpression(genv, env, mode, exp.argument);
-            if (tp.tag !== "ArrayType") {
-                return error("argument to \\length not an array");
-            } else {
-                return { tag: "IntType" };
-            }
+                throw new TypingError(exp, "\\length illegal in ordinary expressions", "use only in annotations");
+            const tp = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
+            if (tp.tag !== "ArrayType") 
+                throw new TypingError(exp, `argument to \\length is ${valueDescription(genv, tp)} not an array`);
+
+            return { tag: "IntType" };
         }
         case "HasTagExpression": {
             if (mode === null)
-                return error("\\hastag illegal in ordinary expressions", "use only in annotations");
-            if (exp.kind.tag !== "PointerType") return error("tag must be a pointer type"); // TODO prettyprint;
-            if (exp.kind.argument.tag === "VoidType") return error("tag can never be 'void*'");
-            const tp = synthExpression(genv, env, mode, exp.argument);
-            if (tp.tag !== "PointerType" || tp.argument.tag !== "VoidType") {
-                return error("tagged expression must have type void*"); // TODO inferred
-            }
+                throw new TypingError(exp, "\\hastag illegal in ordinary expressions", "use only in annotations");
+            const kind = actualType(genv, exp.kind);
+            if (kind.tag !== "PointerType") throw new TypingError(exp, `type argument to \\hastag is ${valueDescription(genv, kind)}, but must be a pointer`, `try '\\hastag(${typeToString(kind)}*, ...)`); // TODO prettyprint;
+            if (kind.argument.tag === "VoidType") throw new TypingError(exp, "tag cannot be 'void*'");
+            return { tag: "BoolType" };
         }
         default:
-            return impossible(exp as never);
+            return impossible(exp);
     }
 }
 
@@ -484,6 +471,39 @@ export function checkExpression(
 ): void {
     const synthed = synthExpression(genv, env, mode, exp);
     if (!isSubtype(genv, synthed, tp)) {
-        return error("type mismatch"); // TODO: expected/found
+        throw new TypingError(exp, `expected to find a '${typeToString(tp)}', but this expression has an incompatible type: '${typeToString(synthed)}'`); // TODO: expected/found
     }
+}
+
+
+/**
+ * Factoring out the mess of least-upper-bound checking for equality and comparision 
+ */
+function leastUpperBoundSmallSynthedType(genv: GlobalEnv, exp: ast.Expression, t1: Synthed, t2: Synthed, cond: boolean): ActualSynthed {
+    const lub_ = leastUpperBoundSynthedType(genv, t1, t2);
+    const lub = lub_ && actualSynthed(genv, lub_);
+    const doThatThingTo = () => cond ? "use the conditional expression 'e ? e1 : e2' on" : "check equality of";
+    if (lub === null)
+        throw new TypingError(
+            exp,
+            `cannot ${doThatThingTo} expressions with different types \n  ${cond ? "first branch" : "left-hand side"} has type ${typeToString(
+                t1
+            )}\n  ${cond ? "second branch" : "right-hand side"} has type ${typeToString(t2)}`
+        );
+    if (lub.tag === "NamedFunctionType")
+        throw new TypingError(
+            exp,
+            `cannot ${doThatThingTo()} functions`,
+            "use pointers to functions"
+        );
+    if (lub.tag === "StructType")
+        throw new TypingError(
+            exp,
+            `cannot ${doThatThingTo()} structs`,
+            "use pointers to structs"
+        );
+    if (lub.tag === "VoidType")
+        throw new TypingError(exp, "cannot ${doThatThingTo} expressions of type 'void'");
+
+    return lub;
 }

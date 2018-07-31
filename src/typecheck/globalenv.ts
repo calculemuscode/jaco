@@ -21,7 +21,7 @@ export type ActualType =
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration };
 
 /**
- * Look at a typedef 
+ * Look at a typedef
  */
 export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueType | null {
     for (let decl of genv.decls) {
@@ -100,7 +100,7 @@ export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.Function
 }
 
 /**
- * Given 'struct foobar', this function looks up the operative definition or declaration for 
+ * Given 'struct foobar', this function looks up the operative definition or declaration for
  * 'foobar'. No declaration may exist; the function will then return 'null'.
  */
 export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDeclaration | null {
