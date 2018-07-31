@@ -6,6 +6,9 @@ export type GlobalEnv = {
     readonly decls: ast.Declaration[];
 };
 
+/**
+ * An ActualType is the (non-identifier) type that can be typedefed.
+ */
 export type ActualType =
     | ast.IntType
     | ast.BoolType
@@ -16,6 +19,9 @@ export type ActualType =
     | ast.StructType
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration };
 
+/**
+ * Look at a typedef 
+ */
 export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueType | null {
     for (let decl of genv.decls) {
         if (decl.tag === "TypeDefinition" && decl.definition.id.name === t) {
@@ -30,6 +36,9 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
     return null;
 }
 
+/**
+ * Create an initial GlobalEnv with the correct type for main()
+ */
 export function initMain(): GlobalEnv {
     return {
         libstructs: new Set<string>(),
@@ -96,7 +105,7 @@ function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ActualType {
 
     /* instanbul ignore if */
     if (tp === null) {
-        throw new Error(`Could not lookup ${t.name} (this should be impossible, please report)`);
+        throw new Imposs(`Could not lookup ${t.name}`);
     } else if (tp.tag === "Identifier") {
         return expandTypeDef(genv, tp);
     } else {

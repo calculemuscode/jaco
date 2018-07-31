@@ -2,11 +2,11 @@ import Lang from "../lang";
 import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
-import { ParsingError, StandardError } from "../error";
+import { ParsingError } from "../error";
 
 function standard(syn: syn.Syn, lang: Lang, allowed: Lang[], msg: string) {
     for (let ok of allowed) if (lang === ok) return;
-    throw new StandardError(syn, lang, msg);
+    throw new ParsingError(syn, `${msg} not a part of the language '${lang}'`);
 }
 
 export function restrictType(lang: Lang, syn: syn.Type): ast.Type {
@@ -643,7 +643,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
     switch (decl.tag) {
         case "FunctionDeclaration": {
             if (decl.body === null) standard(decl, lang, ["L3", "L4", "C0", "C1"], "function declarations");
-            if (decl.id.name !== null)
+            if (decl.id.name !== "main")
                 standard(decl, lang, ["L3", "L4", "C0", "C1"], "functions aside from 'main'");
 
             const annos = restrictFunctionAnnos(lang, decl.annos);

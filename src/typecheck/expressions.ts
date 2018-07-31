@@ -1,5 +1,4 @@
 import { impossible } from "@calculemus/impossible";
-import { error } from "./error";
 import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
 import {
     Env,
@@ -9,7 +8,10 @@ import {
     leastUpperBoundSynthedType,
     actualSynthed
 } from "./types";
+import { error } from "./error";
 import * as ast from "../ast";
+import { ImpossibleError, TypingError } from "../error";
+//import { typeToString } from "../print";
 
 export type mode =
     | null
@@ -18,30 +20,67 @@ export type mode =
     | { tag: "@loop_invariant" }
     | { tag: "@assert" };
 
+function valueDescription(genv: GlobalEnv, tp: Synthed): string {
+    const t = actualSynthed(genv, tp);
+    switch (t.tag) {
+        case "IntType":
+            return "an integer";
+        case "BoolType":
+            return "a boolean";
+        case "StringType":
+            return "a string";
+        case "CharType":
+            return "a character";
+        case "VoidType":
+            return "a void expression";
+        case "PointerType":
+            return "a pointer";
+        case "ArrayType":
+            return "an array";
+        case "StructType":
+            return "a struct";
+        case "AmbiguousNullPointer":
+            return "a pointer";
+        case "AnonymousFunctionTypePointer":
+            return "a pointer";
+        case "NamedFunctionType":
+            return "a function";
+        default:
+            return impossible(t);
+    }
+}
+
 /** Asserts that a synthesized type has small type */
 export function synthLValue(genv: GlobalEnv, env: Env, mode: mode, exp: ast.LValue): ast.ValueType {
     let synthedType = synthExpression(genv, env, mode, exp);
     switch (synthedType.tag) {
         case "AmbiguousNullPointer":
-            return error(`LValue cannot be null (should be impossible, please report)`);
+            throw new ImpossibleError("lvalue cannot be null");
         case "AnonymousFunctionTypePointer":
-            return error(`LValue cannot be address-of (should be impossible, please report)`);
+            throw new ImpossibleError("lvalue cannot be address-of");
         case "NamedFunctionType":
-            return error(`LValue has function type ${synthedType.definition.id.name}, which is not small`);
+            throw new TypingError(
+                exp,
+                `cannot assign expression with function type ${synthedType.definition.id.name}`,
+                "use pointers to functions"
+            );
         case "VoidType":
-            return error(`LValue cannot have void type`);
+            throw new TypingError(exp, "cannot assign to an expression with type 'void'");
     }
     let actualSynthedType = actualType(genv, synthedType);
     switch (actualSynthedType.tag) {
         case "StructType": {
-            return error(
-                `assignment uses has type 'struct ${actualSynthedType.id.name}', which is not small`,
+            throw new TypingError(
+                exp,
+                `cannot assign expression with type 'struct ${actualSynthedType.id.name}'`,
                 "Assign the parts of the struct individually"
             );
         }
         case "NamedFunctionType":
-            return error(
-                `LValue has function type ${actualSynthedType.definition.id.name}, which is not small`
+            throw new TypingError(
+                exp,
+                `cannot assign expression with function type ${actualSynthedType.definition.id.name}`,
+                "use pointers to functions"
             );
         default:
             return synthedType;
@@ -53,7 +92,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
         case "Identifier": {
             const t = env.get(exp.name);
             if (t === undefined) {
-                return error(`Undeclared variable ${exp.name}`);
+                throw new TypingError(exp, `variable ${exp.name} not declared`);
             } else {
                 return t;
             }
@@ -69,67 +108,90 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
         case "NullLiteral":
             return { tag: "AmbiguousNullPointer" };
         case "ArrayMemberExpression": {
-            let objectType = synthExpression(genv, env, mode, exp.object);
-            if (
-                objectType.tag === "AmbiguousNullPointer" ||
-                objectType.tag === "AnonymousFunctionTypePointer" ||
-                objectType.tag === "NamedFunctionType"
-            )
-                return error("subject of indexing '[...]' not an array"); // TODO: "inferred type t1"
-            let actualObjectType = actualType(genv, objectType);
-            if (actualObjectType.tag !== "ArrayType") {
-                return error("subject of indexing '[...]' not an array"); // TODO: "inferred type t1"
+            let objectType = actualSynthed(genv, synthExpression(genv, env, mode, exp.object));
+            if (objectType.tag !== "ArrayType") {
+                throw new TypingError(
+                    exp,
+                    `subject of indexing '[...]' is ${valueDescription(genv, objectType)}, not an array`
+                );
             } else {
                 checkExpression(genv, env, mode, exp.index, { tag: "IntType" });
-                return actualObjectType.argument;
+                return objectType.argument;
             }
         }
         case "StructMemberExpression": {
-            let objectType = synthExpression(genv, env, mode, exp.object);
-            if (
-                objectType.tag === "AmbiguousNullPointer" ||
-                objectType.tag === "AnonymousFunctionTypePointer" ||
-                objectType.tag === "NamedFunctionType"
-            )
-                return error(`can only dereference structs and pointers to structs`);
-            let actualObjectType = actualType(genv, objectType);
+            let objectType = actualSynthed(genv, synthExpression(genv, env, mode, exp.object));
             if (exp.deref) {
-                if (actualObjectType.tag === "StructType")
-                    return error(
+                if (objectType.tag === "StructType")
+                    throw new TypingError(
+                        exp,
                         `cannot dereference non-pointer struct with e->${exp.field.name}`,
                         `try e.${exp.field.name}`
                     );
-                if (actualObjectType.tag !== "PointerType")
-                    return error("can only dereference structs and pointers to structs");
-                actualObjectType = actualType(genv, actualObjectType.argument);
+                if (objectType.tag !== "PointerType")
+                    throw new TypingError(
+                        exp,
+                        `subject of dereference '->${exp.field.name}' is ${valueDescription(
+                            genv,
+                            objectType
+                        )}, not a pointer to a struct`
+                    );
+                objectType = actualType(genv, objectType.argument);
+                if (objectType.tag !== "StructType")
+                    throw new TypingError(
+                        exp,
+                        `subject of dereference '->${exp.field.name}' is a pointer to ${valueDescription(
+                            genv,
+                            objectType
+                        )}, not a pointer to a struct`
+                    );
+            } else {
+                if (objectType.tag !== "StructType")
+                    throw new TypingError(
+                        exp,
+                        `subject of access '.${exp.field.name}' is ${valueDescription(
+                            genv,
+                            objectType
+                        )}, not a struct`
+                    );
             }
-            if (actualObjectType.tag !== "StructType")
-                return error(
-                    `subject of ${exp.deref ? "->" : "."}${exp.field.name} not a struct${
-                        exp.deref ? " pointer" : ""
-                    }`
-                ); // TODO add inferred type
-            let structDef = getStructDefinition(genv, actualObjectType.id.name);
-            if (structDef === null) return error(`'struct ${actualObjectType.id.name}' not defined`);
+            let structDef = getStructDefinition(genv, objectType.id.name);
+            if (structDef === null)
+                throw new TypingError(
+                    exp,
+                    `subject of access '${exp.deref ? "->" : "."}${exp.field.name}' is 'struct ${
+                        objectType.id.name
+                    }', which is not defined`
+                );
             if (structDef.definitions === null)
-                return error(`'struct ${actualObjectType.id.name}' declared but not defined`);
+                throw new TypingError(
+                    exp,
+                    `subject of access '${exp.deref ? "->" : "."}${exp.field.name}' is 'struct ${
+                        objectType.id.name
+                    }', which is declared but not defined`
+                );
             for (let field of structDef.definitions) {
                 if (field.id.name === exp.field.name) return field.kind;
             }
-            return error(`field '${exp.field.name}' not declared in 'struct ${actualObjectType.id.name}'`);
+            throw new TypingError(
+                exp,
+                `field '${exp.field.name}' not declared in 'struct ${objectType.id.name}'`
+            );
         }
         case "CallExpression": {
             if (env.has(exp.callee.name))
-                return error(
-                    `variable ${exp.callee.name} used as function`,
-                    `if ${exp.callee.name} is a function pointer, try try (*${
-                        exp.callee.name
-                    })(...)  instead of ${exp.callee.name}(...)`
+                throw new TypingError(
+                    exp,
+                    `local '${exp.callee.name}' is ${valueDescription(
+                        genv,
+                        actualType(genv, env.get(exp.callee.name)!)
+                    )}, not a function`
                 );
             const func = getFunctionDeclaration(genv, exp.callee.name);
-            if (func === null) return error(`undeclared function ${exp.callee.name}`);
+            if (func === null) throw new TypingError(exp, `function ${exp.callee.name} not declared`);
             if (exp.arguments.length !== func.params.length)
-                return error(
+                throw new TypingError(
+                    exp,
                     `function ${exp.callee.name} requires ${func.params.length} argument${
                         func.params.length === 1 ? "" : "s"
                     } but was given ${exp.arguments.length}`
@@ -140,22 +202,28 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
         case "IndirectCallExpression": {
             const callType = synthExpression(genv, env, mode, exp.callee);
             if (callType.tag === "AnonymousFunctionTypePointer")
-                return error("Functions pointers must be stored in locals before they are called");
-            if (callType.tag === "AmbiguousNullPointer") return error("Cannot call NULL as a function");
+                throw new TypingError(
+                    exp,
+                    "function pointers must be stored in locals before they are called"
+                );
+            if (callType.tag === "AmbiguousNullPointer")
+                throw new TypingError(exp, "cannot call 'NULL' as a function");
             if (callType.tag === "NamedFunctionType")
-                return error(
+                throw new TypingError(
+                    exp,
                     `Can only call pointers to functions, the function type '${
                         callType.definition.id.name
                     }' is not a pointer`
                 );
             const actualCallType = actualType(genv, callType);
             if (actualCallType.tag !== "PointerType")
-                return error("Only pointers to functions can be called");
+                throw new TypingError(exp, "only pointers to functions can be called");
             const actualFunctionType = actualType(genv, actualCallType.argument);
             if (actualFunctionType.tag !== "NamedFunctionType")
-                return error("Only pointers to functions can be called");
+                throw new TypingError(exp, "only pointers to functions can be called");
             if (exp.arguments.length !== actualFunctionType.definition.params.length)
-                return error(
+                throw new TypingError(
+                    exp,
                     `function pointer call requires ${actualFunctionType.definition.params.length} argument${
                         actualFunctionType.definition.params.length === 1 ? "" : "s"
                     } but was given ${exp.arguments.length}`
@@ -167,27 +235,34 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
         }
         case "CastExpression": {
             const castType = actualType(genv, exp.kind);
-            if (castType.tag !== "PointerType") return error("Type of cast must be a pointer or void*"); // TODO what was the type
+            if (castType.tag !== "PointerType")
+                throw new TypingError(
+                    exp,
+                    `casts must be pointer types, not ${valueDescription(genv, castType)}`
+                );
 
-            const argumentType = synthExpression(genv, env, mode, exp.argument);
+            const argumentType = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
             if (argumentType.tag === "AmbiguousNullPointer") return exp.kind; // NULL cast always ok
             if (
                 argumentType.tag === "NamedFunctionType" ||
                 argumentType.tag == "AnonymousFunctionTypePointer"
             )
-                return error(
-                    "Only function pointers with assigned types can be cast to 'void*'",
+                throw new TypingError(
+                    exp,
+                    "only function pointers with assigned types can be cast to 'void*'",
                     "assign to a variable and then cast to 'void*'"
                 );
-            const expandedArgumentType = actualType(genv, argumentType);
-            if (expandedArgumentType.tag !== "PointerType")
-                return error("Only pointer and void* types can be cast"); // TODO what was the type
+            if (argumentType.tag !== "PointerType")
+                throw new TypingError(
+                    exp,
+                    `casts must be pointer types, not ${valueDescription(genv, argumentType)}`
+                );
 
             if (castType.argument.tag === "VoidType") {
-                if (expandedArgumentType.argument.tag === "VoidType")
-                    return error("Casting a void* as a void* not permitted\n");
-            } else if (expandedArgumentType.argument.tag !== "VoidType") {
-                return error("Only casts to or from void* allowed");
+                if (argumentType.argument.tag === "VoidType")
+                    throw new TypingError(exp, "Casting a 'void*' as a 'void*' not permitted\n");
+            } else if (argumentType.argument.tag !== "VoidType") {
+                throw new TypingError(exp, "only casts to or from 'void*' allowed");
             }
             return exp.kind;
         }
@@ -199,14 +274,15 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 }
                 case "&": {
                     if (exp.argument.tag !== "Identifier")
-                        return error(
-                            "Address-of operation '&' can only be applied directly to a function name"
+                        throw new TypingError(
+                            exp,
+                            "address-of operation '&' can only be applied directly to a function name"
                         );
                     const definition = getFunctionDeclaration(genv, exp.argument.name);
-                    if (definition === null) return error(`There is no function named ${exp.argument.name}`);
+                    if (definition === null) throw new TypingError(exp, `There is no function named ${exp.argument.name}`);
                     if (env.has(exp.argument.name))
-                        return error(
-                            `Cannot take the address of function ${
+                        throw new TypingError(exp, 
+                            `cannot take the address of function ${
                                 exp.argument.name
                             } when it is also the name of a local`
                         );
@@ -218,28 +294,26 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     return { tag: "IntType" };
                 }
                 case "*": {
-                    const pointerType = synthExpression(genv, env, mode, exp.argument);
-                    if (pointerType.tag === "AmbiguousNullPointer") return error("cannot dereference NULL");
-                    if (pointerType.tag === "AnonymousFunctionTypePointer")
-                        return error("Cannot dereference a pointer", "assign it to a variable first");
-                    if (pointerType.tag === "NamedFunctionType")
-                        return error(
-                            "You only dereference a function pointer when that function is being called"
-                        );
-                    const actualPointerType = actualType(genv, pointerType);
-                    switch (actualPointerType.tag) {
+                    const pointerType = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
+                    switch (pointerType.tag) {
+                        case "AmbiguousNullPointer": {
+                            throw new TypingError(exp, "cannot dereference 'NULL'");
+                        }
+                        case "AnonymousFunctionTypePointer": {
+                            throw new TypingError(exp, "cannot dereference a function pointer immediately", "assign it to a local first");
+                        }
                         case "PointerType": {
-                            if (actualPointerType.argument.tag === "VoidType") {
-                                return error(
+                            if (pointerType.argument.tag === "VoidType") {
+                                throw new TypingError(exp, 
                                     "cannot dereference value of type 'void*'",
                                     "cast to another pointer type with '(t*)'"
                                 );
                             } else {
-                                return actualPointerType.argument;
+                                return pointerType.argument;
                             }
                         }
                         default:
-                            return error("subject of '*' not a pointer"); // TODO: inferred type
+                            throw new TypingError(exp, `only pointers can be dereferenced ${valueDescription(genv, pointerType)}`);
                     }
                 }
                 default:
@@ -267,14 +341,8 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 case "<=":
                 case ">=":
                 case ">": {
-                    const leftType = synthExpression(genv, env, mode, exp.left);
-                    if (leftType.tag === "AmbiguousNullPointer")
-                        return error(`Cannot compare pointers with ${exp.operator}`);
-                    if (leftType.tag === "AnonymousFunctionTypePointer")
-                        return error(`Cannot compare function pointers with ${exp.operator}`);
-                    if (leftType.tag === "NamedFunctionType")
-                        return error("Cannot compare functions for inequality");
-                    switch (actualType(genv, leftType).tag) {
+                    const leftType = actualSynthed(genv, synthExpression(genv, env, mode, exp.left));
+                    switch (leftType.tag) {
                         case "IntType":
                         case "CharType": {
                             checkExpression(genv, env, mode, exp.right, leftType);
@@ -282,15 +350,15 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                         }
                         case "StringType": {
                             return error(
-                                `cannot compare strings with '${exp.operator}'`,
+                                `cannot compare a string with '${exp.operator}'`,
                                 "use string_compare in library <string>"
                             );
                         }
                         default: {
-                            return error(
-                                `cannot compare with '${exp.operator}' at this type`,
+                            throw new TypingError(exp,
+                                `cannot compare ${valueDescription(genv, leftType)} with '${exp.operator}'`,
                                 `only values of type 'int' and 'char' can be used with '${exp.operator}'`
-                            ); // TODO which type
+                            );
                         }
                     }
                 }

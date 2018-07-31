@@ -2,7 +2,7 @@ import { parseProgram } from "../parse/index";
 import { checkProgram } from "../typecheck/programs";
 
 import * as CodeMirror from "codemirror";
-import { ParsingError } from "../error";
+import { ParsingError, TypingError } from "../error";
 import { Position } from "../ast";
 
 declare global {
@@ -31,6 +31,11 @@ function draw(prog: string) {
             checkProgram([], program);
             output.innerText = JSON.stringify(program, null, 2);
         } catch (e) {
+            if (e instanceof Error && e.name === "TypingError" && (e as TypingError).loc) {
+                console.log("A");
+                const loc = (e as TypingError).loc!;
+                doc.markText(pos(loc.start), pos(loc.end), { className: "error", title: e.message });
+            }            
             output.innerText = e.message + "\n\n====\n\n" + JSON.stringify(program, null, 2);
         }
     } catch (e) {

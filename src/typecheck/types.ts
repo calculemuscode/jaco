@@ -5,12 +5,18 @@ import * as ast from "../ast";
 
 export type Env = Map<string, ast.Type>;
 
+/**
+ * Valid types for synthesis
+ */
 export type Synthed =
     | ast.Type
     | { tag: "AmbiguousNullPointer" }
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration }
     | { tag: "AnonymousFunctionTypePointer"; definition: ast.FunctionDeclaration };
 
+/**
+ * Valid non-Identifier types for synthesis.
+ */
 export type ActualSynthed =
     | ActualType
     | ast.VoidType
@@ -18,6 +24,9 @@ export type ActualSynthed =
     | { tag: "NamedFunctionType"; definition: ast.FunctionDeclaration }
     | { tag: "AnonymousFunctionTypePointer"; definition: ast.FunctionDeclaration };
 
+/**
+ * Resove Identifiers in a synthesized type.
+ */
 export function actualSynthed(genv: GlobalEnv, t1: Synthed): ActualSynthed {
     switch (t1.tag) {
         case "AmbiguousNullPointer":
@@ -29,6 +38,9 @@ export function actualSynthed(genv: GlobalEnv, t1: Synthed): ActualSynthed {
     }
 }
 
+/**
+ * Check whether two types are equal.
+ */
 export function equalTypes(genv: GlobalEnv, t1: ast.Type, t2: ast.Type): boolean {
     const actual1 = actualType(genv, t1);
     const actual2 = actualType(genv, t2);
