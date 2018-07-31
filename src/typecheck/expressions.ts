@@ -503,7 +503,7 @@ function leastUpperBoundSmallSynthedType(genv: GlobalEnv, exp: ast.Expression, t
             "use pointers to structs"
         );
     if (lub.tag === "VoidType")
-        throw new TypingError(exp, "cannot ${doThatThingTo} expressions of type 'void'");
+        throw new TypingError(exp, `cannot ${doThatThingTo} expressions of type 'void'`);
 
     return lub;
 }

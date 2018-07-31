@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
-import { error } from "./error";
-import { ActualType, actualType, GlobalEnv, getStructDefinition } from "./globalenv";
+import { ActualType, actualType, GlobalEnv } from "./globalenv";
 import * as ast from "../ast";
+import { TypingError } from "../error";
 
 export type Env = Map<string, ast.Type>;
 
@@ -130,10 +130,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
         if (t2.tag === "AnonymousFunctionTypePointer") {
             return equalFunctionTypes(genv, t1.definition, t2.definition) ? t1 : null;
         } else if (t2.tag === "NamedFunctionType") {
-            return error(
-                `Named function type ${t2.definition.id.name} is not equal to a function pointer`,
-                "don't dereference the function pointer"
-            );
+            return null;
         } else {
             const actual2 = actualType(genv, t2);
             if (actual2.tag !== "PointerType") return null;
@@ -143,10 +140,7 @@ export function leastUpperBoundSynthedType(genv: GlobalEnv, t1: Synthed, t2: Syn
         }
     } else if (t2.tag === "AnonymousFunctionTypePointer") {
         if (t1.tag === "NamedFunctionType") {
-            return error(
-                `Named function type ${t1.definition.id.name} is not equal to a function pointer`,
-                `try not dereferencing ${t1.definition.id.name}`
-            );
+            return null;
         } else {
             const actual1 = actualType(genv, t1);
             if (actual1.tag !== "PointerType") return null;
@@ -218,27 +212,23 @@ export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type
 /**
  * Ensures that a type is not void or (recursively) void[]
  */
-export function checkTypeIsNotVoid(genv: GlobalEnv, tp: ast.Type): void {
+export function typeIsNotVoid(genv: GlobalEnv, tp: ast.Type): boolean {
     const actual = actualType(genv, tp);
     switch (actual.tag) {
-        case "VoidType":
-            return error(
-                "illegal use of type 'void'",
-                "'void' can only be used as a return type for functions"
-            );
+        case "VoidType": return false;
         case "PointerType": {
-            if (actual.argument.tag === "VoidType") return;
-            return checkTypeIsNotVoid(genv, actual.argument);
+            if (actual.argument.tag === "VoidType") return true;
+            return typeIsNotVoid(genv, actual.argument);
         }
         case "ArrayType":
-            return checkTypeIsNotVoid(genv, actual.argument);
+            return typeIsNotVoid(genv, actual.argument);
         case "IntType":
         case "BoolType":
         case "StringType":
         case "CharType":
         case "StructType": // Always okay, even if not defined
         case "NamedFunctionType": // This case is actually impossible
-            return;
+            return true;
         default:
             return impossible(actual);
     }
@@ -246,12 +236,14 @@ export function checkTypeIsNotVoid(genv: GlobalEnv, tp: ast.Type): void {
 
 /**
  * Asserts type mentioned in variable declaration or function argument has small type
+ * TODO: use in other places as a "NOT SMALL" check?
+ * TODO: Make sure this does the right things
  */
 export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunctionArg?: boolean): void {
     const actual = actualType(genv, tp);
     switch (actual.tag) {
         case "StructType": {
-            return error(
+            throw new TypingError(tp,
                 `type struct ${actual.id.name} not small`,
                 isFunctionArg
                     ? "cannot pass structs to or from functions; use pointers"
@@ -259,7 +251,7 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
             );
         }
         case "NamedFunctionType": {
-            return error(
+            throw new TypingError(tp,
                 `Function type ${actual.definition.id.name} is not small`,
                 isFunctionArg
                     ? "cannot pass functions directly to or from functions; use pointers"
@@ -267,7 +259,9 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
             );
         }
         default:
-            return checkTypeIsNotVoid(genv, tp);
+            if (!typeIsNotVoid(genv, tp)) {
+                throw new TypingError(tp, "type uses 'void' incorrectly")
+            }
     }
 }
 
@@ -280,31 +274,5 @@ export function checkFunctionReturnType(genv: GlobalEnv, t: ast.Type) {
             return;
         default:
             return checkTypeInDeclaration(genv, t, true);
-    }
-}
-
-/**
- * Checks whether a type is fully defined - whether all its constituent struct parts are
- * Returns the undefined struct as a string if the type is not fully defined (for the error message)
- */
-export function typeSizeFullyDefined(genv: GlobalEnv, t: ast.Type): string | null {
-    const actual = actualType(genv, t);
-    switch (actual.tag) {
-        case "IntType":
-        case "BoolType":
-        case "StringType":
-        case "CharType":
-        case "VoidType":
-        case "ArrayType":
-        case "PointerType":
-        case "NamedFunctionType":
-            return null;
-        case "StructType": {
-            const defn = getStructDefinition(genv, actual.id.name);
-            if (defn === null || defn.definitions === null) return actual.id.name;
-            return null;
-        }
-        default:
-            return impossible(actual);
     }
 }

@@ -1,6 +1,6 @@
 import { impossible } from "@calculemus/impossible";
 import * as ast from "../ast";
-import { error } from "./error";
+import { TypingError } from "../error";
 
 /**
  * Returns the free locals and free functions of an expression. (The type system ensures these are
@@ -69,7 +69,7 @@ export function checkExpressionUsesGetFreeFunctions(
     const freeFunctions = new Set<string>();
     expressionFreeVars(exp).forEach(x => {
         if (locals.has(x)) {
-            if (!defined.has(x)) error(`local ${x} used without necessarily being defined`);
+            if (!defined.has(x)) throw new TypingError(exp, `local '${x}' used without necessarily being defined`);
         } else {
             freeFunctions.add(x);
         }
@@ -106,7 +106,7 @@ export function checkStatementFlow(
             let functions = checkExpressionUsesGetFreeFunctions(locals, defined, stm.right);
             if (stm.operator === "=" && stm.left.tag === "Identifier") {
                 if (constants.has(stm.left.name)) {
-                    error(
+                    throw new TypingError(stm, 
                         `assigning to ${stm.left.name} is not permitted when ${
                             stm.left.name
                         } is used in postcondition`

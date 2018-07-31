@@ -1,11 +1,12 @@
 import { impossible } from "@calculemus/impossible";
 import * as ast from "../ast";
-import { error } from "./error";
 import { GlobalEnv } from "./globalenv";
 import { Env, checkTypeInDeclaration, actualSynthed } from "./types";
 import { checkExpression, synthExpression, synthLValue } from "./expressions";
+import { TypingError } from "../error";
+import { typeToString } from "../print";
 
-export function checkStatements(
+function checkStatements(
     genv: GlobalEnv,
     env: Env,
     stms: ast.Statement[],
@@ -21,7 +22,7 @@ function copyEnv(env: Env) {
     return envCopy;
 }
 
-function checkStatement(
+export function checkStatement(
     genv: GlobalEnv,
     env: Env,
     stm: ast.Statement,
@@ -41,9 +42,9 @@ function checkStatement(
         case "ExpressionStatement": {
             const expType = actualSynthed(genv, synthExpression(genv, env, null, stm.expression));
             if (expType.tag === "StructType")
-                return error(`expression used as statements cannot have type 'struct ${expType.id.name}'`);
+                throw new TypingError(stm, `expression used as statements cannot have type 'struct ${expType.id.name}'`);
             if (expType.tag === "NamedFunctionType")
-                return error(
+                throw new TypingError(stm,
                     `expression used as statements cannot have function type '${expType.definition.id.name}'`
                 );
             return;
@@ -51,7 +52,8 @@ function checkStatement(
         case "VariableDeclaration": {
             checkTypeInDeclaration(genv, stm.kind);
             if (env.has(stm.id.name)) {
-                return error(`variable '${stm.id.name}' declared twice`);
+                // TODO: Previous definition
+                throw new TypingError(stm, `variable '${stm.id.name}' declared a second time`);
             } else if (stm.init !== null) {
                 checkExpression(genv, env, null, stm.init, stm.kind);
             }
@@ -84,20 +86,18 @@ function checkStatement(
             return;
         }
         case "ReturnStatement": {
-            if (returning === null) {
-                return error(`return statements not allowed`);
-            } else if (returning.tag === "VoidType") {
-                if (stm.argument !== null) {
-                    return error("function returning void must invoke 'return', not 'return e'");
-                }
+            if (returning === null) 
+                throw new TypingError(stm, `return statements not allowed`);
+            if (returning.tag === "VoidType") {
+                if (stm.argument !== null) 
+                    throw new TypingError(stm, "function returning void must invoke 'return', not 'return e'");
+                return;
             } else {
-                if (stm.argument === null) {
-                    return error("type mismatch, expected a return type found void");
-                } else {
-                    checkExpression(genv, env, null, stm.argument, returning);
-                }
+                if (stm.argument === null) 
+                    throw new TypingError(stm, `this function must return a ${typeToString(returning)}`);
+                checkExpression(genv, env, null, stm.argument, returning);
+                return;
             }
-            return;
         }
         case "BlockStatement": {
             checkStatements(genv, copyEnv(env), stm.body, returning, inLoop);
@@ -115,7 +115,7 @@ function checkStatement(
         }
         case "BreakStatement": {
             if (!inLoop)
-                return error(
+                throw new TypingError(stm,
                     "break statement not allowed",
                     "break statements must be inside the body of a for-loop or while-loop"
                 );
@@ -123,8 +123,8 @@ function checkStatement(
         }
         case "ContinueStatement": {
             if (!inLoop)
-                return error(
-                    "continue statement not allowed",
+            throw new TypingError(stm,
+                "continue statement not allowed",
                     "continue statements must be inside the body of a for-loop or while-loop"
                 );
             return;
