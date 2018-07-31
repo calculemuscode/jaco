@@ -371,7 +371,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             const right = synthExpression(genv, env, mode, exp.right);
                             if (right.tag === "AmbiguousNullPointer") return { tag: "BoolType" };
                             if (right.tag === "AnonymousFunctionTypePointer") return { tag: "BoolType" };
-                            if (right.tag === "NamedFunctionType")
+                            if (right.tag === "NamedFunctionType")                            
                                 return error("cannot compare NULL and a function");
                             if (actualType(genv, right).tag === "PointerType") return { tag: "BoolType" };
                             else
