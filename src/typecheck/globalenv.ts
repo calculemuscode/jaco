@@ -1,4 +1,5 @@
 import * as ast from "../ast";
+import { ImpossibleError } from "../error";
 
 export type GlobalEnv = {
     readonly libstructs: Set<string>;
@@ -57,6 +58,9 @@ export function initMain(): GlobalEnv {
     };
 }
 
+/**
+ * Insert a (typechecked) declaration into the global environment.
+ */
 export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration) {
     genv.decls.push(decl);
     if (library) {
@@ -65,14 +69,25 @@ export function addDecl(library: boolean, genv: GlobalEnv, decl: ast.Declaration
     }
 }
 
+/**
+ * Checks if an identifier is a known library function.
+ */
 export function isLibraryFunction(genv: GlobalEnv, t: string): boolean {
     return genv.libfuncs.has(t);
 }
 
+/**
+ * Checks if an identifier is a known library struct.
+ */
 export function isLibraryStruct(genv: GlobalEnv, t: string): boolean {
     return genv.libfuncs.has(t);
 }
 
+/**
+ * Given an ostensible function name, get the relevant function definition (if one exists), or the
+ * latest function declaration (if no definition exists). No declaration may exist; the function will
+ * then return 'null'.
+ */
 export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.FunctionDeclaration | null {
     let result: ast.FunctionDeclaration | null = null;
     for (let decl of genv.decls) {
@@ -84,6 +99,10 @@ export function getFunctionDeclaration(genv: GlobalEnv, t: string): ast.Function
     return result;
 }
 
+/**
+ * Given 'struct foobar', this function looks up the operative definition or declaration for 
+ * 'foobar'. No declaration may exist; the function will then return 'null'.
+ */
 export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDeclaration | null {
     let result: ast.StructDeclaration | null = null;
     for (let decl of genv.decls) {
@@ -96,16 +115,15 @@ export function getStructDefinition(genv: GlobalEnv, t: string): ast.StructDecla
 }
 
 /**
- * Returns a non-Identifier Type based on a type name
- * If parsing is done correctly, this function should only be given type Identifiers,
- * which must have a previous definition.
+ * If parsing is and environment-threading are done correctly, type identifiers should always
+ * be in the global environment.
  */
 function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ActualType {
     let tp = getTypeDef(genv, t.name);
 
     /* instanbul ignore if */
     if (tp === null) {
-        throw new Imposs(`Could not lookup ${t.name}`);
+        throw new ImpossibleError(`Could not lookup ${t.name}`);
     } else if (tp.tag === "Identifier") {
         return expandTypeDef(genv, tp);
     } else {
@@ -113,6 +131,9 @@ function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ActualType {
     }
 }
 
+/**
+ * Given an ast.Type, return an identifier-free variant of that type
+ */
 export function actualType(genv: GlobalEnv, t: ActualType | ast.Type): ActualType | ast.VoidType {
     return t.tag === "Identifier" ? expandTypeDef(genv, t) : t;
 }
