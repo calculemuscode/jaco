@@ -225,6 +225,8 @@ function expression(genv: GlobalEnv, env: Env, exp: ast.Expression): Instruction
         }
         case "BinaryExpression": {
             const instrs = expression(genv, env, exp.left).concat(expression(genv, env, exp.right));
+            const t = label("binopt");
+            const f = label("binopf");
             switch (exp.operator) {
                 case "*": return instrs.concat([{tag: "IMUL"}]);
                 case "/": return instrs.concat([{tag: "IDIV"}]);
@@ -233,7 +235,10 @@ function expression(genv: GlobalEnv, env: Env, exp: ast.Expression): Instruction
                 case "-": return instrs.concat([{tag: "ISUB"}]);
                 case "<<": return instrs.concat([{tag: "ISHL"}]);
                 case ">>": return instrs.concat([{tag: "ISHR"}]);
-                case "-": return instrs.
+                case "&": return instrs.concat([{tag: "IAND"}]);
+                case "^": return instrs.concat([{tag: "IXOR"}]);
+                case "|": return instrs.concat([{tag: "IOR"}]);
+                case "<": return instrs.concat([{tag: "IF_CMPLT"}])
                 default: return impossible(exp.operator);
             }
         }
