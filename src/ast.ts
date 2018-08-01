@@ -188,6 +188,7 @@ export interface ArrayMemberExpression extends Syn {
     readonly tag: "ArrayMemberExpression";
     readonly object: Expression;
     readonly index: Expression;
+    size?: "B" | "C" | "I" | "A";
 }
 
 /**

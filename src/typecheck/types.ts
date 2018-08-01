@@ -215,7 +215,8 @@ export function isSubtype(genv: GlobalEnv, abstract: Synthed, concrete: ast.Type
 export function typeIsNotVoid(genv: GlobalEnv, tp: ast.Type): boolean {
     const actual = actualType(genv, tp);
     switch (actual.tag) {
-        case "VoidType": return false;
+        case "VoidType":
+            return false;
         case "PointerType": {
             if (actual.argument.tag === "VoidType") return true;
             return typeIsNotVoid(genv, actual.argument);
@@ -243,7 +244,8 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
     const actual = actualType(genv, tp);
     switch (actual.tag) {
         case "StructType": {
-            throw new TypingError(tp,
+            throw new TypingError(
+                tp,
                 `type struct ${actual.id.name} not small`,
                 isFunctionArg
                     ? "cannot pass structs to or from functions; use pointers"
@@ -251,7 +253,8 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
             );
         }
         case "NamedFunctionType": {
-            throw new TypingError(tp,
+            throw new TypingError(
+                tp,
                 `Function type ${actual.definition.id.name} is not small`,
                 isFunctionArg
                     ? "cannot pass functions directly to or from functions; use pointers"
@@ -260,7 +263,7 @@ export function checkTypeInDeclaration(genv: GlobalEnv, tp: ast.Type, isFunction
         }
         default:
             if (!typeIsNotVoid(genv, tp)) {
-                throw new TypingError(tp, "type uses 'void' incorrectly")
+                throw new TypingError(tp, "type uses 'void' incorrectly");
             }
     }
 }
