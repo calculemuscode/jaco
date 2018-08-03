@@ -473,7 +473,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     exp,
                     `type argument to \\hastag is ${valueDescription(genv, kind)}, but must be a pointer`,
                     `try '\\hastag(${typeToString(kind)}*, ...)`
-                ); // TODO prettyprint;
+                );
             if (kind.argument.tag === "VoidType") throw new TypingError(exp, "tag cannot be 'void*'");
             return { tag: "BoolType" };
         }
@@ -496,7 +496,7 @@ export function checkExpression(
             `expected to find a '${typeToString(
                 tp
             )}', but this expression has an incompatible type: '${typeToString(synthed)}'`
-        ); // TODO: expected/found
+        );
     }
 }
 
@@ -517,7 +517,7 @@ function leastUpperBoundSmallSynthedType(
     if (lub === null)
         throw new TypingError(
             exp,
-            `cannot ${doThatThingTo} expressions with different types \n  ${
+            `cannot ${doThatThingTo()} expressions with different types \n  ${
                 cond ? "first branch" : "left-hand side"
             } has type ${typeToString(t1)}\n  ${
                 cond ? "second branch" : "right-hand side"
@@ -528,7 +528,7 @@ function leastUpperBoundSmallSynthedType(
     if (lub.tag === "StructType")
         throw new TypingError(exp, `cannot ${doThatThingTo()} structs`, "use pointers to structs");
     if (lub.tag === "VoidType")
-        throw new TypingError(exp, `cannot ${doThatThingTo} expressions of type 'void'`);
+        throw new TypingError(exp, `cannot ${doThatThingTo()} expressions of type 'void'`);
 
     return lub;
 }
