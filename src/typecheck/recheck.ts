@@ -74,7 +74,7 @@ function concreteNoCache(genv: GlobalEnv, actual: ActualType | VoidType): Concre
                 definition:
                     definition &&
                     definition.definitions &&
-                    definition.definitions.map(x => ({ id: x.id.name, kind: concrete(genv,x.kind) }))
+                    definition.definitions.map(x => ({ id: x.id.name, kind: concrete(genv, x.kind) }))
             };
         default:
             return impossible(actual);
@@ -145,6 +145,30 @@ export function recheck(genv: GlobalEnv, env: Env, exp: Expression): ConcreteTyp
                 default:
                     return impossible(exp.operator);
             }
+        }
+        case "BinaryExpression": {
+            switch (exp.operator) {
+                case "*":
+                case "/":
+                case "%":
+                case "+":
+                case "-":
+                case "<<":
+                case ">>":
+                case "&":
+                case "^":
+                case "|": return { tag: "IntType" }
+                case "<":
+                case "<=":
+                case ">=":
+                case ">":
+                case "==":
+                case "!=": return { tag: "BoolType" }
+                default: return impossible(exp.operator);
+            }
+        }
+        case "": {
+
         }
         default:
             return impossible(exp);

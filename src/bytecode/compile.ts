@@ -86,12 +86,63 @@ function conditional(
     ifTrue: string,
     ifFalse: string
 ): Instruction[] {
-    // Give-up instruction: put the boolean on the stack
-    function conditionalFromExpression(exp: ast.Expression): Instruction[] {
-        return expression(genv, env, exp).concat([{tag: "IF", argument: ifTrue}, {tag: "GOTO", argument: ifFalse}]);
+    switch (exp.tag) {
+        case "UnaryExpression": {
+            if (exp.operator === "!") return conditional(genv, env, exp.argument, ifFalse, ifTrue);
+            break;
+        }
+        case "BinaryExpression": {
+            const instrs = expression(genv, env, exp.left).concat(expression(genv, env, exp.right));
+            const goto: Instruction = { tag: "GOTO", argument: ifFalse };
+            switch (exp.operator) {
+                case "<":
+                    return instrs.concat([{ tag: "IF_CMPLT", argument: ifTrue }, goto]);
+                case "<=":
+                    return instrs.concat([{ tag: "IF_CMPLE", argument: ifTrue }, goto]);
+                case ">=":
+                    return instrs.concat([{ tag: "IF_CMPGE", argument: ifTrue }, goto]);
+                case ">":
+                    return instrs.concat([{ tag: "IF_CMPGT", argument: ifTrue }, goto]);
+                case "==":
+                    return instrs.concat([{ tag: "IF_CMPEQ", argument: ifTrue }, goto]);
+                case "!=":
+                    return instrs.concat([{ tag: "IF_CMPNE", argument: ifTrue }, goto]);
+            }
+            break;
+        }
+        case "LogicalExpression": {
+            const labelMid = label("mid");
+            if (exp.operator === "&&")
+                return conditional(genv, env, exp.left, labelMid, ifFalse)
+                    .concat([{ tag: "LABEL", argument: labelMid }])
+                    .concat(conditional(genv, env, exp.right, ifTrue, ifFalse));
+            else
+                return conditional(genv, env, exp.left, ifTrue, labelMid)
+                    .concat([{ tag: "LABEL", argument: labelMid }])
+                    .concat(conditional(genv, env, exp.right, ifTrue, ifFalse));
+        }
     }
 
-    return conditionalFromExpression(exp);
+    // Give-up instruction: put the boolean on the stack (example: an identifier or bool-returning function)
+    return expression(genv, env, exp).concat([
+        { tag: "IF", argument: ifTrue },
+        { tag: "GOTO", argument: ifFalse }
+    ]);
+}
+
+function conditionalexpression(genv: GlobalEnv, env: Env, exp: ast.Expression) {
+    const labelTrue = label("true");
+    const labelFalse = label("false");
+    const labelEnd = label("end");
+    const instrs = conditional(genv, env, exp, labelTrue, labelFalse);
+    return instrs.concat([
+        { tag: "LABEL", argument: labelTrue },
+        { tag: "BPUSH", argument: true },
+        { tag: "GOTO", argument: labelEnd },
+        { tag: "LABEL", argument: labelFalse },
+        { tag: "BPUSH", argument: false },
+        { tag: "LABEL", argument: labelEnd }
+    ]);
 }
 
 function lvalue(genv: GlobalEnv, env: Env, exp: ast.LValue): Instruction[] {
@@ -180,19 +231,8 @@ function expression(genv: GlobalEnv, env: Env, exp: ast.Expression): Instruction
         }
         case "UnaryExpression": {
             switch (exp.operator) {
-                case "!": {
-                    const t = label("uneg_t");
-                    const f = label("uneg_f");
-                    const end = label("uneg_end");
-                    return conditional(genv, env, exp.argument, t, f).concat([
-                        { tag: "LABEL", argument: t },
-                        { tag: "BPUSH", argument: false },
-                        { tag: "GOTO", argument: end },
-                        { tag: "LABEL", argument: f },
-                        { tag: "BPUSH", argument: true },
-                        { tag: "LABEL", argument: end }
-                    ]);
-                }
+                case "!":
+                    return conditionalexpression(genv, env, exp);
                 case "&": {
                     if (exp.argument.tag !== "Identifier")
                         throw new ImpossibleError("expression: address-of non-identifier");
@@ -225,24 +265,66 @@ function expression(genv: GlobalEnv, env: Env, exp: ast.Expression): Instruction
         }
         case "BinaryExpression": {
             const instrs = expression(genv, env, exp.left).concat(expression(genv, env, exp.right));
-            const t = label("binopt");
-            const f = label("binopf");
             switch (exp.operator) {
-                case "*": return instrs.concat([{tag: "IMUL"}]);
-                case "/": return instrs.concat([{tag: "IDIV"}]);
-                case "%": return instrs.concat([{tag: "IREM"}]);
-                case "+": return instrs.concat([{tag: "IADD"}]);
-                case "-": return instrs.concat([{tag: "ISUB"}]);
-                case "<<": return instrs.concat([{tag: "ISHL"}]);
-                case ">>": return instrs.concat([{tag: "ISHR"}]);
-                case "&": return instrs.concat([{tag: "IAND"}]);
-                case "^": return instrs.concat([{tag: "IXOR"}]);
-                case "|": return instrs.concat([{tag: "IOR"}]);
-                case "<": return instrs.concat([{tag: "IF_CMPLT"}])
-                default: return impossible(exp.operator);
+                case "*":
+                    return instrs.concat([{ tag: "IMUL" }]);
+                case "/":
+                    return instrs.concat([{ tag: "IDIV" }]);
+                case "%":
+                    return instrs.concat([{ tag: "IREM" }]);
+                case "+":
+                    return instrs.concat([{ tag: "IADD" }]);
+                case "-":
+                    return instrs.concat([{ tag: "ISUB" }]);
+                case "<<":
+                    return instrs.concat([{ tag: "ISHL" }]);
+                case ">>":
+                    return instrs.concat([{ tag: "ISHR" }]);
+                case "&":
+                    return instrs.concat([{ tag: "IAND" }]);
+                case "^":
+                    return instrs.concat([{ tag: "IXOR" }]);
+                case "|":
+                    return instrs.concat([{ tag: "IOR" }]);
+                case "<":
+                case "<=":
+                case ">=":
+                case ">":
+                case "==":
+                case "!=":
+                    return conditionalexpression(genv, env, exp);
+                default:
+                    return impossible(exp.operator);
             }
         }
+        case "LogicalExpression":
+            return conditionalexpression(genv, env, exp);
+        case "ConditionalExpression": {
+            const labelTrue = label("true");
+            const labelFalse = label("false");
+            const labelEnd = label("end");
+            return conditional(genv, env, exp.test, labelTrue, labelFalse)
+                .concat([{ tag: "LABEL", argument: labelTrue }])
+                .concat(expression(genv, env, exp.consequent))
+                .concat([{ tag: "GOTO", argument: labelEnd }, { tag: "LABEL", argument: labelFalse }])
+                .concat(expression(genv, env, exp.alternate))
+                .concat([{ tag: "LABEL", argument: labelEnd }]);
+        }
+        case "AllocExpression":
+            return [{ tag: "NEW", argument: concrete(genv, exp.kind) }];
+        case "AllocArrayExpression":
+            return expression(genv, env, exp.size).concat([
+                { tag: "NEWARRAY", argument: concrete(genv, exp.kind) }
+            ]);
+        case "ResultExpression":
+            return [{ tag: "VLOAD", argument: "\\result" }];
+        case "LengthExpression":
+            return expression(genv, env, exp.argument).concat([{ tag: "ARRAYLENGTH" }]);
+        case "HasTagExpression":
+            return expression(genv, env, exp.argument).concat([
+                { tag: "CHECKTAG", argument: concrete(genv, exp.kind) }
+            ]);
         default:
-            impossible(exp);
+            return impossible(exp);
     }
 }

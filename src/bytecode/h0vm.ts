@@ -44,7 +44,7 @@ export type Instruction =
     | { tag: "IF_CMPLE"; argument: string }
     | { tag: "GOTO"; argument: string }
     | { tag: "ATHROW" }
-    | { tag: "ASSERT"; argument: "hard" | "assert" | "requires" | "ensures" }
+    | { tag: "ASSERT"; argument: null | "assert" | "requires" | "ensures" }
 
     // Functions
     | { tag: "INVOKESTATIC"; argument: string }
