@@ -11,12 +11,7 @@ import {
     getStructDefinition,
     actualType
 } from "./globalenv";
-import {
-    Env,
-    equalFunctionTypes,
-    checkTypeInDeclaration,
-    checkFunctionReturnType
-} from "./types";
+import { Env, equalFunctionTypes, checkTypeInDeclaration, checkFunctionReturnType } from "./types";
 import { checkExpression } from "./expressions";
 import { checkStatement } from "./statements";
 import { expressionFreeVars, checkStatementFlow, checkExpressionUsesGetFreeFunctions } from "./flow";
@@ -38,7 +33,7 @@ function getEnvironmentFromParams(genv: GlobalEnv, params: ast.VariableDeclarati
         } else {
             env.set(param.id.name, param.kind);
         }
-    };
+    }
     return env;
 }
 
@@ -51,31 +46,49 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             if (decl.definitions === null) return new Set();
             if (!library && isLibraryStruct(genv, decl.id.name))
                 // TODO: Previous location
-                throw new TypingError(decl, `struct ${decl.id.name} is declared in a library and cannot be defined here`);
+                throw new TypingError(
+                    decl,
+                    `struct ${decl.id.name} is declared in a library and cannot be defined here`
+                );
             const previousStruct = getStructDefinition(genv, decl.id.name);
             if (previousStruct !== null && previousStruct.definitions !== null)
                 // TODO: Previous location
-                throw new TypingError(decl, `struct ${decl.id.name} is defined twice`, "structs can only be defined once");
+                throw new TypingError(
+                    decl,
+                    `struct ${decl.id.name} is defined twice`,
+                    "structs can only be defined once"
+                );
 
             let fields = new Set<string>();
             for (let definition of decl.definitions) {
                 if (fields.has(definition.id.name))
                     // TODO: Previous location
-                    throw new TypingError(decl, 
+                    throw new TypingError(
+                        decl,
                         `field '${definition.id.name}' used more than once in definition of struct '${
                             decl.id.name
                         }'`
                     );
                 const kind = actualType(genv, definition.kind);
                 if (kind.tag === "NamedFunctionType")
-                    throw new TypingError(definition, "cannot put a function directly in a struct", "use a function pointer");
+                    throw new TypingError(
+                        definition,
+                        "cannot put a function directly in a struct",
+                        "use a function pointer"
+                    );
                 if (kind.tag === "StructType") {
                     const structdef = getStructDefinition(genv, kind.id.name);
-                    if (structdef === null || structdef.definitions === null) 
-                        throw new TypingError(definition, "struct fields must be defined", `define 'struct ${kind.id.name}' or make the field a pointer to a 'struct ${kind.id.name}'`)
+                    if (structdef === null || structdef.definitions === null)
+                        throw new TypingError(
+                            definition,
+                            "struct fields must be defined",
+                            `define 'struct ${kind.id.name}' or make the field a pointer to a 'struct ${
+                                kind.id.name
+                            }'`
+                        );
                 }
                 fields.add(definition.id.name);
-            };
+            }
             return new Set();
         }
         case "TypeDefinition": {
@@ -83,10 +96,14 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             const previousFunction = getFunctionDeclaration(genv, decl.definition.id.name);
             if (previousTypeDef !== null)
                 // TODO: Previous location
-                throw new TypingError(decl, `type name '${decl.definition.id.name}' already defined as a type`);
+                throw new TypingError(
+                    decl,
+                    `type name '${decl.definition.id.name}' already defined as a type`
+                );
             if (previousFunction !== null)
                 // TODO: Previous location
-                throw new TypingError(decl,
+                throw new TypingError(
+                    decl,
                     `type name '${decl.definition.id.name}' already used as a function name`
                 );
             return new Set();
@@ -97,13 +114,17 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             const previousFunction = getFunctionDeclaration(genv, decl.definition.id.name);
             if (previousTypeDef !== null)
                 // TODO: Previous location
-                throw new TypingError(decl, `function type name '${decl.definition.id.name}' already defined as a type`);
+                throw new TypingError(
+                    decl,
+                    `function type name '${decl.definition.id.name}' already defined as a type`
+                );
             if (previousFunction !== null)
                 // TODO: Previous location
-                throw new TypingError(decl,
+                throw new TypingError(
+                    decl,
                     `function type name '${decl.definition.id.name}' already used as a function name`
                 );
-            
+
             // Check declaration
             checkFunctionReturnType(genv, decl.definition.returns);
             const env = getEnvironmentFromParams(genv, decl.definition.params);
@@ -111,11 +132,17 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             const functionsUsed = new Set<string>();
             for (let anno of decl.definition.preconditions) {
                 checkExpression(genv, env, { tag: "@requires" }, anno, { tag: "BoolType" });
-                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x => functionsUsed.add(x));
+                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x =>
+                    functionsUsed.add(x)
+                );
             }
             for (let anno of decl.definition.postconditions) {
-                checkExpression(genv, env, { tag: "@ensures", returns: decl.definition.returns }, anno, { tag: "BoolType" });
-                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x => functionsUsed.add(x));
+                checkExpression(genv, env, { tag: "@ensures", returns: decl.definition.returns }, anno, {
+                    tag: "BoolType"
+                });
+                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x =>
+                    functionsUsed.add(x)
+                );
             }
             return functionsUsed;
         }
@@ -127,13 +154,17 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             let functionsUsed = new Set<string>();
             for (let anno of decl.preconditions) {
                 checkExpression(genv, env, { tag: "@requires" }, anno, { tag: "BoolType" });
-                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x => functionsUsed.add(x));
+                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x =>
+                    functionsUsed.add(x)
+                );
             }
             for (let anno of decl.postconditions) {
                 checkExpression(genv, env, { tag: "@ensures", returns: decl.returns }, anno, {
                     tag: "BoolType"
                 });
-                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x => functionsUsed.add(x));
+                checkExpressionUsesGetFreeFunctions(defined, defined, anno).forEach(x =>
+                    functionsUsed.add(x)
+                );
             }
 
             // Check previous functions match
@@ -156,10 +187,14 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             // Check body, if necessary
             if (decl.body === null) return functionsUsed;
 
-            if (library) throw new TypingError(decl.body, `functions cannot be defined in a library header file`);
+            if (library)
+                throw new TypingError(decl.body, `functions cannot be defined in a library header file`);
             if (isLibraryFunction(genv, decl.id.name))
                 // TODO: Previous location
-                throw new TypingError(decl.id, `function ${decl.id.name} is declared in a library header and cannot be defined`);
+                throw new TypingError(
+                    decl.id,
+                    `function ${decl.id.name} is declared in a library header and cannot be defined`
+                );
 
             // TODO: It's a hack that we _permanently_ add the recursive type declaration
             // even if it's a harmless hack.
@@ -183,11 +218,10 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
 
             const functionAnalysis = checkStatementFlow(defined, constants, defined, decl.body);
             if (decl.returns.tag !== "VoidType" && !functionAnalysis.returns)
-                throw new TypingError(decl.body,
-                        `function ${
-                            decl.id.name
-                        } has non-void return type but does not return along every path`
-                    );
+                throw new TypingError(
+                    decl.body,
+                    `function ${decl.id.name} has non-void return type but does not return along every path`
+                );
             functionAnalysis.functions.forEach(f => functionsUsed.add(f));
 
             return functionsUsed;

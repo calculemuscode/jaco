@@ -42,9 +42,13 @@ export function checkStatement(
         case "ExpressionStatement": {
             const expType = actualSynthed(genv, synthExpression(genv, env, null, stm.expression));
             if (expType.tag === "StructType")
-                throw new TypingError(stm, `expression used as statements cannot have type 'struct ${expType.id.name}'`);
+                throw new TypingError(
+                    stm,
+                    `expression used as statements cannot have type 'struct ${expType.id.name}'`
+                );
             if (expType.tag === "NamedFunctionType")
-                throw new TypingError(stm,
+                throw new TypingError(
+                    stm,
                     `expression used as statements cannot have function type '${expType.definition.id.name}'`
                 );
             return;
@@ -86,14 +90,16 @@ export function checkStatement(
             return;
         }
         case "ReturnStatement": {
-            if (returning === null) 
-                throw new TypingError(stm, `return statements not allowed`);
+            if (returning === null) throw new TypingError(stm, `return statements not allowed`);
             if (returning.tag === "VoidType") {
-                if (stm.argument !== null) 
-                    throw new TypingError(stm, "function returning void must invoke 'return', not 'return e'");
+                if (stm.argument !== null)
+                    throw new TypingError(
+                        stm,
+                        "function returning void must invoke 'return', not 'return e'"
+                    );
                 return;
             } else {
-                if (stm.argument === null) 
+                if (stm.argument === null)
                     throw new TypingError(stm, `this function must return a ${typeToString(returning)}`);
                 checkExpression(genv, env, null, stm.argument, returning);
                 return;
@@ -115,7 +121,8 @@ export function checkStatement(
         }
         case "BreakStatement": {
             if (!inLoop)
-                throw new TypingError(stm,
+                throw new TypingError(
+                    stm,
                     "break statement not allowed",
                     "break statements must be inside the body of a for-loop or while-loop"
                 );
@@ -123,8 +130,9 @@ export function checkStatement(
         }
         case "ContinueStatement": {
             if (!inLoop)
-            throw new TypingError(stm,
-                "continue statement not allowed",
+                throw new TypingError(
+                    stm,
+                    "continue statement not allowed",
                     "continue statements must be inside the body of a for-loop or while-loop"
                 );
             return;
