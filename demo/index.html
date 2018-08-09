@@ -1,14 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Jaco: C1 typechecker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Jaco: C1 typechecker</h1>
+
+<div id="editor">123456789012345678901234567890A
+123456789012345678901234567890B
+123456789012345678901234567890C
+123456789012345678901234567890D
+123456789012345678901234567890E
+123456789012345678901234567890F
+123456789012345678901234567890G
+123456789012345678901234567890H
+123456789012345678901234567890I
+123456789012345678901234567890J
+function foo(items) {
+    var x = "All this is syntax highlighted";
+    return x;
+}</div>
+    
+<script src="ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    const x = new ace.Range(1,2,3,4);
+    console.log(x);
+    console.log(x.start);
+</script>
+<script src="jaco.js"></script>
+</body>
+</html>
+<!--
 <!doctype html>
+
+
 
 <html lang="en">
 <head>
   <meta charset="utf-8">
 
   <title>Jaco: C1 typechecker</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.39.0/codemirror.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.19.0/codemirror.min.css">
-  <!-- script src="codemirror.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="codemirror.min.css" -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -25,3 +57,5 @@
 
 </body>
 </html>
+
+-->

@@ -28,6 +28,7 @@
     "repository": "https://github.com/calculemuscode/jaco",
     "dependencies": {
         "@calculemus/impossible": "0.0.4",
+        "@types/ace": "0.0.40",
         "moo": "^0.4.3",
         "nearley": "^2.13.0",
         "request": "^2.86.0"

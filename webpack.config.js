@@ -20,7 +20,8 @@ module.exports = {
       ]
     },
     externals: {
-        "codemirror": "CodeMirror"
+        "codemirror": "CodeMirror",
+        "ace": "ace"
     },
   };
   
