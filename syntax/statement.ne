@@ -3,7 +3,8 @@
 @lexer lexer
 @include "./expression.ne"
 
-Top -> Statement {% id %}
+Top -> (_ Statement):* _Annos _ Expression _ {% util.TopExpression %} 
+     | (_ Statement):+ _Annos _ {% util.TopStatement %}
 
 Simple         -> Tp _ Identifier (_ "=" _ Expression):?
                 | Expression                                {% id %}

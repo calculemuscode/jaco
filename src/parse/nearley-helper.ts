@@ -558,6 +558,36 @@ export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
     return { tag: "while", test: test, start: tokloc(tWHILE).start };
 }
 
+export function TopExpression([stms, annos, s1, exp, s2]: [
+    [WS, AnnosAndStm][],
+    syn.AnnoStatement[],
+    WS,
+    syn.Expression,
+    WS
+]) {
+    return {
+        stms: stms
+            .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
+            .concat([annos])
+            .reduce((collect, stms) => collect.concat(stms), []),
+        exp: exp
+    };
+}
+
+export function TopStatement([stms, annos, s2]: [
+    [WS, AnnosAndStm][],
+    syn.AnnoStatement[],
+    WS
+]) {
+    return {
+        stms: stms
+            .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
+            .concat([annos])
+            .reduce((collect, stms) => collect.concat(stms), []),
+        exp: null
+    };
+}
+
 export function Statement([wrappers, annos, stm]: [
     [syn.AnnoStatement[], Wrapper][],
     syn.AnnoStatement[],

@@ -1,12 +1,12 @@
 import { Grammar, Parser } from "nearley";
 import { TypeLexer } from "../lex";
-import { restrictExpression, restrictDeclaration } from "./restrictsyntax";
+import { restrictExpression, restrictDeclaration, restrictStatement } from "./restrictsyntax";
 import Lang from "../lang";
 import * as ast from "../ast";
-import * as parsed from ".//parsedsyntax";
+import * as parsed from "./parsedsyntax";
 
 const expressionRules = require("../../lib/expression-rules");
-//const statementRules = require("../../lib/statement-rules");
+const statementRules = require("../../lib/statement-rules");
 const programRules = require("../../lib/program-rules");
 
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
@@ -24,14 +24,23 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
     }
 }
 
-/*
-export function parseStatement(str: string, options?: { types?: Set<string>; lang: Lang }) {
-    programRules.lexer = new TypeLexer(options && options.types ? options.types : Set<string>());
-    const parser = new Parser(Grammar.fromCompiled(programRules));
+export function parseStatement(str: string, options?: { lang?: Lang; types?: Set<string> }): { stms: ast.Statement[], exp: null | ast.Expression } {
+    const opt = options ? options : {};
+    const parser = new Parser(Grammar.fromCompiled(statementRules));
+    parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || new Set());
     parser.feed(str);
-    return restrictStatement;
+    const parsed = parser.finish();
+    if (parsed.length > 1) {
+        throw new Error("Ambiguous parse!");
+    } else if (parsed.length === 0) {
+        throw new Error("Incomplete statment");
+    } else {
+        return {
+            stms: parsed[0].stms.map((x: parsed.Statement) => restrictStatement(opt.lang || "C1", x)),
+            exp: parsed[0].exp && restrictExpression(opt.lang || "C1", parsed[0].exp)
+        }
+    }
 }
-*/
 
 function* semicolonSplit(s: string) {
     let ndx = s.indexOf(";");
