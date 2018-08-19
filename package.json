@@ -1,6 +1,6 @@
 {
     "name": "@calculemus/jaco",
-    "version": "0.0.9",
+    "version": "0.0.11",
     "description": "JavaScript C0 Parser & Tools",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",

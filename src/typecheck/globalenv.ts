@@ -37,6 +37,14 @@ export function getTypeDef(genv: GlobalEnv, t: string): ActualType | ast.ValueTy
     return null;
 }
 
+export function initEmpty(): GlobalEnv {
+    return {
+        libstructs: new Set<string>(),
+        libfuncs: new Set<string>(),
+        decls: []
+    };
+}
+
 /**
  * Create an initial GlobalEnv with the correct type for main()
  */

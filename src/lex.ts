@@ -1,6 +1,6 @@
 import { states, Token, Lexer, LexerState } from "moo";
 import Lang from "./lang";
-import { impossible } from "../node_modules/@calculemus/impossible";
+import { impossible } from "@calculemus/impossible";
 
 /**
  * Ambitious Goal: "invalid syntax" errors from the lexer are unclear. Can we take errors out of the lexer to
