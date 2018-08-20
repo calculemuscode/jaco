@@ -149,6 +149,7 @@ function assignmentOp(
         case "|=":
             instr = { tag: "IOR" };
             break;
+            /* istanbul ignore next */
         default:
             instr = impossible(operator);
             break;
