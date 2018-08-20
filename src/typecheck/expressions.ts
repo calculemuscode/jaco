@@ -405,7 +405,22 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             }
         }
         case "LogicalExpression": {
-            checkExpression(genv, env, mode, exp.left, { tag: "BoolType" });
+            const left = actualSynthed(genv, synthExpression(genv, env, mode, exp.left));
+            if (left.tag === "IntType")
+                throw new TypingError(
+                    exp,
+                    `cannot perform logical-${exp.operator === "&&" ? "and" : "or"} on integers`,
+                    `use the bitwise-${exp.operator === "&&" ? "and" : "or"} operation ${
+                        exp.operator === "&&" ? "&" : "|"
+                    } instead?`
+                );
+            if (left.tag !== "BoolType")
+                throw new TypingError(
+                    exp,
+                    `cannot perform logical-${exp.operator === "&&" ? "and" : "or"} on type ${typeToString(
+                        left
+                    )}`
+                );
             checkExpression(genv, env, mode, exp.right, { tag: "BoolType" });
             return { tag: "BoolType" };
         }
