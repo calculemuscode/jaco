@@ -233,6 +233,29 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
     }
 }
 
+export function checkProgramFragment(libs: ast.Declaration[], decls: ast.Declaration[]) {
+    const genv = initMain();
+    const functionsUsed = new Set<string>();
+    libs.forEach(decl => {
+        checkDeclaration(true, genv, decl).forEach(f => functionsUsed.add(f));
+        addDecl(true, genv, decl);
+    });
+    decls.forEach(decl => {
+        checkDeclaration(false, genv, decl).forEach(f => functionsUsed.add(f));
+        addDecl(false, genv, decl);
+    });
+
+    functionsUsed.forEach(
+        (name): void => {
+            const def = getFunctionDeclaration(genv, name);
+            if (def === null) throw new ImpossibleError(`No definition for ${name}`);
+            if (def.body === null && !isLibraryFunction(genv, def.id.name))
+                // TODO: Where was the function used?
+                throw new TypingError(def, `function ${name} is never defined`);
+        }
+    );
+}
+
 export function checkProgram(libs: ast.Declaration[], decls: ast.Declaration[]) {
     const genv = initMain();
     const functionsUsed = new Set<string>();

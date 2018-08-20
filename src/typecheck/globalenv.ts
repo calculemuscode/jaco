@@ -1,6 +1,6 @@
 import * as ast from "../ast";
 import { ImpossibleError } from "../error";
-import { impossible } from "../../node_modules/@calculemus/impossible";
+import { impossible } from "@calculemus/impossible";
 
 export type GlobalEnv = {
     readonly libstructs: Set<string>;
