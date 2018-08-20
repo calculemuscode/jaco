@@ -24,7 +24,10 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
     }
 }
 
-export function parseStatement(str: string, options?: { lang?: Lang; types?: Set<string> }): { stms: ast.Statement[], exp: null | ast.Expression } {
+export function parseStatement(
+    str: string,
+    options?: { lang?: Lang; types?: Set<string> }
+): { stms: ast.Statement[]; exp: null | ast.Expression } {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(statementRules));
     parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || new Set());
@@ -38,7 +41,7 @@ export function parseStatement(str: string, options?: { lang?: Lang; types?: Set
         return {
             stms: parsed[0].stms.map((x: parsed.Statement) => restrictStatement(opt.lang || "C1", x)),
             exp: parsed[0].exp && restrictExpression(opt.lang || "C1", parsed[0].exp)
-        }
+        };
     }
 }
 

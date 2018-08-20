@@ -38,10 +38,14 @@ function draw(prog: string) {
             const loc = (e as ParsingError).loc!;
             doc.markText(pos(loc.start), pos(loc.end), { className: "syntaxerror", title: e.message });
             output.innerText = `Syntax error on line ${loc.start.line}:\n\n${e.message}`;
-        } else if (e instanceof Error && e.name === "TypingError" && (e as TypingError).loc) {
-            const loc = (e as TypingError).loc!;
-            doc.markText(pos(loc.start), pos(loc.end), { className: "typeerror", title: e.message });
-            output.innerText = `Type error on line ${loc.start.line}:\n\n${e.message}\n====\n${progJSON}`;
+        } else if (e instanceof Error && e.name === "TypingError") {
+            if ((e as TypingError).loc) {
+                const loc = (e as TypingError).loc!;
+                doc.markText(pos(loc.start), pos(loc.end), { className: "typeerror", title: e.message });
+                output.innerText = `Type error on line ${loc.start.line}:\n\n${e.message}\n====\n${progJSON}`;
+            } else {
+                
+            }
         } else if ("token" in e) {
             doc.markText(
                 pos({ line: e.token.line, column: e.token.col }),

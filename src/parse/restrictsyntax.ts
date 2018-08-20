@@ -254,7 +254,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             return {
                 tag: "AllocArrayExpression",
                 kind: restrictValueType(lang, syn.kind),
-                size: restrictExpression(lang, syn.size),
+                argument: restrictExpression(lang, syn.size),
                 loc: syn.loc
             };
         }

@@ -574,11 +574,7 @@ export function TopExpression([stms, annos, s1, exp, s2]: [
     };
 }
 
-export function TopStatement([stms, annos, s2]: [
-    [WS, AnnosAndStm][],
-    syn.AnnoStatement[],
-    WS
-]) {
+export function TopStatement([stms, annos, s2]: [[WS, AnnosAndStm][], syn.AnnoStatement[], WS]) {
     return {
         stms: stms
             .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))

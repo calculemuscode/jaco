@@ -188,6 +188,7 @@ export interface ArrayMemberExpression extends Syn {
     readonly tag: "ArrayMemberExpression";
     readonly object: Expression;
     readonly index: Expression;
+    size?: ConcreteType;
 }
 
 /**
@@ -200,6 +201,8 @@ export interface StructMemberExpression extends Syn {
     readonly deref: boolean;
     readonly object: Expression;
     readonly field: Identifier;
+    struct?: string;
+    size?: ConcreteType;
 }
 
 /**
@@ -227,6 +230,8 @@ export interface CastExpression extends Syn {
     readonly tag: "CastExpression";
     readonly kind: ValueType;
     readonly argument: Expression;
+    typename?: string;
+    direction?: "TO_VOID" | "FROM_VOID";
 }
 
 /**
@@ -236,6 +241,7 @@ export interface UnaryExpression extends Syn {
     readonly tag: "UnaryExpression";
     readonly operator: "&" | "!" | "~" | "-" | "*";
     readonly argument: Expression;
+    size?: ConcreteType;
 }
 
 /**
@@ -290,6 +296,7 @@ export interface ConditionalExpression extends Syn {
 export interface AllocExpression extends Syn {
     readonly tag: "AllocExpression";
     readonly kind: ValueType;
+    size?: ConcreteType;
 }
 
 /**
@@ -298,7 +305,8 @@ export interface AllocExpression extends Syn {
 export interface AllocArrayExpression extends Syn {
     readonly tag: "AllocArrayExpression";
     readonly kind: ValueType;
-    readonly size: Expression;
+    readonly argument: Expression;
+    size?: ConcreteType;
 }
 
 /**
@@ -323,6 +331,7 @@ export interface HasTagExpression extends Syn {
     readonly tag: "HasTagExpression";
     readonly kind: ValueType;
     readonly argument: Expression;
+    typename?: string;
 }
 
 /**
@@ -362,6 +371,7 @@ export interface AssignmentStatement extends Syn {
     readonly operator: "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=";
     readonly left: LValue;
     readonly right: Expression;
+    size?: ConcreteType;
 }
 
 export interface UpdateStatement extends Syn {
@@ -486,3 +496,17 @@ export interface Pragma {
     readonly pragma: string;
     readonly contents: string;
 }
+
+/**
+ * Inelegantly, some information synthesized by the typechecker needs
+ * to be present in order to faithfully compile. This information is inserted during
+ * typechecking.
+ */
+export type ConcreteType =
+    | CharType
+    | BoolType
+    | IntType
+    | StringType
+    | StructType
+    | { tag: "PointerType" }
+    | { tag: "TaggedPointerType" };

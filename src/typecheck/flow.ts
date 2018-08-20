@@ -46,7 +46,7 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
             expressionFreeVars(exp.alternate).forEach(x => freeVars.add(x));
             return freeVars;
         case "AllocArrayExpression":
-            expressionFreeVars(exp.size).forEach(x => freeVars.add(x));
+            expressionFreeVars(exp.argument).forEach(x => freeVars.add(x));
             return freeVars;
         default:
             return impossible(exp);

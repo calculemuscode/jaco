@@ -1,5 +1,12 @@
 import { impossible } from "@calculemus/impossible";
-import { GlobalEnv, getFunctionDeclaration, getStructDefinition, actualType } from "./globalenv";
+import {
+    GlobalEnv,
+    getFunctionDeclaration,
+    getStructDefinition,
+    actualType,
+    concreteType,
+    fullTypeName
+} from "./globalenv";
 import { Env, Synthed, isSubtype, leastUpperBoundSynthedType, actualSynthed, ActualSynthed } from "./types";
 //import { error } from "./error";
 import * as ast from "../ast";
@@ -103,15 +110,14 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
             return { tag: "AmbiguousNullPointer" };
         case "ArrayMemberExpression": {
             let objectType = actualSynthed(genv, synthExpression(genv, env, mode, exp.object));
-            if (objectType.tag !== "ArrayType") {
+            if (objectType.tag !== "ArrayType")
                 throw new TypingError(
                     exp,
                     `subject of indexing '[...]' is ${valueDescription(genv, objectType)}, not an array`
                 );
-            } else {
-                checkExpression(genv, env, mode, exp.index, { tag: "IntType" });
-                return objectType.argument;
-            }
+            checkExpression(genv, env, mode, exp.index, { tag: "IntType" });
+            exp.size = concreteType(genv, objectType.argument); // INSERTING TYPE INFORMATION HERE
+            return objectType.argument;
         }
         case "StructMemberExpression": {
             let objectType = actualSynthed(genv, synthExpression(genv, env, mode, exp.object));
@@ -164,8 +170,12 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                         objectType.id.name
                     }', which is declared but not defined`
                 );
+            exp.struct = structDef.id.name; // INSERTING TYPE INFORMATION HERE
             for (let field of structDef.definitions) {
-                if (field.id.name === exp.field.name) return field.kind;
+                if (field.id.name === exp.field.name) {
+                    exp.size = concreteType(genv, field.kind); // INSERTING TYPE INFORMATION HERE
+                    return field.kind;
+                }
             }
             throw new TypingError(
                 exp,
@@ -236,7 +246,11 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 );
 
             const argumentType = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
-            if (argumentType.tag === "AmbiguousNullPointer") return exp.kind; // NULL cast always ok
+            if (argumentType.tag === "AmbiguousNullPointer") {
+                // NULL cast always ok
+                // We don't know (or care) if it's to or from void*
+                return exp.kind;
+            }
             if (
                 argumentType.tag === "NamedFunctionType" ||
                 argumentType.tag == "AnonymousFunctionTypePointer"
@@ -253,11 +267,16 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 );
 
             if (castType.argument.tag === "VoidType") {
+                exp.direction = "TO_VOID";
+                exp.typename = fullTypeName(genv, argumentType); // INSERTING TYPE INFORMATION HERE
                 if (argumentType.argument.tag === "VoidType")
                     throw new TypingError(exp, "Casting a 'void*' as a 'void*' not permitted\n");
             } else if (argumentType.argument.tag !== "VoidType") {
+                exp.direction = "FROM_VOID";
+                exp.typename = fullTypeName(genv, exp.kind); // INSERTING TYPE INFORMATION HERE
                 throw new TypingError(exp, "only casts to or from 'void*' allowed");
             }
+            
             return exp.kind;
         }
         case "UnaryExpression": {
@@ -303,15 +322,14 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             );
                         }
                         case "PointerType": {
-                            if (pointerType.argument.tag === "VoidType") {
+                            if (pointerType.argument.tag === "VoidType")
                                 throw new TypingError(
                                     exp,
                                     "cannot dereference value of type 'void*'",
                                     "cast to another pointer type with '(t*)'"
                                 );
-                            } else {
-                                return pointerType.argument;
-                            }
+                            exp.size = concreteType(genv, pointerType.argument); // INSERTING TYPE INFORMATION HERE
+                            return pointerType.argument;
                         }
                         default:
                             throw new TypingError(
@@ -410,6 +428,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                         `give a definition for 'struct ${kind.id.name}'`
                     );
             }
+            exp.size = concreteType(genv, exp.kind); // INSERTING TYPE INFORMATION HERE
             return { tag: "PointerType", argument: exp.kind };
         }
         case "AllocArrayExpression": {
@@ -424,7 +443,8 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                         `give a definition for 'struct ${kind.id.name}'`
                     );
             }
-            checkExpression(genv, env, mode, exp.size, { tag: "IntType" });
+            checkExpression(genv, env, mode, exp.argument, { tag: "IntType" });
+            exp.size = concreteType(genv, exp.kind); // INSERTING TYPE INFORMATION HERE
             return { tag: "ArrayType", argument: exp.kind };
         }
         case "ResultExpression": {

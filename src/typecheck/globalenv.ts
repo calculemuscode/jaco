@@ -1,5 +1,6 @@
 import * as ast from "../ast";
 import { ImpossibleError } from "../error";
+import { impossible } from "../../node_modules/@calculemus/impossible";
 
 export type GlobalEnv = {
     readonly libstructs: Set<string>;
@@ -144,4 +145,53 @@ function expandTypeDef(genv: GlobalEnv, t: ast.Identifier): ActualType {
  */
 export function actualType(genv: GlobalEnv, t: ActualType | ast.Type): ActualType | ast.VoidType {
     return t.tag === "Identifier" ? expandTypeDef(genv, t) : t;
+}
+
+export function fullTypeName(genv: GlobalEnv, t: ActualType | ast.Type): string {
+    const typ = actualType(genv, t);
+    switch (typ.tag) {
+        case "VoidType":
+            return `void`;
+        case "BoolType":
+            return `bool`;
+        case "IntType":
+            return `int`;
+        case "StructType":
+            return `struct ${typ.id.name}`;
+        case "CharType":
+            return `char`;
+        case "StringType":
+            return `string`;
+        case "PointerType":
+            return `${fullTypeName(genv, typ.argument)}*`;
+        case "ArrayType":
+            return `${fullTypeName(genv, typ.argument)}[]`;
+        case "NamedFunctionType":
+            return typ.definition.id.name;
+        default:
+            return impossible(typ);
+    }
+}
+
+export function concreteType(genv: GlobalEnv, t: ActualType | ast.Type): ast.ConcreteType {
+    const typ = actualType(genv, t);
+    switch (typ.tag) {
+        case "VoidType":
+            throw new ImpossibleError("concreteType");
+        case "BoolType":
+        case "IntType":
+        case "StructType":
+        case "CharType":
+        case "StringType":
+            return typ;
+        case "PointerType": {
+            if (typ.argument.tag === "VoidType") return { tag: "TaggedPointerType" };
+        }
+        case "ArrayType":
+            return { tag: "PointerType" };
+        case "NamedFunctionType":
+            throw new ImpossibleError("concreteType");
+        default:
+            return impossible(typ);
+    }
 }

@@ -1,6 +1,6 @@
 import { impossible } from "@calculemus/impossible";
 import * as ast from "../ast";
-import { GlobalEnv } from "./globalenv";
+import { GlobalEnv, concreteType } from "./globalenv";
 import { Env, checkTypeInDeclaration, actualSynthed } from "./types";
 import { checkExpression, synthExpression, synthLValue } from "./expressions";
 import { TypingError } from "../error";
@@ -33,6 +33,7 @@ export function checkStatement(
         case "AssignmentStatement": {
             const left = synthLValue(genv, env, null, stm.left);
             checkExpression(genv, env, null, stm.right, left);
+            stm.size = concreteType(genv, left); // INSERTING TYPE INFORMATION HERE
             return;
         }
         case "UpdateStatement": {

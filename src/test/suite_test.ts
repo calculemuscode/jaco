@@ -8,6 +8,7 @@ import { parseSpec, Spec } from "./parsespec";
 import { checkProgram } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
+import { program as generateProgram } from "../bytecode/generate";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -99,6 +100,8 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                     return;
                 }
             }
+
+            expect(() => generateProgram(ast, spec.debug)).not.to.throw();
         });
     });
 }
