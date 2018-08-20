@@ -15,6 +15,7 @@ function load(kind: ast.ConcreteType): Instruction {
             return { tag: "SMLOAD" };
         case "PointerType":
             return { tag: "AMLOAD" };
+            /* instanbul ignore next */
         default:
             throw new ImpossibleError(`load: ${kind.tag}`);
     }
@@ -63,8 +64,9 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                     return instrs.concat([{ tag: "IF_CMPEQ", argument: ifTrue }, goto]);
                 case "!=":
                     return instrs.concat([{ tag: "IF_CMPNE", argument: ifTrue }, goto]);
+                    /* istanbul ignore next */
+                default: throw new ImpossibleError(`conditional() given non-bool BinaryExpression ${exp.operator}`);
             }
-            break;
         }
         case "LogicalExpression": {
             const labelMid = label("mid");
@@ -195,7 +197,7 @@ function expression(exp: ast.Expression): Instruction[] {
         case "StructMemberExpression":
             return structMemberExpression(exp).concat([load(exp.size!)]);
         case "CallExpression": {
-            let args: Instruction[] = [];
+            let args: Instruction[] = exp.loc ? [{tag: "POSITION", argument: exp.loc }] : [];
             for (let arg of exp.arguments) {
                 args = args.concat(expression(arg));
             }
