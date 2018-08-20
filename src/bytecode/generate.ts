@@ -230,6 +230,7 @@ function expression(exp: ast.Expression): Instruction[] {
                 case "!":
                     return conditionalexpression(exp);
                 case "&": {
+                    /* istanbul ignore next */
                     if (exp.argument.tag !== "Identifier")
                         throw new ImpossibleError("expression: address-of non-identifier");
                     return [{ tag: "FUNCTIONADDRESS", argument: exp.argument.name }];
