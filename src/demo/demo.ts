@@ -44,7 +44,6 @@ function draw(prog: string) {
                 doc.markText(pos(loc.start), pos(loc.end), { className: "typeerror", title: e.message });
                 output.innerText = `Type error on line ${loc.start.line}:\n\n${e.message}\n====\n${progJSON}`;
             } else {
-                
             }
         } else if ("token" in e) {
             doc.markText(

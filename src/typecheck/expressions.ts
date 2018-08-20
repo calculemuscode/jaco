@@ -276,7 +276,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 exp.typename = fullTypeName(genv, exp.kind); // INSERTING TYPE INFORMATION HERE
                 throw new TypingError(exp, "only casts to or from 'void*' allowed");
             }
-            
+
             return exp.kind;
         }
         case "UnaryExpression": {

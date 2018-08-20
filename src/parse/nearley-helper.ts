@@ -721,7 +721,9 @@ export function Anno([anno, s1, test, s2, semi, s3]: [
 }
 
 export function AnnoSet(
-    annos: [Token, WS, syn.AnnoStatement[], Token, undefined, undefined] | [Token, WS, syn.AnnoStatement[], Token, any, Token]
+    annos:
+        | [Token, WS, syn.AnnoStatement[], Token, undefined, undefined]
+        | [Token, WS, syn.AnnoStatement[], Token, any, Token]
 ): syn.AnnoStatement[] {
     const start: Token = annos[0];
     const absend = annos[5];

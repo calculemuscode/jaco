@@ -15,7 +15,7 @@ function load(kind: ast.ConcreteType): Instruction {
             return { tag: "SMLOAD" };
         case "PointerType":
             return { tag: "AMLOAD" };
-            /* instanbul ignore next */
+        /* istanbul ignore next */
         default:
             throw new ImpossibleError(`load: ${kind.tag}`);
     }
@@ -33,6 +33,7 @@ function store(kind: ast.ConcreteType): Instruction {
             return { tag: "SMSTORE" };
         case "PointerType":
             return { tag: "AMSTORE" };
+        /* istanbul ignore next */
         default:
             throw new ImpossibleError(`load: ${kind.tag}`);
     }
@@ -64,8 +65,11 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                     return instrs.concat([{ tag: "IF_CMPEQ", argument: ifTrue }, goto]);
                 case "!=":
                     return instrs.concat([{ tag: "IF_CMPNE", argument: ifTrue }, goto]);
-                    /* istanbul ignore next */
-                default: throw new ImpossibleError(`conditional() given non-bool BinaryExpression ${exp.operator}`);
+                /* istanbul ignore next */
+                default:
+                    throw new ImpossibleError(
+                        `conditional() given non-bool BinaryExpression ${exp.operator}`
+                    );
             }
         }
         case "LogicalExpression": {
@@ -149,7 +153,7 @@ function assignmentOp(
         case "|=":
             instr = { tag: "IOR" };
             break;
-            /* istanbul ignore next */
+        /* istanbul ignore next */
         default:
             instr = impossible(operator);
             break;
@@ -159,6 +163,7 @@ function assignmentOp(
 
 function lvalue(exp: ast.LValue): Instruction[] {
     switch (exp.tag) {
+        /* istanbul ignore next */
         case "Identifier":
             throw new ImpossibleError("lvalue() called on identifier");
         case "UnaryExpression":
@@ -167,6 +172,7 @@ function lvalue(exp: ast.LValue): Instruction[] {
             return arrayMemberExpression(exp);
         case "StructMemberExpression":
             return structMemberExpression(exp);
+        /* istanbul ignore next */
         default:
             return impossible(exp);
     }
@@ -198,7 +204,7 @@ function expression(exp: ast.Expression): Instruction[] {
         case "StructMemberExpression":
             return structMemberExpression(exp).concat([load(exp.size!)]);
         case "CallExpression": {
-            let args: Instruction[] = exp.loc ? [{tag: "POSITION", argument: exp.loc }] : [];
+            let args: Instruction[] = exp.loc ? [{ tag: "POSITION", argument: exp.loc }] : [];
             for (let arg of exp.arguments) {
                 args = args.concat(expression(arg));
             }

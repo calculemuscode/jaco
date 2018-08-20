@@ -74,9 +74,12 @@ export type Instruction =
 
 export function instructionToString(instr: Instruction): string {
     switch (instr.tag) {
-        case "LABEL": return `.${instr.argument}:`
-        case "ASSERT": return `   ASSERT${instr.argument ? "" :` (${instr.argument})`}`
-        case "POSITION": return `   ---`;
+        case "LABEL":
+            return `.${instr.argument}:`;
+        case "ASSERT":
+            return `   ASSERT${instr.argument ? "" : ` (${instr.argument})`}`;
+        case "POSITION":
+            return `   ---`;
         case "VLOAD":
         case "VSTORE":
         case "BPUSH":
@@ -98,10 +101,13 @@ export function instructionToString(instr: Instruction): string {
         case "ADDTAG":
         case "CHECKTAG":
         case "HASTAG":
-            return `   ${instr.tag} ${instr.argument}`
+            return `   ${instr.tag} ${instr.argument}`;
         case "NEW":
-        case "NEWARRAY": return `   ${instr.tag} ${instr.argument.tag}`
-        case "AADDF": return `    ${instr.tag} ${instr.struct}->${instr.field}`
-        default: return `   ${instr.tag}`
+        case "NEWARRAY":
+            return `   ${instr.tag} ${instr.argument.tag}`;
+        case "AADDF":
+            return `    ${instr.tag} ${instr.struct}->${instr.field}`;
+        default:
+            return `   ${instr.tag}`;
     }
 }
