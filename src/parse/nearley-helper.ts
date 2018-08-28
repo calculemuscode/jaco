@@ -721,10 +721,13 @@ export function Anno([anno, s1, test, s2, semi, s3]: [
 }
 
 export function AnnoSet(
-    annos: [Token, WS, syn.AnnoStatement[], Token] | [Token, WS, syn.AnnoStatement[], Token, any, Token]
+    annos:
+        | [Token, WS, syn.AnnoStatement[], Token, undefined, undefined]
+        | [Token, WS, syn.AnnoStatement[], Token, any, Token]
 ): syn.AnnoStatement[] {
     const start: Token = annos[0];
-    const end: Token = annos[5] ? annos[5] : annos[3];
+    const absend = annos[5];
+    const end: Token = absend ? absend : annos[3];
     if (start.type === "anno_line_start" && start.line !== end.line)
         throw new ParsingError(
             { start: tokloc(start).start, end: tokloc(end).start },
