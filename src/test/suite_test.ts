@@ -11,7 +11,7 @@ import "mocha";
 import { program } from "../bytecode/generate";
 import { Program } from "../bytecode/high-level";
 import { execute } from "../bytecode/execute";
-import { NonterminationError, ArithmeticError } from "../error";
+import { NonterminationError, ArithmeticError, AbortError } from "../error";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -129,6 +129,16 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                         throw new ArithmeticError("division by zero");
                     }
                 }).to.throw(ArithmeticError);
+            } else if (spec.outcome === "abort") {
+                expect(() => {
+                    try {
+                        return execute(bytecode!, 10000000);
+                    } catch (err) {
+                        if (err.name !== "NonterminationError") throw err;
+                        console.log(err.name);
+                        throw new AbortError(null, "");
+                    }
+                }).to.throw(AbortError);
             } else if (spec.outcome === "infloop") {
                 expect(() => execute(bytecode!,  1000000)).to.throw(NonterminationError);
             } else {
@@ -140,7 +150,7 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
 const dir = "./tests";
 //readdirSync(dir).
-["l3-basic"].
+["l3-large"].
 forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {

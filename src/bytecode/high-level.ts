@@ -43,7 +43,7 @@ export type Instruction =
     | { tag: "IF_CCMPLE"; argument: string }
     | { tag: "GOTO"; argument: string }
     | { tag: "ATHROW" }
-    | { tag: "ASSERT"; argument: null | "assert" | "requires" | "ensures" | "loop_invariant" }
+    | { tag: "ABORT"; argument: null | "assert" | "requires" | "ensures" | "loop_invariant" }
 
     // Functions
     | { tag: "INVOKESTATIC"; argument: string }
@@ -89,8 +89,8 @@ export function instructionToString(instr: Instruction): string {
     switch (instr.tag) {
         case "LABEL":
             return `.${instr.argument}:`;
-        case "ASSERT":
-            return `   ASSERT${instr.argument ? "" : ` (${instr.argument})`}`;
+        case "ABORT":
+            return `   ABORT${instr.argument === null ? "" : ` (${instr.argument})`}`;
         case "POSITION":
             return `   ---`;
         case "VLOAD":

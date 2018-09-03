@@ -39,6 +39,14 @@ export class NonterminationError extends Error {
     }
 }
 
+export class AbortError extends Error {
+    public readonly name: "AbortError";
+    constructor(source: null | "assert" | "requires" | "ensures" | "loop_invariant", msg: string) {
+        super(msg + (source === null ? "" : ` (@${source})`));
+        this.name = "AbortError";
+    }
+}
+
 export class ArithmeticError extends Error {
     public readonly name: "ArithmeticError";
     constructor(msg: "division by zero" | "out-of-bounds division" | "shift out of range") {

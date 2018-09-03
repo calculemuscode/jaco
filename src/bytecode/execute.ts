@@ -1,11 +1,11 @@
 import { Instruction, Program } from "./high-level";
-import { ArithmeticError, NonterminationError } from "../error";
+import { AbortError, ArithmeticError, NonterminationError } from "../error";
 
 export type Value =
     | string // runtime value of type string
     | number // runtime value of type int [-2^31, 2^31)
     //                       char [2^31, 2^31 + 128)
-    //                       bool -Infinity, Infinity
+    //                       bool -Infinity (false), Infinity (true)
     | null // void*, function pointer, regular pointer
     | { tag: "pointer"; value: Value } // non-null regular pointer
     | { tag: "function"; value: string } // non-null function pointer
@@ -50,9 +50,12 @@ export function execute(prog: Program, gas?: number): Value {
 
 export function step(prog: Program, state: State): undefined | Value {
     //console.log(state.bytecode[state.pc]);
-    //console.log(state.callstack);
+    //console.log(state.callstack.map(frame => frame.locals));
     //console.log(state.stack);
-    const instr = state.bytecode[state.pc];
+
+    // Edge case: if the PC ends up at state.bytecode.length, return
+    // The stack will be empty, but the returned "undefined" will be ignored
+    const instr: Instruction = state.pc === state.bytecode.length ? {tag: "RETURN"} : state.bytecode[state.pc];
     state.pc += 1;
     switch (instr.tag) {
         case "RETURN": {
@@ -220,6 +223,9 @@ export function step(prog: Program, state: State): undefined | Value {
         case "GOTO": {
             state.pc = state.labels.get(instr.argument)!;
             return undefined;
+        }
+        case "ABORT": {
+            throw new AbortError(instr.argument, state.stack.pop() as string);
         }
         case "INVOKESTATIC": {
             const f = prog.function_pool.get(instr.argument)!;

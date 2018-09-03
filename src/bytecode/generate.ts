@@ -458,12 +458,18 @@ function statement(
             const labelExit = label("while_exit");
             const invariants = contracts
                 ? stm.invariants.reduce<Instruction[]>(
-                      (instrs, exp) =>
-                          instrs
-                              .concat(expression(exp))
-                              .concat([{ tag: "ASSERT", argument: "loop_invariant" }]),
-                      []
-                  )
+                      (instrs, exp, i) => {
+                        const labelInvariantGood = label(`while_invariant_${i}_ok`);
+                        const labelInvariantFail = label(`while_invariant_${i}_fail`);
+                        return instrs
+                            .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                            .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                            .concat([{tag: "SPUSH", argument: "loop invariant failed"}])
+                            .concat([{ tag: "ABORT", argument: "loop_invariant" }])
+                            .concat([{ tag: "LABEL", argument: labelInvariantGood }])
+                    },
+                    []
+                )
                 : [];
 
             return [{ tag: "LABEL", argument: labelStart } as Instruction]
@@ -481,10 +487,16 @@ function statement(
             const labelExit = label("for_end");
             const invariants = contracts
                 ? stm.invariants.reduce<Instruction[]>(
-                      (instrs, exp) =>
-                          instrs
-                              .concat(expression(exp))
-                              .concat([{ tag: "ASSERT", argument: "loop_invariant" }]),
+                      (instrs, exp, i) => {
+                          const labelInvariantGood = label(`for_invariant_${i}_ok`);
+                          const labelInvariantFail = label(`for_invariant_${i}_fail`);
+                          return instrs
+                              .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                              .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                              .concat([{tag: "SPUSH", argument: "loop invariant failed"}])
+                              .concat([{ tag: "ABORT", argument: "loop_invariant" }])
+                              .concat([{ tag: "LABEL", argument: labelInvariantGood }])
+                      },
                       []
                   )
                 : [];
@@ -510,8 +522,14 @@ function statement(
                 []
             );
         case "AssertStatement": {
+            const assertBad = label("assert_fail");
+            const assertGood = label("assert_pass");
             if (!contracts && stm.contract) return [];
-            return expression(stm.test).concat([{ tag: "ASSERT", argument: stm.contract ? "assert" : null }]);
+            return conditional(stm.test, assertGood, assertBad)
+                .concat([ {tag: "LABEL", argument: assertBad }])
+                .concat([{tag: "SPUSH", argument: "assert failed"}])
+                .concat([{ tag: "ABORT", argument: stm.contract ? "assert" : null }])
+                .concat([{tag: "LABEL", argument: assertGood }])
         }
         case "ErrorStatement":
             return expression(stm.argument).concat([{ tag: "ATHROW" }]);
