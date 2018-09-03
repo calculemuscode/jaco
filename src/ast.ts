@@ -268,6 +268,7 @@ export interface BinaryExpression extends Syn {
         | "|";
     readonly left: Expression;
     readonly right: Expression;
+    size?: ConcreteType;
 }
 
 /**

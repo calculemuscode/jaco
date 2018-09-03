@@ -33,12 +33,22 @@ export type Instruction =
     | { tag: "LABEL"; argument: string }
     | { tag: "POSITION"; argument: SourceLocation }
     | { tag: "IF"; argument: string }
-    | { tag: "IF_CMPEQ"; argument: string }
-    | { tag: "IF_CMPNE"; argument: string }
-    | { tag: "IF_CMPLT"; argument: string }
-    | { tag: "IF_CMPGE"; argument: string }
-    | { tag: "IF_CMPGT"; argument: string }
-    | { tag: "IF_CMPLE"; argument: string }
+    | { tag: "IF_ACMPEQ"; argument: string }
+    | { tag: "IF_ACMPNE"; argument: string }
+    | { tag: "IF_BCMPEQ"; argument: string }
+    | { tag: "IF_BCMPNE"; argument: string }
+    | { tag: "IF_ICMPEQ"; argument: string }
+    | { tag: "IF_ICMPNE"; argument: string }
+    | { tag: "IF_ICMPLT"; argument: string }
+    | { tag: "IF_ICMPGE"; argument: string }
+    | { tag: "IF_ICMPGT"; argument: string }
+    | { tag: "IF_ICMPLE"; argument: string }
+    | { tag: "IF_CCMPEQ"; argument: string }
+    | { tag: "IF_CCMPNE"; argument: string }
+    | { tag: "IF_CCMPLT"; argument: string }
+    | { tag: "IF_CCMPGE"; argument: string }
+    | { tag: "IF_CCMPGT"; argument: string }
+    | { tag: "IF_CCMPLE"; argument: string }
     | { tag: "GOTO"; argument: string }
     | { tag: "ATHROW" }
     | { tag: "ASSERT"; argument: null | "assert" | "requires" | "ensures" | "loop_invariant" }
@@ -67,10 +77,21 @@ export type Instruction =
     | { tag: "SMSTORE" }
     | { tag: "FUNCTIONADDRESS"; argument: string }
 
-    // Void pointers (XXX TODO FIX)
+    // Void pointers
+    | { tag: "UNTAG" }
     | { tag: "ADDTAG"; argument: string }
     | { tag: "CHECKTAG"; argument: string }
     | { tag: "HASTAG"; argument: string };
+
+export interface Function {
+    args: string[];
+    code: Instruction[];
+    labels: Map<string, number>;
+}
+
+export interface Program {
+    function_pool: Map<string, Function>;
+}
 
 export function instructionToString(instr: Instruction): string {
     switch (instr.tag) {
@@ -87,12 +108,22 @@ export function instructionToString(instr: Instruction): string {
         case "IPUSH":
         case "SPUSH":
         case "IF":
-        case "IF_CMPEQ":
-        case "IF_CMPNE":
-        case "IF_CMPLT":
-        case "IF_CMPGE":
-        case "IF_CMPGT":
-        case "IF_CMPLE":
+        case "IF_BCMPEQ":
+        case "IF_BCMPNE":
+        case "IF_ACMPEQ":
+        case "IF_ACMPNE":
+        case "IF_ICMPEQ":
+        case "IF_ICMPNE":
+        case "IF_ICMPLT":
+        case "IF_ICMPGE":
+        case "IF_ICMPGT":
+        case "IF_ICMPLE":
+        case "IF_CCMPEQ":
+        case "IF_CCMPNE":
+        case "IF_CCMPLT":
+        case "IF_CCMPGE":
+        case "IF_CCMPGT":
+        case "IF_CCMPLE":
         case "GOTO":
         case "INVOKESTATIC":
         case "INVOKEDYNAMIC":
@@ -106,7 +137,7 @@ export function instructionToString(instr: Instruction): string {
         case "NEWARRAY":
             return `   ${instr.tag} ${instr.argument.tag}`;
         case "AADDF":
-            return `    ${instr.tag} ${instr.struct}->${instr.field}`;
+            return `   ${instr.tag} ${instr.struct}->${instr.field}`;
         default:
             return `   ${instr.tag}`;
     }

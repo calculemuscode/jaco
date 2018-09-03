@@ -398,6 +398,9 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                             `cannot compare strings with '${exp.operator}'`,
                             "use the 'string_equal' function from the library <string>"
                         );
+                    // INSERTING TYPE INFORMATION HERE
+                    if (lub.tag !== "AmbiguousNullPointer" && lub.tag !== "AnonymousFunctionTypePointer")
+                        exp.size = concreteType(genv, lub);
                     return { tag: "BoolType" };
                 }
                 default:

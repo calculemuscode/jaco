@@ -1,5 +1,5 @@
 import * as ast from "../ast";
-import { Instruction, instructionToString } from "./high-level";
+import { Instruction, instructionToString, Function, Program } from "./high-level";
 import { ImpossibleError } from "../error";
 import { impossible } from "../../node_modules/@calculemus/impossible";
 
@@ -14,6 +14,7 @@ function load(kind: ast.ConcreteType): Instruction {
         case "StringType":
             return { tag: "SMLOAD" };
         case "PointerType":
+        case "TaggedPointerType":
             return { tag: "AMLOAD" };
         /* istanbul ignore next */
         default:
@@ -32,6 +33,7 @@ function store(kind: ast.ConcreteType): Instruction {
         case "StringType":
             return { tag: "SMSTORE" };
         case "PointerType":
+        case "TaggedPointerType":
             return { tag: "AMSTORE" };
         /* istanbul ignore next */
         default:
@@ -50,25 +52,88 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
             break;
         }
         case "BinaryExpression": {
-            const instrs = expression(exp.left).concat(expression(exp.right));
+            // Handles NULL === NULL
+            // XXX BUG: also catches &f === &g
+            if (!exp.size) return [{ tag: "GOTO", argument: ifTrue }];
+
+            const left = expression(exp.left);
+            const right = expression(exp.right);
+            const instrs = left.concat(right);
             const goto: Instruction = { tag: "GOTO", argument: ifFalse };
-            switch (exp.operator) {
-                case "<":
-                    return instrs.concat([{ tag: "IF_CMPLT", argument: ifTrue }, goto]);
-                case "<=":
-                    return instrs.concat([{ tag: "IF_CMPLE", argument: ifTrue }, goto]);
-                case ">=":
-                    return instrs.concat([{ tag: "IF_CMPGE", argument: ifTrue }, goto]);
-                case ">":
-                    return instrs.concat([{ tag: "IF_CMPGT", argument: ifTrue }, goto]);
-                case "==":
-                    return instrs.concat([{ tag: "IF_CMPEQ", argument: ifTrue }, goto]);
-                case "!=":
-                    return instrs.concat([{ tag: "IF_CMPNE", argument: ifTrue }, goto]);
+            switch (exp.size.tag) {
+                case "BoolType": {
+                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifTrue }]);
+                    else return instrs.concat([{ tag: "IF_BCMPNE", argument: ifTrue }]);
+                }
+
+                case "PointerType": {
+                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifTrue }]);
+                    else return instrs.concat([{ tag: "IF_ACMPNE", argument: ifTrue }]);
+                }
+
+                case "TaggedPointerType": {
+                    if (exp.operator === "==")
+                        return left
+                            .concat([{ tag: "UNTAG" }])
+                            .concat(right)
+                            .concat([{ tag: "UNTAG" }])
+                            .concat([{ tag: "IF_ACMPEQ", argument: ifTrue }]);
+                    else
+                        return left
+                            .concat([{ tag: "UNTAG" }])
+                            .concat(right)
+                            .concat([{ tag: "UNTAG" }])
+                            .concat([{ tag: "IF_ACMPNE", argument: ifTrue }]);
+                }
+
+                case "CharType": {
+                    switch (exp.operator) {
+                        case "<":
+                            return instrs.concat([{ tag: "IF_CCMPLT", argument: ifTrue }, goto]);
+                        case "<=":
+                            return instrs.concat([{ tag: "IF_CCMPLE", argument: ifTrue }, goto]);
+                        case ">=":
+                            return instrs.concat([{ tag: "IF_CCMPGE", argument: ifTrue }, goto]);
+                        case ">":
+                            return instrs.concat([{ tag: "IF_CCMPGT", argument: ifTrue }, goto]);
+                        case "==":
+                            return instrs.concat([{ tag: "IF_CCMPEQ", argument: ifTrue }, goto]);
+                        case "!=":
+                            return instrs.concat([{ tag: "IF_CCMPNE", argument: ifTrue }, goto]);
+                        /* istanbul ignore next */
+                        default:
+                            throw new ImpossibleError(
+                                `conditional() given non-bool BinaryExpression ${exp.operator} comparing char`
+                            );
+                    }
+                }
+
+                case "IntType": {
+                    switch (exp.operator) {
+                        case "<":
+                            return instrs.concat([{ tag: "IF_ICMPLT", argument: ifTrue }, goto]);
+                        case "<=":
+                            return instrs.concat([{ tag: "IF_ICMPLE", argument: ifTrue }, goto]);
+                        case ">=":
+                            return instrs.concat([{ tag: "IF_ICMPGE", argument: ifTrue }, goto]);
+                        case ">":
+                            return instrs.concat([{ tag: "IF_ICMPGT", argument: ifTrue }, goto]);
+                        case "==":
+                            return instrs.concat([{ tag: "IF_ICMPEQ", argument: ifTrue }, goto]);
+                        case "!=":
+                            return instrs.concat([{ tag: "IF_ICMPNE", argument: ifTrue }, goto]);
+                        /* istanbul ignore next */
+                        default:
+                            throw new ImpossibleError(
+                                `conditional() given non-bool BinaryExpression ${exp.operator} comparing ints`
+                            );
+                    }
+                }
+
                 /* istanbul ignore next */
                 default:
                     throw new ImpossibleError(
-                        `conditional() given non-bool BinaryExpression ${exp.operator}`
+                        `conditional() given BinaryExpression comparing ${exp.size.tag}`
                     );
             }
         }
@@ -240,7 +305,7 @@ function expression(exp: ast.Expression): Instruction[] {
                 }
                 case "-": {
                     if (exp.argument.tag === "IntLiteral") {
-                        return [{ tag: "IPUSH", argument: -exp.argument.value }];
+                        return [{ tag: "IPUSH", argument: (-exp.argument.value) | 0 }];
                     } else {
                         return expression(exp.argument).concat([
                             { tag: "IPUSH", argument: 0 },
@@ -317,7 +382,7 @@ function expression(exp: ast.Expression): Instruction[] {
     }
 }
 
-export function statement(
+function statement(
     stm: ast.Statement,
     contracts: boolean,
     lBreak?: string,
@@ -455,11 +520,25 @@ export function statement(
     }
 }
 
-export function program(decls: ast.Declaration[], contracts: boolean) {
+export function program(libs: ast.Declaration[], decls: ast.Declaration[], contracts: boolean): Program {
+    const function_pool = new Map<string, Function>();
     for (let decl of decls) {
         switch (decl.tag) {
             case "FunctionDeclaration": {
                 if (decl.body !== null) {
+                    const code = statement(decl.body, contracts);
+                    const args = decl.params.map(param => param.id.name);
+                    const labels = new Map<string, number>();
+                    code.forEach((instr, i) => {
+                        if (instr.tag === "LABEL") labels.set(instr.tag, i);
+                    });
+
+                    function_pool.set(decl.id.name, {
+                        args: args,
+                        code: code,
+                        labels: labels
+                    })
+
                     //console.log(`FUNCTION ${decl.id.name}`);
                     const instrs = statement(decl.body, contracts);
                     for (let instr of instrs) {
@@ -469,5 +548,9 @@ export function program(decls: ast.Declaration[], contracts: boolean) {
                 }
             }
         }
+    }
+
+    return {
+        function_pool: function_pool
     }
 }

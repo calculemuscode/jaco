@@ -8,7 +8,9 @@ import { parseSpec, Spec } from "./parsespec";
 import { checkProgram } from "../typecheck/programs";
 import * as ast from "../ast";
 import "mocha";
-import { program as generateProgram } from "../bytecode/generate";
+import { program } from "../bytecode/generate";
+import { Program } from "../bytecode/high-level";
+import { execute } from "../bytecode/execute";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -101,13 +103,24 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                 }
             }
 
-            expect(() => generateProgram(ast, spec.debug)).not.to.throw();
+            if (spec.outcome === "typecheck") return;
+            let bytecode: Program;
+            expect(() => bytecode = program(libAst, ast, spec.debug)).not.to.throw();
+
+            if (spec.outcome === "compile") return;
+            if (typeof spec.outcome === "number") {
+                expect(execute(bytecode!)).to.equal(spec.outcome);
+            } else {
+                expect(() => execute(bytecode)).to.throw();
+            }
         });
     });
 }
 
 const dir = "./tests";
-readdirSync(dir).forEach(subdir => {
+//readdirSync(dir).
+["l2-basic"].
+forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {
             readdirSync(join(dir, subdir)).forEach(file => {
