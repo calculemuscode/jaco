@@ -367,6 +367,8 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                     switch (leftType.tag) {
                         case "IntType":
                         case "CharType": {
+                            // INSERTING TYPE INFORMATION HERE
+                            exp.size = leftType;
                             checkExpression(genv, env, mode, exp.right, leftType);
                             return { tag: "BoolType" };
                         }

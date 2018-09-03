@@ -30,3 +30,19 @@ export class ImpossibleError extends Error {
         this.name = "ImpossibleError";
     }
 }
+
+export class NonterminationError extends Error {
+    public readonly name: "NonterminationError";
+    constructor() {
+        super();
+        this.name = "NonterminationError";
+    }
+}
+
+export class ArithmeticError extends Error {
+    public readonly name: "ArithmeticError";
+    constructor(msg: "division by zero" | "out-of-bounds division" | "shift out of range") {
+        super(msg);
+        this.name = "ArithmeticError";
+    }
+}

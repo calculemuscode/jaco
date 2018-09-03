@@ -59,16 +59,17 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
             const left = expression(exp.left);
             const right = expression(exp.right);
             const instrs = left.concat(right);
-            const goto: Instruction = { tag: "GOTO", argument: ifFalse };
+            const gotoTrue: Instruction = { tag: "GOTO", argument: ifTrue };
+            const gotoFalse: Instruction = { tag: "GOTO", argument: ifFalse };
             switch (exp.size.tag) {
                 case "BoolType": {
-                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifTrue }]);
-                    else return instrs.concat([{ tag: "IF_BCMPNE", argument: ifTrue }]);
+                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifTrue }, gotoFalse]);
+                    else return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifFalse }, gotoTrue]);
                 }
 
                 case "PointerType": {
-                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifTrue }]);
-                    else return instrs.concat([{ tag: "IF_ACMPNE", argument: ifTrue }]);
+                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifTrue }, gotoFalse]);
+                    else return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifFalse }, gotoTrue]);
                 }
 
                 case "TaggedPointerType": {
@@ -77,29 +78,31 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                             .concat([{ tag: "UNTAG" }])
                             .concat(right)
                             .concat([{ tag: "UNTAG" }])
-                            .concat([{ tag: "IF_ACMPEQ", argument: ifTrue }]);
+                            .concat([{ tag: "IF_ACMPEQ", argument: ifTrue }])
+                            .concat([gotoFalse]);
                     else
                         return left
                             .concat([{ tag: "UNTAG" }])
                             .concat(right)
                             .concat([{ tag: "UNTAG" }])
-                            .concat([{ tag: "IF_ACMPNE", argument: ifTrue }]);
+                            .concat([{ tag: "IF_ACMPEQ", argument: ifFalse }])
+                            .concat([gotoTrue]);
                 }
 
                 case "CharType": {
                     switch (exp.operator) {
                         case "<":
-                            return instrs.concat([{ tag: "IF_CCMPLT", argument: ifTrue }, goto]);
-                        case "<=":
-                            return instrs.concat([{ tag: "IF_CCMPLE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_CCMPLT", argument: ifTrue }, gotoFalse]);
                         case ">=":
-                            return instrs.concat([{ tag: "IF_CCMPGE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_CCMPLT", argument: ifFalse }, gotoTrue]);
+                        case "<=":
+                            return instrs.concat([{ tag: "IF_CCMPLE", argument: ifTrue }, gotoFalse]);
                         case ">":
-                            return instrs.concat([{ tag: "IF_CCMPGT", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_CCMPLE", argument: ifFalse }, gotoTrue]);
                         case "==":
-                            return instrs.concat([{ tag: "IF_CCMPEQ", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_CCMPEQ", argument: ifTrue }, gotoFalse]);
                         case "!=":
-                            return instrs.concat([{ tag: "IF_CCMPNE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_CCMPEQ", argument: ifFalse }, gotoTrue]);
                         /* istanbul ignore next */
                         default:
                             throw new ImpossibleError(
@@ -111,17 +114,17 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                 case "IntType": {
                     switch (exp.operator) {
                         case "<":
-                            return instrs.concat([{ tag: "IF_ICMPLT", argument: ifTrue }, goto]);
-                        case "<=":
-                            return instrs.concat([{ tag: "IF_ICMPLE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_ICMPLT", argument: ifTrue }, gotoFalse]);
                         case ">=":
-                            return instrs.concat([{ tag: "IF_ICMPGE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_ICMPLT", argument: ifFalse }, gotoTrue]);
+                        case "<=":
+                            return instrs.concat([{ tag: "IF_ICMPLE", argument: ifTrue }, gotoFalse]);
                         case ">":
-                            return instrs.concat([{ tag: "IF_ICMPGT", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_ICMPLE", argument: ifFalse }, gotoTrue]);
                         case "==":
-                            return instrs.concat([{ tag: "IF_ICMPEQ", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_ICMPEQ", argument: ifTrue }, gotoFalse]);
                         case "!=":
-                            return instrs.concat([{ tag: "IF_ICMPNE", argument: ifTrue }, goto]);
+                            return instrs.concat([{ tag: "IF_ICMPEQ", argument: ifFalse }, gotoTrue]);
                         /* istanbul ignore next */
                         default:
                             throw new ImpossibleError(
@@ -494,6 +497,7 @@ function statement(
                 .concat(statement(stm.body, contracts, labelExit, labelUpdate))
                 .concat([{ tag: "LABEL", argument: labelUpdate }])
                 .concat(stm.update ? statement(stm.update, contracts, lBreak, lCont) : [])
+                .concat([{ tag: "GOTO", argument: labelStart }])
                 .concat([{ tag: "LABEL", argument: labelExit }]);
         }
         case "ReturnStatement":
@@ -530,9 +534,10 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
                     const args = decl.params.map(param => param.id.name);
                     const labels = new Map<string, number>();
                     code.forEach((instr, i) => {
-                        if (instr.tag === "LABEL") labels.set(instr.tag, i);
+                        if (instr.tag === "LABEL") labels.set(instr.argument, i);                        
                     });
 
+                    //console.log(labels);
                     function_pool.set(decl.id.name, {
                         args: args,
                         code: code,

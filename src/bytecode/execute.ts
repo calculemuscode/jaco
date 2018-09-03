@@ -1,4 +1,5 @@
 import { Instruction, Program } from "./high-level";
+import { ArithmeticError, NonterminationError } from "../error";
 
 export type Value =
     | string // runtime value of type string
@@ -29,7 +30,7 @@ export interface State {
     callstack: Frame[];
 }
 
-export function execute(prog: Program): Value {
+export function execute(prog: Program, gas?: number): Value {
     const main = prog.function_pool.get("main")!;
     const state: State = {
         stack: [],
@@ -41,17 +42,34 @@ export function execute(prog: Program): Value {
     };
 
     let result: undefined | Value;
-    while (undefined === (result = step(prog, state)));
+    while (undefined === (result = step(prog, state))) {
+        if (gas && --gas == 0) throw new NonterminationError();
+    }
     return result;
 }
 
 export function step(prog: Program, state: State): undefined | Value {
+    //console.log(state.bytecode[state.pc]);
+    //console.log(state.callstack);
     //console.log(state.stack);
     const instr = state.bytecode[state.pc];
     state.pc += 1;
     switch (instr.tag) {
-        case "RETURN":
-            return state.stack.pop()!;
+        case "RETURN": {
+            const result = state.stack.pop()!;
+            if (state.callstack.length === 0) {
+                return result;
+            } else {
+                const frame = state.callstack.pop()!;
+                state.bytecode = frame.bytecode;
+                state.pc = frame.pc;
+                state.locals = frame.locals;
+                state.labels = frame.labels;
+                state.stack = frame.stack;
+                state.stack.push(result);
+                return undefined;
+            }
+        }
 
         case "DUP": {
             const v = state.stack.pop()!;
@@ -86,8 +104,8 @@ export function step(prog: Program, state: State): undefined | Value {
         case "IDIV": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (y === 0) throw new Error("division by zero");
-            if (x === -0x80000000 && y === -1) throw new Error("division by zero");
+            if (y === 0) throw new ArithmeticError("division by zero");
+            if (x === -0x80000000 && y === -1) throw new ArithmeticError("out-of-bounds division");
             state.stack.push((x / y) | 0);
             return undefined;
         }
@@ -106,20 +124,22 @@ export function step(prog: Program, state: State): undefined | Value {
         case "IREM": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (y === 0) throw new Error("division by zero");
-            if (x === -0x80000000 && y === -1) throw new Error("division by zero");
+            if (y === 0) throw new ArithmeticError("division by zero");
+            if (x === -0x80000000 && y === -1) throw new ArithmeticError("out-of-bounds division");
             state.stack.push((x % y) | 0);
             return undefined;
         }
         case "ISHL": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
+            if (0 > y || y >= 32) throw new ArithmeticError("shift out of range");
             state.stack.push((x << y) | 0);
             return undefined;
         }
         case "ISHR": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
+            if (0 > y || y >= 32) throw new ArithmeticError("shift out of range");
             state.stack.push((x >> y) | 0);
             return undefined;
         }
@@ -166,7 +186,7 @@ export function step(prog: Program, state: State): undefined | Value {
             return undefined;
         }
 
-        case "LABEL":
+        case "LABEL": 
         case "POSITION": {
             return undefined;
         }
@@ -175,8 +195,55 @@ export function step(prog: Program, state: State): undefined | Value {
             if (state.stack.pop() === Infinity) state.pc = state.labels.get(instr.argument)!;
             return undefined;
         }
+        case "IF_BCMPEQ":
+        case "IF_CCMPEQ":
+        case "IF_ICMPEQ": {
+            const y = state.stack.pop() as number;
+            const x = state.stack.pop() as number;
+            if (x == y) state.pc = state.labels.get(instr.argument)!;
+            return undefined;
+        }
+        case "IF_CCMPLT":
+        case "IF_ICMPLT": {
+            const y = state.stack.pop() as number;
+            const x = state.stack.pop() as number;
+            if (x < y) state.pc = state.labels.get(instr.argument)!;
+            return undefined;
+        }
+        case "IF_CCMPLE":
+        case "IF_ICMPLE": {
+            const y = state.stack.pop() as number;
+            const x = state.stack.pop() as number;
+            if (x <= y) state.pc = state.labels.get(instr.argument)!;
+            return undefined;
+        }
+        case "GOTO": {
+            state.pc = state.labels.get(instr.argument)!;
+            return undefined;
+        }
+        case "INVOKESTATIC": {
+            const f = prog.function_pool.get(instr.argument)!;
+            const locals = new Map<string, Value>();
+            for (let i = f.args.length - 1; i >= 0; i--) {
+                locals.set(f.args[i], state.stack.pop()!);
+            }
+
+            state.callstack.push({
+                stack: state.stack,
+                pc: state.pc,
+                bytecode: state.bytecode,
+                labels: state.labels,
+                locals: state.locals
+            });
+            state.stack = [];
+            state.pc = 0;
+            state.bytecode = f.code;
+            state.labels = f.labels;
+            state.locals = locals;
+            return undefined;
+        }
         default: {
-            throw new Error("Unimplemented");
+            throw new Error(`${instr.tag} not implemented`);
         }
     }
 }

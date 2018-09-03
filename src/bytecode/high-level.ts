@@ -34,20 +34,12 @@ export type Instruction =
     | { tag: "POSITION"; argument: SourceLocation }
     | { tag: "IF"; argument: string }
     | { tag: "IF_ACMPEQ"; argument: string }
-    | { tag: "IF_ACMPNE"; argument: string }
     | { tag: "IF_BCMPEQ"; argument: string }
-    | { tag: "IF_BCMPNE"; argument: string }
     | { tag: "IF_ICMPEQ"; argument: string }
-    | { tag: "IF_ICMPNE"; argument: string }
     | { tag: "IF_ICMPLT"; argument: string }
-    | { tag: "IF_ICMPGE"; argument: string }
-    | { tag: "IF_ICMPGT"; argument: string }
     | { tag: "IF_ICMPLE"; argument: string }
     | { tag: "IF_CCMPEQ"; argument: string }
-    | { tag: "IF_CCMPNE"; argument: string }
     | { tag: "IF_CCMPLT"; argument: string }
-    | { tag: "IF_CCMPGE"; argument: string }
-    | { tag: "IF_CCMPGT"; argument: string }
     | { tag: "IF_CCMPLE"; argument: string }
     | { tag: "GOTO"; argument: string }
     | { tag: "ATHROW" }
@@ -109,20 +101,12 @@ export function instructionToString(instr: Instruction): string {
         case "SPUSH":
         case "IF":
         case "IF_BCMPEQ":
-        case "IF_BCMPNE":
         case "IF_ACMPEQ":
-        case "IF_ACMPNE":
         case "IF_ICMPEQ":
-        case "IF_ICMPNE":
         case "IF_ICMPLT":
-        case "IF_ICMPGE":
-        case "IF_ICMPGT":
         case "IF_ICMPLE":
         case "IF_CCMPEQ":
-        case "IF_CCMPNE":
         case "IF_CCMPLT":
-        case "IF_CCMPGE":
-        case "IF_CCMPGT":
         case "IF_CCMPLE":
         case "GOTO":
         case "INVOKESTATIC":

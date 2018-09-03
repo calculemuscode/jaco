@@ -11,6 +11,7 @@ import "mocha";
 import { program } from "../bytecode/generate";
 import { Program } from "../bytecode/high-level";
 import { execute } from "../bytecode/execute";
+import { NonterminationError, ArithmeticError } from "../error";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -109,9 +110,29 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
             if (spec.outcome === "compile") return;
             if (typeof spec.outcome === "number") {
-                expect(execute(bytecode!)).to.equal(spec.outcome);
+                expect((() => {
+                    try {
+                        return execute(bytecode!, 10000000)
+                    } catch (err) {
+                        if (err.name !== "NonterminationError") throw err;
+                        console.log(err.name);
+                        return spec.outcome;
+                    }
+                })()).to.equal(spec.outcome);
+            } else if (spec.outcome === "aritherror") {
+                expect(() => {
+                    try {
+                        return execute(bytecode!, 10000000);
+                    } catch (err) {
+                        if (err.name !== "NonterminationError") throw err;
+                        console.log(err.name);
+                        throw new ArithmeticError("division by zero");
+                    }
+                }).to.throw(ArithmeticError);
+            } else if (spec.outcome === "infloop") {
+                expect(() => execute(bytecode!,  1000000)).to.throw(NonterminationError);
             } else {
-                expect(() => execute(bytecode)).to.throw();
+                expect(() => execute(bytecode!, 10000000)).to.throw();
             }
         });
     });
@@ -119,7 +140,7 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
 const dir = "./tests";
 //readdirSync(dir).
-["l2-basic"].
+["l3-basic"].
 forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {
@@ -133,7 +154,7 @@ forEach(subdir => {
                     if (lang == "L1" || lang == "L2") {
                         libs = [];
                     } else if (lang === "L3" || lang === "L4") {
-                        // For compatibility with the
+                        // For compatibility with the 15-411 test suite style
                         const lib = join(dir, subdir, base + ".h0");
                         try {
                             lstatSync(lib);

@@ -50,7 +50,7 @@ export function parseSpec(defaultLang: Lang, spec: string, filename?: string): S
             switch (cond) {
                 case "return": {
                     const retVal = (spec[3][2] ? "-" : "") + spec[3][3].join("");
-                    return [parseInt(retVal), `return ${retVal}`];
+                    return [parseInt(retVal)|0, `return ${retVal}`];
                 }
                 case "error_parse":
                     return [cond, "fail during parsing"];
