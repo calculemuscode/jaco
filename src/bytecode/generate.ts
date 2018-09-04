@@ -543,7 +543,17 @@ function statement(
 }
 
 export function program(libs: ast.Declaration[], decls: ast.Declaration[], contracts: boolean): Program {
+    const native_pool = new Map<string, number>();
     const function_pool = new Map<string, Function>();
+
+    for (let decl of libs) {
+        switch (decl.tag) {
+            case "FunctionDeclaration": {
+                native_pool.set(decl.id.name, decl.params.length);
+            }
+        }
+    }
+
     for (let decl of decls) {
         switch (decl.tag) {
             case "FunctionDeclaration": {
@@ -574,6 +584,7 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
     }
 
     return {
+        native_pool: native_pool,
         function_pool: function_pool
     }
 }

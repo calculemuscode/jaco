@@ -150,7 +150,7 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
 const dir = "./tests";
 //readdirSync(dir).
-["l3-large"].
+["l4-basic"].
 forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {

@@ -1,5 +1,6 @@
 import { Instruction, Program } from "./high-level";
 import { AbortError, ArithmeticError, NonterminationError } from "../error";
+import { Builtins } from "./stdlib";
 
 export type Value =
     | string // runtime value of type string
@@ -49,9 +50,9 @@ export function execute(prog: Program, gas?: number): Value {
 }
 
 export function step(prog: Program, state: State): undefined | Value {
-    //console.log(state.bytecode[state.pc]);
     //console.log(state.callstack.map(frame => frame.locals));
     //console.log(state.stack);
+    //console.log(state.bytecode[state.pc]);
 
     // Edge case: if the PC ends up at state.bytecode.length, return
     // The stack will be empty, but the returned "undefined" will be ignored
@@ -228,25 +229,35 @@ export function step(prog: Program, state: State): undefined | Value {
             throw new AbortError(instr.argument, state.stack.pop() as string);
         }
         case "INVOKESTATIC": {
-            const f = prog.function_pool.get(instr.argument)!;
-            const locals = new Map<string, Value>();
-            for (let i = f.args.length - 1; i >= 0; i--) {
-                locals.set(f.args[i], state.stack.pop()!);
-            }
+            const f = prog.function_pool.get(instr.argument);
+            if (!f) {
+                const n = prog.native_pool.get(instr.argument)!;
+                let args: Value[] = [];
+                for (let i = 0; i < n; i++) {
+                    args.unshift(state.stack.pop()!);
+                }
+                state.stack.push(Builtins[instr.argument](args));
+                return undefined;
+            } else {
+                const locals = new Map<string, Value>();
+                for (let i = f.args.length - 1; i >= 0; i--) {
+                    locals.set(f.args[i], state.stack.pop()!);
+                }
 
-            state.callstack.push({
-                stack: state.stack,
-                pc: state.pc,
-                bytecode: state.bytecode,
-                labels: state.labels,
-                locals: state.locals
-            });
-            state.stack = [];
-            state.pc = 0;
-            state.bytecode = f.code;
-            state.labels = f.labels;
-            state.locals = locals;
-            return undefined;
+                state.callstack.push({
+                    stack: state.stack,
+                    pc: state.pc,
+                    bytecode: state.bytecode,
+                    labels: state.labels,
+                    locals: state.locals
+                });
+                state.stack = [];
+                state.pc = 0;
+                state.bytecode = f.code;
+                state.labels = f.labels;
+                state.locals = locals;
+                return undefined;
+            }
         }
         default: {
             throw new Error(`${instr.tag} not implemented`);

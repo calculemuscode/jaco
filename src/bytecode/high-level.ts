@@ -49,7 +49,6 @@ export type Instruction =
     | { tag: "INVOKESTATIC"; argument: string }
     | { tag: "INVOKEDYNAMIC"; argument: number }
     | { tag: "RETURN" }
-    | { tag: "INVOKENATIVE"; argument: string }
 
     // Memory
     | { tag: "NEW"; argument: ConcreteType }
@@ -82,6 +81,7 @@ export interface Function {
 }
 
 export interface Program {
+    native_pool: Map<string, number>;
     function_pool: Map<string, Function>;
 }
 
@@ -111,7 +111,6 @@ export function instructionToString(instr: Instruction): string {
         case "GOTO":
         case "INVOKESTATIC":
         case "INVOKEDYNAMIC":
-        case "INVOKENATIVE":
         case "FUNCTIONADDRESS":
         case "ADDTAG":
         case "CHECKTAG":
