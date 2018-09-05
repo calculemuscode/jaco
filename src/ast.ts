@@ -509,5 +509,6 @@ export type ConcreteType =
     | IntType
     | StringType
     | StructType
+    | { tag: "ArrayType" }
     | { tag: "PointerType" }
     | { tag: "TaggedPointerType" };

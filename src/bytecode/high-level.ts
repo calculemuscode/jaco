@@ -1,4 +1,5 @@
 import { SourceLocation, ConcreteType } from "../ast";
+import { StructMap } from "../typecheck/structs";
 
 export type Instruction =
     // Stack Operations
@@ -83,6 +84,7 @@ export interface Function {
 export interface Program {
     native_pool: Map<string, number>;
     function_pool: Map<string, Function>;
+    struct_pool: StructMap;
 }
 
 export function instructionToString(instr: Instruction): string {
@@ -118,7 +120,7 @@ export function instructionToString(instr: Instruction): string {
             return `   ${instr.tag} ${instr.argument}`;
         case "NEW":
         case "NEWARRAY":
-            return `   ${instr.tag} ${instr.argument.tag}`;
+            return `   ${instr.tag} ${instr.argument.tag}${instr.argument.tag === "StructType" ? ` ${instr.argument.id.name}` : ""}`;
         case "AADDF":
             return `   ${instr.tag} ${instr.struct}->${instr.field}`;
         default:

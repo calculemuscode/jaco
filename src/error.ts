@@ -54,3 +54,19 @@ export class ArithmeticError extends Error {
         this.name = "ArithmeticError";
     }
 }
+
+export class RuntimeError extends Error {
+    public readonly name: "RuntimeError";
+    constructor(msg: "string") {
+        super(msg);
+        this.name = "RuntimeError";
+    }
+}
+
+export class MemoryError extends Error {
+    public readonly name: "MemoryError";
+    constructor(msg: "invalid array size" | "NULL pointer dereference" | "out of bounds array access") {
+        super(msg);
+        this.name = "MemoryError";
+    }
+}

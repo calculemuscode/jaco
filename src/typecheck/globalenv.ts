@@ -177,7 +177,7 @@ export function concreteType(genv: GlobalEnv, t: ActualType | ast.Type): ast.Con
     const typ = actualType(genv, t);
     switch (typ.tag) {
         case "VoidType":
-            throw new ImpossibleError("concreteType");
+            throw new ImpossibleError("concreteType: VoidType");
         case "BoolType":
         case "IntType":
         case "StructType":
@@ -186,11 +186,12 @@ export function concreteType(genv: GlobalEnv, t: ActualType | ast.Type): ast.Con
             return typ;
         case "PointerType": {
             if (typ.argument.tag === "VoidType") return { tag: "TaggedPointerType" };
+            return { tag: "PointerType" };
         }
         case "ArrayType":
-            return { tag: "PointerType" };
+            return { tag: "ArrayType" };
         case "NamedFunctionType":
-            throw new ImpossibleError("concreteType");
+            throw new ImpossibleError("concreteType: NamedFunctionType");
         default:
             return impossible(typ);
     }

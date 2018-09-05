@@ -1,6 +1,6 @@
 import { Value } from "./execute";
 
-export const Builtins : {[f: string]: (x: Value[]) => Value} = {
+export const Builtins: { [f: string]: (x: Value[]) => Value } = {
     fadd: (x: Value[]): Value => {
         const A = new Int32Array(3);
         const B = new Float32Array(A.buffer);
@@ -60,21 +60,64 @@ export const Builtins : {[f: string]: (x: Value[]) => Value} = {
         return Math.floor(B[0]);
     },
 
+    dadd(x: Value[]): Value {
+        const a = x[0] ? (x[0] as { tag: "double"; value: number }).value : 0;
+        const b = x[1] ? (x[1] as { tag: "double"; value: number }).value : 0;
+        return { tag: "double", value: a + b };
+    },
+
+    dsub(x: Value[]): Value {
+        const a = x[0] ? (x[0] as { tag: "double"; value: number }).value : 0;
+        const b = x[1] ? (x[1] as { tag: "double"; value: number }).value : 0;
+        return { tag: "double", value: a - b };
+    },
+
+    dmul(x: Value[]): Value {
+        const a = x[0] ? (x[0] as { tag: "double"; value: number }).value : 0;
+        const b = x[1] ? (x[1] as { tag: "double"; value: number }).value : 0;
+        return { tag: "double", value: a * b };
+    },
+
+    ddiv(x: Value[]): Value {
+        const a = x[0] ? (x[0] as { tag: "double"; value: number }).value : 0;
+        const b = x[1] ? (x[1] as { tag: "double"; value: number }).value : 0;
+        return { tag: "double", value: a / b };
+    },
+
+    dless(x: Value[]): Value {
+        const a = x[0] ? (x[0] as { tag: "double"; value: number }).value : 0;
+        const b = x[1] ? (x[1] as { tag: "double"; value: number }).value : 0;
+        return a < b ? Infinity : -Infinity;
+    },
+
+    itod(x: Value[]): Value {
+        return { tag: "double", value: x[0] as number };
+    },
+
+    dtoi(x: Value[]): Value {
+        return x[0] ? (x[0] as { tag: "double"; value: number }).value | 0 : 0;
+    },
+
     print_fpt(x: Value[]): Value {
         const A = new Int32Array(1);
         const B = new Float32Array(A.buffer);
         A[0] = x[0] as number;
         console.log(B[0]);
         return null;
-    }, 
+    },
+
+    print_dub(x: Value[]): Value {
+        console.log(x[0] ? (x[0] as { tag: "double"; value: number }).value : 0);
+        return null;
+    },
 
     print_int(x: Value[]): Value {
         console.log(x[0]);
         return null;
-    }, 
+    },
 
     print_hex(x: Value[]): Value {
         console.log((x[0] as number).toString(16));
         return null;
     }
-}
+};

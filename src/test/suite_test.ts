@@ -11,7 +11,7 @@ import "mocha";
 import { program } from "../bytecode/generate";
 import { Program } from "../bytecode/high-level";
 import { execute } from "../bytecode/execute";
-import { NonterminationError, ArithmeticError, AbortError } from "../error";
+import { NonterminationError, ArithmeticError, AbortError, RuntimeError } from "../error";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -24,6 +24,9 @@ function extractTypedefs(decls: ast.Declaration[]): Set<string> {
         }
     }, new Set<string>());
 }
+
+const STEPS = 1000000;
+const INFLOOP_STEPS = 50000;
 
 function testfile(filenameLang: Lang, libs: string[], filepath: string) {
     const libcontents = libs.map(lib => readFileSync(lib, { encoding: "binary" }));
@@ -106,23 +109,37 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
             if (spec.outcome === "typecheck") return;
             let bytecode: Program;
-            expect(() => bytecode = program(libAst, ast, spec.debug)).not.to.throw();
+            expect(() => (bytecode = program(libAst, ast, spec.debug))).not.to.throw();
 
             if (spec.outcome === "compile") return;
             if (typeof spec.outcome === "number") {
-                expect((() => {
-                    try {
-                        return execute(bytecode!, 10000000)
-                    } catch (err) {
-                        if (err.name !== "NonterminationError") throw err;
-                        console.log(err.name);
-                        return spec.outcome;
-                    }
-                })()).to.equal(spec.outcome);
+                expect(
+                    (() => {
+                        try {
+                            return execute(bytecode!, STEPS);
+                        } catch (err) {
+                            if (err.name !== "NonterminationError") throw err;
+                            console.log(err.name);
+                            return spec.outcome;
+                        }
+                    })()
+                ).to.equal(spec.outcome);
+            } else if (spec.outcome === "failure") {
+                expect(
+                    (() => {
+                        try {
+                            return execute(bytecode!, STEPS);
+                        } catch (err) {
+                            if (err.name !== "NonterminationError") throw err;
+                            console.log(err.name);
+                            return spec.outcome;
+                        }
+                    })()
+                ).to.throw(RuntimeError)
             } else if (spec.outcome === "aritherror") {
                 expect(() => {
                     try {
-                        return execute(bytecode!, 10000000);
+                        return execute(bytecode!, STEPS);
                     } catch (err) {
                         if (err.name !== "NonterminationError") throw err;
                         console.log(err.name);
@@ -132,7 +149,7 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
             } else if (spec.outcome === "abort") {
                 expect(() => {
                     try {
-                        return execute(bytecode!, 10000000);
+                        return execute(bytecode!, STEPS);
                     } catch (err) {
                         if (err.name !== "NonterminationError") throw err;
                         console.log(err.name);
@@ -140,9 +157,9 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                     }
                 }).to.throw(AbortError);
             } else if (spec.outcome === "infloop") {
-                expect(() => execute(bytecode!,  1000000)).to.throw(NonterminationError);
+                expect(() => execute(bytecode!, INFLOOP_STEPS)).to.throw(NonterminationError);
             } else {
-                expect(() => execute(bytecode!, 10000000)).to.throw();
+                expect(() => execute(bytecode!, STEPS)).to.throw();
             }
         });
     });
@@ -150,8 +167,7 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
 const dir = "./tests";
 //readdirSync(dir).
-["l4-basic"].
-forEach(subdir => {
+["compilers"].forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {
             readdirSync(join(dir, subdir)).forEach(file => {

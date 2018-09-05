@@ -2,6 +2,7 @@ import * as ast from "../ast";
 import { Instruction, instructionToString, Function, Program } from "./high-level";
 import { ImpossibleError } from "../error";
 import { impossible } from "../../node_modules/@calculemus/impossible";
+import { computeStructMap } from "../typecheck/structs";
 
 function load(kind: ast.ConcreteType): Instruction {
     switch (kind.tag) {
@@ -13,6 +14,7 @@ function load(kind: ast.ConcreteType): Instruction {
             return { tag: "IMLOAD" };
         case "StringType":
             return { tag: "SMLOAD" };
+        case "ArrayType":
         case "PointerType":
         case "TaggedPointerType":
             return { tag: "AMLOAD" };
@@ -32,12 +34,13 @@ function store(kind: ast.ConcreteType): Instruction {
             return { tag: "IMSTORE" };
         case "StringType":
             return { tag: "SMSTORE" };
+        case "ArrayType":
         case "PointerType":
         case "TaggedPointerType":
             return { tag: "AMSTORE" };
         /* istanbul ignore next */
         default:
-            throw new ImpossibleError(`load: ${kind.tag}`);
+            throw new ImpossibleError(`store: ${kind.tag}`);
     }
 }
 
@@ -54,7 +57,7 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
         case "BinaryExpression": {
             // Handles NULL === NULL
             // XXX BUG: also catches &f === &g
-            if (!exp.size) return [{ tag: "GOTO", argument: ifTrue }];
+            if (!exp.size) return [{ tag: "GOTO", argument: exp.operator === "==" ? ifTrue : ifFalse }];
 
             const left = expression(exp.left);
             const right = expression(exp.right);
@@ -63,12 +66,15 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
             const gotoFalse: Instruction = { tag: "GOTO", argument: ifFalse };
             switch (exp.size.tag) {
                 case "BoolType": {
-                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifTrue }, gotoFalse]);
+                    if (exp.operator === "==")
+                        return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifTrue }, gotoFalse]);
                     else return instrs.concat([{ tag: "IF_BCMPEQ", argument: ifFalse }, gotoTrue]);
                 }
 
+                case "ArrayType":
                 case "PointerType": {
-                    if (exp.operator === "==") return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifTrue }, gotoFalse]);
+                    if (exp.operator === "==")
+                        return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifTrue }, gotoFalse]);
                     else return instrs.concat([{ tag: "IF_ACMPEQ", argument: ifFalse }, gotoTrue]);
                 }
 
@@ -308,7 +314,7 @@ function expression(exp: ast.Expression): Instruction[] {
                 }
                 case "-": {
                     if (exp.argument.tag === "IntLiteral") {
-                        return [{ tag: "IPUSH", argument: (-exp.argument.value) | 0 }];
+                        return [{ tag: "IPUSH", argument: -exp.argument.value | 0 }];
                     } else {
                         return expression(exp.argument).concat([
                             { tag: "IPUSH", argument: 0 },
@@ -385,12 +391,7 @@ function expression(exp: ast.Expression): Instruction[] {
     }
 }
 
-function statement(
-    stm: ast.Statement,
-    contracts: boolean,
-    lBreak?: string,
-    lCont?: string
-): Instruction[] {
+function statement(stm: ast.Statement, contracts: boolean, lBreak?: string, lCont?: string): Instruction[] {
     switch (stm.tag) {
         case "ExpressionStatement":
             return expression(stm.expression).concat([{ tag: "POP" }]);
@@ -426,8 +427,11 @@ function statement(
                 } else {
                     return address // S, a
                         .concat([{ tag: "DUP" }]) // S, a, a
-                        .concat([load(stm.size!)]) // S, a, v1
-                        .concat(value) // S, a, v1, v2
+                        .concat([{ tag: "DUP" }]) // S, a, a, a
+                        .concat(value) // S, a, a, v2
+                        .concat([{ tag: "SWAP" }]) // S, a, v2, a
+                        .concat([load(stm.size!)]) // S, a, v2, v1
+                        .concat([{ tag: "SWAP" }]) // S, a, v1, v2
                         .concat([assignmentOp(stm.operator)]) // S, a, v1 (*) v2
                         .concat([store(stm.size!)]); // S
                 }
@@ -457,19 +461,16 @@ function statement(
             const labelLoop = label("while_loop");
             const labelExit = label("while_exit");
             const invariants = contracts
-                ? stm.invariants.reduce<Instruction[]>(
-                      (instrs, exp, i) => {
-                        const labelInvariantGood = label(`while_invariant_${i}_ok`);
-                        const labelInvariantFail = label(`while_invariant_${i}_fail`);
-                        return instrs
-                            .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
-                            .concat([{ tag: "LABEL", argument: labelInvariantFail }])
-                            .concat([{tag: "SPUSH", argument: "loop invariant failed"}])
-                            .concat([{ tag: "ABORT", argument: "loop_invariant" }])
-                            .concat([{ tag: "LABEL", argument: labelInvariantGood }])
-                    },
-                    []
-                )
+                ? stm.invariants.reduce<Instruction[]>((instrs, exp, i) => {
+                      const labelInvariantGood = label(`while_invariant_${i}_ok`);
+                      const labelInvariantFail = label(`while_invariant_${i}_fail`);
+                      return instrs
+                          .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                          .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                          .concat([{ tag: "SPUSH", argument: "loop invariant failed" }])
+                          .concat([{ tag: "ABORT", argument: "loop_invariant" }])
+                          .concat([{ tag: "LABEL", argument: labelInvariantGood }]);
+                  }, [])
                 : [];
 
             return [{ tag: "LABEL", argument: labelStart } as Instruction]
@@ -486,19 +487,16 @@ function statement(
             const labelUpdate = label("for_update");
             const labelExit = label("for_end");
             const invariants = contracts
-                ? stm.invariants.reduce<Instruction[]>(
-                      (instrs, exp, i) => {
-                          const labelInvariantGood = label(`for_invariant_${i}_ok`);
-                          const labelInvariantFail = label(`for_invariant_${i}_fail`);
-                          return instrs
-                              .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
-                              .concat([{ tag: "LABEL", argument: labelInvariantFail }])
-                              .concat([{tag: "SPUSH", argument: "loop invariant failed"}])
-                              .concat([{ tag: "ABORT", argument: "loop_invariant" }])
-                              .concat([{ tag: "LABEL", argument: labelInvariantGood }])
-                      },
-                      []
-                  )
+                ? stm.invariants.reduce<Instruction[]>((instrs, exp, i) => {
+                      const labelInvariantGood = label(`for_invariant_${i}_ok`);
+                      const labelInvariantFail = label(`for_invariant_${i}_fail`);
+                      return instrs
+                          .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                          .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                          .concat([{ tag: "SPUSH", argument: "loop invariant failed" }])
+                          .concat([{ tag: "ABORT", argument: "loop_invariant" }])
+                          .concat([{ tag: "LABEL", argument: labelInvariantGood }]);
+                  }, [])
                 : [];
 
             return (stm.init ? statement(stm.init, contracts, lBreak, lCont) : [])
@@ -526,10 +524,10 @@ function statement(
             const assertGood = label("assert_pass");
             if (!contracts && stm.contract) return [];
             return conditional(stm.test, assertGood, assertBad)
-                .concat([ {tag: "LABEL", argument: assertBad }])
-                .concat([{tag: "SPUSH", argument: "assert failed"}])
+                .concat([{ tag: "LABEL", argument: assertBad }])
+                .concat([{ tag: "SPUSH", argument: "assert failed" }])
                 .concat([{ tag: "ABORT", argument: stm.contract ? "assert" : null }])
-                .concat([{tag: "LABEL", argument: assertGood }])
+                .concat([{ tag: "LABEL", argument: assertGood }]);
         }
         case "ErrorStatement":
             return expression(stm.argument).concat([{ tag: "ATHROW" }]);
@@ -562,21 +560,18 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
                     const args = decl.params.map(param => param.id.name);
                     const labels = new Map<string, number>();
                     code.forEach((instr, i) => {
-                        if (instr.tag === "LABEL") labels.set(instr.argument, i);                        
+                        if (instr.tag === "LABEL") labels.set(instr.argument, i);
                     });
 
-                    //console.log(labels);
                     function_pool.set(decl.id.name, {
                         args: args,
                         code: code,
                         labels: labels
-                    })
+                    });
 
-                    //console.log(`FUNCTION ${decl.id.name}`);
                     const instrs = statement(decl.body, contracts);
                     for (let instr of instrs) {
                         instructionToString(instr);
-                        //console.log(instructionToString(instr));
                     }
                 }
             }
@@ -585,6 +580,7 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
 
     return {
         native_pool: native_pool,
-        function_pool: function_pool
-    }
+        function_pool: function_pool,
+        struct_pool: computeStructMap(libs, decls)
+    };
 }
