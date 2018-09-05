@@ -11,7 +11,8 @@ import "mocha";
 import { program } from "../bytecode/generate";
 import { Program } from "../bytecode/high-level";
 import { execute } from "../bytecode/execute";
-import { NonterminationError, ArithmeticError, AbortError, RuntimeError } from "../error";
+import { NonterminationError, ArithmeticError, AbortError, FailureError, MemoryError } from "../error";
+import { impossible } from "@calculemus/impossible";
 
 function extractTypedefs(decls: ast.Declaration[]): Set<string> {
     return decls.reduce((set, decl) => {
@@ -94,17 +95,15 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
 
             /* Step 3: Try to typecheck */
             /* The first branch is wrong: error does allow error_statics */
-            if (spec.outcome === "error_typecheck" || spec.outcome === "error") {
+            if (
+                spec.outcome === "error_typecheck" ||
+                spec.outcome === "error_static" ||
+                spec.outcome === "error"
+            ) {
                 expect(() => checkProgram(libAst, ast)).to.throw();
                 return;
-            } else if (spec.outcome !== "error") {
-                expect(() => checkProgram(libAst, ast)).not.to.throw();
             } else {
-                try {
-                    checkProgram(libAst, ast);
-                } catch (e) {
-                    return;
-                }
+                expect(() => checkProgram(libAst, ast)).not.to.throw();
             }
 
             if (spec.outcome === "typecheck") return;
@@ -119,30 +118,26 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                             return execute(bytecode!, STEPS);
                         } catch (err) {
                             if (err.name !== "NonterminationError") throw err;
-                            console.log(err.name);
                             return spec.outcome;
                         }
                     })()
                 ).to.equal(spec.outcome);
             } else if (spec.outcome === "failure") {
-                expect(
-                    (() => {
-                        try {
-                            return execute(bytecode!, STEPS);
-                        } catch (err) {
-                            if (err.name !== "NonterminationError") throw err;
-                            console.log(err.name);
-                            return spec.outcome;
-                        }
-                    })()
-                ).to.throw(RuntimeError)
+                expect(() => {
+                    try {
+                        const x = execute(bytecode!, STEPS);
+                        throw new Error(`Returned ${x}`);
+                    } catch (err) {
+                        if (err.name !== "NonterminationError") throw err;
+                        throw new FailureError("Nontermination");
+                    }
+                }).to.throw(FailureError);
             } else if (spec.outcome === "aritherror") {
                 expect(() => {
                     try {
                         return execute(bytecode!, STEPS);
                     } catch (err) {
                         if (err.name !== "NonterminationError") throw err;
-                        console.log(err.name);
                         throw new ArithmeticError("division by zero");
                     }
                 }).to.throw(ArithmeticError);
@@ -152,22 +147,29 @@ function testfile(filenameLang: Lang, libs: string[], filepath: string) {
                         return execute(bytecode!, STEPS);
                     } catch (err) {
                         if (err.name !== "NonterminationError") throw err;
-                        console.log(err.name);
-                        throw new AbortError(null, "");
+                        throw new AbortError(null, "Nontermination");
                     }
                 }).to.throw(AbortError);
+            } else if (spec.outcome === "memerror") {
+                expect(() => {
+                    try {
+                        return execute(bytecode!, STEPS);
+                    } catch (err) {
+                        if (err.name !== "NonterminationError") throw err;
+                        throw new MemoryError("Nontermination");
+                    }
+                }).to.throw(MemoryError);
             } else if (spec.outcome === "infloop") {
                 expect(() => execute(bytecode!, INFLOOP_STEPS)).to.throw(NonterminationError);
             } else {
-                expect(() => execute(bytecode!, STEPS)).to.throw();
+                throw impossible(spec.outcome);
             }
         });
     });
 }
 
 const dir = "./tests";
-//readdirSync(dir).
-["compilers"].forEach(subdir => {
+readdirSync(dir).forEach(subdir => {
     if (lstatSync(join(dir, subdir)).isDirectory()) {
         describe(`Tests in suite ${subdir}`, () => {
             readdirSync(join(dir, subdir)).forEach(file => {

@@ -246,6 +246,7 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 );
 
             const argumentType = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
+            console.log(argumentType);
             if (argumentType.tag === "AmbiguousNullPointer") {
                 // NULL cast always ok
                 // We don't know (or care) if it's to or from void*
@@ -272,11 +273,11 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 if (argumentType.argument.tag === "VoidType")
                     throw new TypingError(exp, "Casting a 'void*' as a 'void*' not permitted\n");
             } else if (argumentType.argument.tag !== "VoidType") {
+                throw new TypingError(exp, "only casts to or from 'void*' allowed");
+            } else {
                 exp.direction = "FROM_VOID";
                 exp.typename = fullTypeName(genv, exp.kind); // INSERTING TYPE INFORMATION HERE
-                throw new TypingError(exp, "only casts to or from 'void*' allowed");
             }
-
             return exp.kind;
         }
         case "UnaryExpression": {

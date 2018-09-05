@@ -1,11 +1,13 @@
 import { Instruction, Program } from "./high-level";
-import { AbortError, ArithmeticError, NonterminationError, MemoryError } from "../error";
+import { AbortError, ArithmeticError, NonterminationError, MemoryError, FailureError } from "../error";
 import { Builtins } from "./stdlib";
 import { ConcreteType } from "../ast";
 import { StructMap } from "../typecheck/structs";
+import { impossible } from "@calculemus/impossible";
 
-export type BasePointerValue = { tag: "basepointer"; value: HeapValue[]; type?: string };
-export type LocationValue = { tag: "loc"; value: HeapValue[]; index: number; offset: string[]; };
+export type PointerValue = { tag: "basepointer"; value: string | HeapValue[]; cast?: string };
+export type HeapPointerValue = { tag: "basepointer"; value: HeapValue[]; cast?: string };
+export type LocationValue = { tag: "loc"; value: HeapValue[]; index: number; offset: string[] };
 
 export type Value =
     | string // runtime value of type string
@@ -14,8 +16,7 @@ export type Value =
     //                       bool -Infinity (false), Infinity (true)
     | null // void*, function pointer, regular pointer
     | { tag: "double"; value: number } // Fake "pointer" type for 15-411 library
-    | BasePointerValue
-    | { tag: "function"; value: string } // non-null function pointer
+    | PointerValue;
 
 export interface Frame {
     stack: (Value | LocationValue)[];
@@ -55,7 +56,7 @@ export function execute(prog: Program, gas?: number): Value {
     return result;
 }
 
-const emptyArray: Value = { tag: "basepointer", value: [], type: "<array>" };
+const emptyArray: Value = { tag: "basepointer", value: [], cast: "<array>" };
 export function init(structs: StructMap, t: ConcreteType): HeapValue {
     switch (t.tag) {
         case "BoolType":
@@ -72,7 +73,7 @@ export function init(structs: StructMap, t: ConcreteType): HeapValue {
             return null;
         case "ArrayType":
             return emptyArray;
-        case "StructType": 
+        case "StructType":
             // We allocate struct elements by need as they are read or written
             return { tag: "Struct", struct: t.id.name, value: new Map<string, HeapValue>() };
     }
@@ -80,6 +81,7 @@ export function init(structs: StructMap, t: ConcreteType): HeapValue {
 
 export function step(prog: Program, state: State): undefined | number {
     //console.log(state.callstack.map(frame => frame.locals));
+    //console.log(state.locals);
     //console.log(state.stack);
     //console.log(state.bytecode[state.pc]);
 
@@ -138,8 +140,18 @@ export function step(prog: Program, state: State): undefined | number {
         case "IDIV": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (y === 0) throw new ArithmeticError("division by zero");
-            if (x === -0x80000000 && y === -1) throw new ArithmeticError("out-of-bounds division");
+            if (y === 0) {
+                state.pc -= 1;
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("division by zero");
+            }
+            if (x === -0x80000000 && y === -1) {
+                state.pc -= 1;
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("out-of-bounds division");
+            }
             state.stack.push((x / y) | 0);
             return undefined;
         }
@@ -158,22 +170,41 @@ export function step(prog: Program, state: State): undefined | number {
         case "IREM": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (y === 0) throw new ArithmeticError("division by zero");
-            if (x === -0x80000000 && y === -1) throw new ArithmeticError("out-of-bounds division");
+            if (y === 0) {
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("division by zero");
+            }
+            if (x === -0x80000000 && y === -1) {
+                state.pc -= 1;
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("out-of-bounds division");
+            }
             state.stack.push(x % y | 0);
             return undefined;
         }
         case "ISHL": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (0 > y || y >= 32) throw new ArithmeticError("shift out of range");
+            if (0 > y || y >= 32) {
+                state.pc -= 1;
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("shift out of range");
+            }
             state.stack.push((x << y) | 0);
             return undefined;
         }
         case "ISHR": {
             const y = state.stack.pop() as number;
             const x = state.stack.pop() as number;
-            if (0 > y || y >= 32) throw new ArithmeticError("shift out of range");
+            if (0 > y || y >= 32) {
+                state.pc -= 1;
+                state.stack.push(x);
+                state.stack.push(y);
+                throw new ArithmeticError("shift out of range");
+            }
             state.stack.push((x >> y) | 0);
             return undefined;
         }
@@ -208,6 +239,9 @@ export function step(prog: Program, state: State): undefined | number {
             return undefined;
         }
         case "CPUSH": {
+            console.log(instr.argument);
+            console.log(instr.argument.charCodeAt(0));
+            console.log(instr.argument.charCodeAt(0) + 0x80000000);
             state.stack.push(instr.argument.charCodeAt(0) + 0x80000000);
             return undefined;
         }
@@ -230,8 +264,8 @@ export function step(prog: Program, state: State): undefined | number {
             return undefined;
         }
         case "IF_ACMPEQ": {
-            const y = state.stack.pop() as null | BasePointerValue | { tag: "function"; value: string };
-            const x = state.stack.pop() as null | BasePointerValue | { tag: "function"; value: string };
+            const y = state.stack.pop() as null | PointerValue;
+            const x = state.stack.pop() as null | PointerValue;
             if (x === null && y === null) state.pc = state.labels.get(instr.argument)!;
             if (x !== null && y !== null) {
                 if (x.value === y.value) state.pc = state.labels.get(instr.argument)!;
@@ -265,7 +299,16 @@ export function step(prog: Program, state: State): undefined | number {
             return undefined;
         }
         case "ABORT": {
-            throw new AbortError(instr.argument, state.stack.pop() as string);
+            const err = state.stack.pop() as string;
+            state.pc -= 1;
+            state.stack.push(err);
+            throw new AbortError(instr.argument, err);
+        }
+        case "ATHROW": {
+            const err = state.stack.pop() as string;
+            state.pc -= 1;
+            state.stack.push(err);
+            throw new FailureError(err);
         }
         case "INVOKESTATIC": {
             const f = prog.function_pool.get(instr.argument);
@@ -298,6 +341,43 @@ export function step(prog: Program, state: State): undefined | number {
                 return undefined;
             }
         }
+        case "INVOKEDYNAMIC": {
+            const args: Value[] = [];
+            for (let i = 0; i < instr.argument; i++) {
+                args.unshift(state.stack.pop() as Value);
+            }
+            const g = state.stack.pop() as null | { tag: "function"; value: string };
+            if (g === null) {
+                state.pc -= 1;
+                state.stack.push(g);
+                while (args.length > 0) state.stack.push(args.shift()!);
+                throw new MemoryError("NULL pointer dereference");
+            }
+            const f = prog.function_pool.get(g.value);
+            if (!f) {
+                state.stack.push(Builtins[instr.argument](args));
+                return undefined;
+            } else {
+                const locals = new Map<string, Value>();
+                for (let i = f.args.length - 1; i >= 0; i--) {
+                    locals.set(f.args[i], args[i]);
+                }
+
+                state.callstack.push({
+                    stack: state.stack,
+                    pc: state.pc,
+                    bytecode: state.bytecode,
+                    labels: state.labels,
+                    locals: state.locals
+                });
+                state.stack = [];
+                state.pc = 0;
+                state.bytecode = f.code;
+                state.labels = f.labels;
+                state.locals = locals;
+                return undefined;
+            }
+        }
 
         case "NEW": {
             state.stack.push({ tag: "basepointer", value: [init(prog.struct_pool, instr.argument)] });
@@ -305,13 +385,17 @@ export function step(prog: Program, state: State): undefined | number {
         }
         case "NEWARRAY": {
             const n = state.stack.pop() as number;
-            if (n < 0) throw new MemoryError("invalid array size");
+            if (n < 0) {
+                state.pc -= 1;
+                state.stack.push(n);
+                throw new MemoryError("invalid array size");
+            }
             const value = new Array<HeapValue>(n);
             for (let i = 0; i < n; i++) value[i] = init(prog.struct_pool, instr.argument);
             state.stack.push({
                 tag: "basepointer",
                 value: value,
-                type: "<array>"
+                cast: "<array>"
             });
             return undefined;
         }
@@ -321,17 +405,26 @@ export function step(prog: Program, state: State): undefined | number {
             return undefined;
         }
         case "AADDF": {
-            const a = state.stack.pop() as null | LocationValue | BasePointerValue;
-            if (a === null) throw new MemoryError("NULL pointer dereference");
+            const a = state.stack.pop() as null | LocationValue | HeapPointerValue;
+            if (a === null) {
+                state.pc -= 1;
+                state.stack.push(a);
+                throw new MemoryError("NULL pointer dereference");
+            }
             const index = a.tag === "basepointer" ? 0 : a.index;
             const offset = a.tag === "basepointer" ? [instr.field] : a.offset.concat([instr.field]);
-            state.stack.push({ tag: "loc", value: a.value, index: index, offset: offset})
-            return undefined
+            state.stack.push({ tag: "loc", value: a.value, index: index, offset: offset });
+            return undefined;
         }
         case "AADDS": {
             const i = state.stack.pop() as number;
             const A = state.stack.pop() as { tag: "basepointer"; value: HeapValue[]; type: "<array>" };
-            if (0 > i || i >= A.value.length) throw new MemoryError("out of bounds array access");
+            if (0 > i || i >= A.value.length) {
+                state.pc -= 1;
+                state.stack.push(A);
+                state.stack.push(i);
+                throw new MemoryError("out of bounds array access");
+            }
             state.stack.push({ tag: "loc", value: A.value, index: i, offset: [] });
             return undefined;
         }
@@ -341,8 +434,12 @@ export function step(prog: Program, state: State): undefined | number {
         case "BMLOAD":
         case "CMLOAD":
         case "SMLOAD": {
-            const a = state.stack.pop() as null | LocationValue | BasePointerValue;
-            if (a === null) throw new MemoryError("NULL pointer dereference");
+            const a = state.stack.pop() as null | LocationValue | HeapPointerValue;
+            if (a === null) {
+                state.pc -= 1;
+                state.stack.push(a);
+                throw new MemoryError("NULL pointer dereference");
+            }
             let value: HeapValue = a.tag === "loc" ? a.value[a.index] : a.value[0];
             if (a.tag === "loc") {
                 for (let i = 0; i < a.offset.length; i++) {
@@ -364,8 +461,13 @@ export function step(prog: Program, state: State): undefined | number {
         case "CMSTORE":
         case "SMSTORE": {
             const x = state.stack.pop() as Value;
-            const a = state.stack.pop() as null | LocationValue | BasePointerValue;
-            if (a === null) throw new MemoryError("NULL pointer dereference");
+            const a = state.stack.pop() as null | LocationValue | HeapPointerValue;
+            if (a === null) {
+                state.pc -= 1;
+                state.stack.push(a);
+                state.stack.push(x);
+                throw new MemoryError("NULL pointer dereference");
+            }
             const offset = a.tag === "basepointer" ? [] : a.offset;
             const index = a.tag === "basepointer" ? 0 : a.index;
             if (offset.length === 0) {
@@ -377,7 +479,7 @@ export function step(prog: Program, state: State): undefined | number {
                     const struct = (value as Struct).value;
                     if (!struct.has(offset[i])) {
                         const structType = prog.struct_pool.get((value as Struct).struct)!;
-                        struct.set(offset[i], init(prog.struct_pool, structType.get(offset[i])!))
+                        struct.set(offset[i], init(prog.struct_pool, structType.get(offset[i])!));
                     }
                     value = struct.get(offset[i])!;
                 }
@@ -386,8 +488,52 @@ export function step(prog: Program, state: State): undefined | number {
             }
         }
 
+        case "FUNCTIONADDRESS": {
+            state.stack.push({ tag: "basepointer", value: instr.argument });
+        }
+        case "UNTAG": {
+            const a = state.stack.pop() as null | PointerValue;
+            if (a === null) {
+                state.stack.push(null);
+                return undefined;
+            } else {
+                state.stack.push({ tag: a.tag, value: a.value });
+                return undefined;
+            }
+        }
+        case "ADDTAG": {
+            const a = state.stack.pop() as null | PointerValue;
+            if (a === null) {
+                state.stack.push(null);
+                return undefined;
+            } else {
+                state.stack.push({ tag: a.tag, value: a.value, cast: instr.cast });
+                return undefined;
+            }
+        }
+        case "CHECKTAG": {
+            const a = state.stack.pop() as null | PointerValue;
+            if (a === null) {
+                state.stack.push(null);
+                return undefined;
+            } else {
+                if (a.cast !== instr.cast) {
+                    state.pc -= 1;
+                    state.stack.push(a);
+                    throw new MemoryError(`Cannot cast a ${a.cast} as a ${instr.cast}`);
+                }
+                state.stack.push({ tag: "basepointer", value: a.value });
+                return undefined;
+            }
+        }
+        case "IF_TAGEQ": {
+            const a = state.stack.pop() as null | PointerValue;
+            if (a === null || a.cast === instr.cast) state.labels.get(instr.argument)!;
+            return undefined;
+        }
+
         default: {
-            throw new Error(`${instr.tag} not implemented`);
+            return impossible(instr);
         }
     }
 }

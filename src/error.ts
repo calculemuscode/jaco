@@ -55,17 +55,17 @@ export class ArithmeticError extends Error {
     }
 }
 
-export class RuntimeError extends Error {
-    public readonly name: "RuntimeError";
-    constructor(msg: "string") {
+export class FailureError extends Error {
+    public readonly name: "FailureError";
+    constructor(msg: string) {
         super(msg);
-        this.name = "RuntimeError";
+        this.name = "FailureError";
     }
 }
 
 export class MemoryError extends Error {
     public readonly name: "MemoryError";
-    constructor(msg: "invalid array size" | "NULL pointer dereference" | "out of bounds array access") {
+    constructor(msg: string) {
         super(msg);
         this.name = "MemoryError";
     }

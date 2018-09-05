@@ -157,6 +157,11 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                     .concat([{ tag: "LABEL", argument: labelMid }])
                     .concat(conditional(exp.right, ifTrue, ifFalse));
         }
+        case "HasTagExpression": {
+            return expression(exp.argument)
+                .concat([{ tag: "IF_TAGEQ", cast: exp.typename!, argument: ifTrue }])
+                .concat([{ tag: "GOTO", argument: ifFalse }]);
+        }
     }
 
     // Give-up instruction: put the boolean on the stack
@@ -294,9 +299,9 @@ function expression(exp: ast.Expression): Instruction[] {
         case "CastExpression": {
             if (!exp.direction) return [];
             if (exp.direction === "TO_VOID") {
-                return expression(exp.argument).concat([{ tag: "ADDTAG", argument: exp.typename! }]);
+                return expression(exp.argument).concat([{ tag: "ADDTAG", cast: exp.typename! }]);
             } else {
-                return expression(exp.argument).concat([{ tag: "CHECKTAG", argument: exp.typename! }]);
+                return expression(exp.argument).concat([{ tag: "CHECKTAG", cast: exp.typename! }]);
             }
         }
         case "UnaryExpression": {
@@ -385,7 +390,7 @@ function expression(exp: ast.Expression): Instruction[] {
         case "LengthExpression":
             return expression(exp.argument).concat([{ tag: "ARRAYLENGTH" }]);
         case "HasTagExpression":
-            return expression(exp.argument).concat([{ tag: "CHECKTAG", argument: exp.typename! }]);
+            return conditionalexpression(exp);
         default:
             return impossible(exp);
     }

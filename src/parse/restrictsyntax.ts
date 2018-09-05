@@ -2,7 +2,7 @@ import Lang from "../lang";
 import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
 import { impossible } from "@calculemus/impossible";
-import { ParsingError } from "../error";
+import { ParsingError, ImpossibleError } from "../error";
 
 function standard(syn: syn.Syn, lang: Lang, allowed: Lang[], msg: string) {
     for (let ok of allowed) if (lang === ok) return;
@@ -88,9 +88,44 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 if (!syn.raw.match(/\\[ntvbrfa\\'"0]/))
                     throw new ParsingError(syn, `Invalid escape character '${syn.raw}'`);
             }
+            let value = syn.raw[0];
+            if (syn.raw[0] === "\\") {
+                switch (syn.raw[1]) {
+                    case "n":
+                        value = "\n";
+                        break;
+                    case "t":
+                        value = "\t";
+                        break;
+                    case "v":
+                        value = "\v";
+                        break;
+                    case "r":
+                        value = "\r";
+                        break;
+                    case "f":
+                        value = "\f";
+                        break;
+                    case "a":
+                        value = "a";
+                        break;
+                    case "'":
+                        value = "'";
+                        break;
+                    case '"':
+                        value = '"';
+                        break;
+                    case "0":
+                        value = "\0";
+                        break;
+                    default:
+                        throw new ImpossibleError(`Unexpected char '${syn.raw}'`);
+                }
+            }
+
             return {
                 tag: "CharLiteral",
-                value: syn.raw,
+                value: value,
                 raw: `'${syn.raw}'`,
                 loc: syn.loc
             };

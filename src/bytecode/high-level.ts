@@ -71,9 +71,9 @@ export type Instruction =
 
     // Void pointers
     | { tag: "UNTAG" }
-    | { tag: "ADDTAG"; argument: string }
-    | { tag: "CHECKTAG"; argument: string }
-    | { tag: "HASTAG"; argument: string };
+    | { tag: "ADDTAG"; cast: string }
+    | { tag: "CHECKTAG"; cast: string }
+    | { tag: "IF_TAGEQ"; cast: string; argument: string };
 
 export interface Function {
     args: string[];
@@ -114,13 +114,17 @@ export function instructionToString(instr: Instruction): string {
         case "INVOKESTATIC":
         case "INVOKEDYNAMIC":
         case "FUNCTIONADDRESS":
+            return `   ${instr.tag} ${instr.argument}`;
         case "ADDTAG":
         case "CHECKTAG":
-        case "HASTAG":
-            return `   ${instr.tag} ${instr.argument}`;
+            return `   ${instr.tag} ${instr.cast}`;
+        case "IF_TAGEQ":
+            return `   ${instr.tag} ${instr.cast} ${instr.argument}`;
         case "NEW":
         case "NEWARRAY":
-            return `   ${instr.tag} ${instr.argument.tag}${instr.argument.tag === "StructType" ? ` ${instr.argument.id.name}` : ""}`;
+            return `   ${instr.tag} ${instr.argument.tag}${
+                instr.argument.tag === "StructType" ? ` ${instr.argument.id.name}` : ""
+            }`;
         case "AADDF":
             return `   ${instr.tag} ${instr.struct}->${instr.field}`;
         default:
