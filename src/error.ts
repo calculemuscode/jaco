@@ -1,12 +1,18 @@
 import { SourceLocation } from "./ast";
 
+export class IncompleteParseError extends Error {
+    public readonly name: "IncompleteParseError" = "IncompleteParseError";
+    constructor(msg: string) {
+        super(msg);
+    }
+}
+
 export class ParsingError extends Error {
-    public readonly name: "ParsingError";
+    public readonly name: "ParsingError" = "ParsingError";
     loc: null | SourceLocation;
     constructor(syn: SourceLocation | { loc?: SourceLocation }, msg: string) {
-        const loc = "start" in syn ? syn : syn.loc ? syn.loc : null;
         super(msg);
-        this.name = "ParsingError";
+        const loc = "start" in syn ? syn : syn.loc ? syn.loc : null;
         this.loc = loc;
     }
 }
@@ -24,49 +30,43 @@ export class TypingError extends Error {
 }
 
 export class ImpossibleError extends Error {
-    public readonly name: "ImpossibleError";
+    public readonly name: "ImpossibleError" = "ImpossibleError";
     constructor(msg: string) {
         super(`${msg}\nShould be impossible! (Please report.)`);
-        this.name = "ImpossibleError";
     }
 }
 
 export class NonterminationError extends Error {
-    public readonly name: "NonterminationError";
+    public readonly name: "NonterminationError" = "NonterminationError";
     constructor() {
         super();
-        this.name = "NonterminationError";
     }
 }
 
 export class AbortError extends Error {
-    public readonly name: "AbortError";
+    public readonly name: "AbortError" = "AbortError";
     constructor(source: null | "assert" | "requires" | "ensures" | "loop_invariant", msg: string) {
         super(msg + (source === null ? "" : ` (@${source})`));
-        this.name = "AbortError";
     }
 }
 
 export class ArithmeticError extends Error {
-    public readonly name: "ArithmeticError";
+    public readonly name: "ArithmeticError" = "ArithmeticError";
     constructor(msg: "division by zero" | "out-of-bounds division" | "shift out of range") {
         super(msg);
-        this.name = "ArithmeticError";
     }
 }
 
 export class FailureError extends Error {
-    public readonly name: "FailureError";
+    public readonly name: "FailureError" = "FailureError";
     constructor(msg: string) {
         super(msg);
-        this.name = "FailureError";
     }
 }
 
 export class MemoryError extends Error {
-    public readonly name: "MemoryError";
+    public readonly name: "MemoryError" = "MemoryError";
     constructor(msg: string) {
         super(msg);
-        this.name = "MemoryError";
     }
 }

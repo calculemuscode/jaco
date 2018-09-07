@@ -87,6 +87,12 @@ export interface Program {
     struct_pool: StructMap;
 }
 
+export const empty: Program = {
+    native_pool: new Map(),
+    function_pool: new Map(),
+    struct_pool: new Map()
+};
+
 export function instructionToString(instr: Instruction): string {
     switch (instr.tag) {
         case "LABEL":

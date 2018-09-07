@@ -1,5 +1,12 @@
 import { Instruction, Program } from "./high-level";
-import { AbortError, ArithmeticError, NonterminationError, MemoryError, FailureError } from "../error";
+import {
+    AbortError,
+    ArithmeticError,
+    NonterminationError,
+    MemoryError,
+    FailureError,
+    ImpossibleError
+} from "../error";
 import { Builtins } from "./stdlib";
 import { ConcreteType } from "../ast";
 import { StructMap } from "../typecheck/structs";
@@ -16,7 +23,73 @@ export type Value =
     //                       bool -Infinity (false), Infinity (true)
     | null // void*, function pointer, regular pointer
     | { tag: "double"; value: number } // Fake "pointer" type for 15-411 library
-    | PointerValue;
+    | PointerValue
+    | { tag: "VOID" };
+
+function heapValueToString(v: HeapValue): string {
+    console.log(v);
+    if (v !== null && typeof v === "object" && v.tag === "Struct") {
+        const strs = [];
+        for (let [f, obj] of v.value.entries()) {
+            console.log(f);
+            console.log(obj);
+            strs.push(`${f}: {${heapValueToString(obj)}}`);
+        }
+        return strs.join(", ");
+    } else {
+        return valueToString(v, true) as string;
+    }
+}
+
+export function valueToString(v: Value | LocationValue, stop?: boolean): string | null {
+    if (v === null) return "NULL";
+    if (typeof v === "string") return `"${v}"`;
+    if (typeof v === "number") {
+        if (-0x80000000 <= v && v < 0x80000000) {
+            const hex = v < 0 ? (v + 0x100000000).toString(16) : v.toString(16);
+            return stop ? `${v}` : `${v} (0x${hex})`;
+        } else if (v === -Infinity) {
+            return "false";
+        } else if (v === Infinity) {
+            return "true";
+        } else if (0x80000020 <= v && v < 0x80000080) {
+            return `'${String.fromCharCode(v - 0x80000000)}'`;
+        } else if (0x80000000 <= v) {
+            switch (v - 0x80000000) {
+                case 0:
+                    return "'\\0'";
+                case 7:
+                    return "'\\a'";
+                case 8:
+                    return "'\\b'";
+                case 9:
+                    return "'\\t'";
+                case 10:
+                    return "'\\n'";
+                case 11:
+                    return "'\\v'";
+                case 12:
+                    return "'\\f'";
+                case 13:
+                    return "'\\r'";
+                default:
+                    return v < 0x80000010
+                        ? `'\\x0${(v - 0x80000000).toString(16)}'`
+                        : `'\\x${(v - 0x80000000).toString(16)}'`;
+            }
+        } else {
+            throw new ImpossibleError(`runtime integer value ${v}`);
+        }
+    }
+    if (v.tag === "VOID") return null;
+    if (v.tag === "basepointer") {
+        if (typeof v.value === "string") return `pointer to function ${v.value}`;
+        if (stop) return `...`;
+        if (v.cast === undefined) return `{${heapValueToString(v.value[0])}}`;
+        if (v.cast === "<array>") return `[${v.value.map(heapValueToString).join("; ")}]`;
+    }
+    return null;
+}
 
 export interface Frame {
     stack: (Value | LocationValue)[];
@@ -46,6 +119,30 @@ export function execute(prog: Program, gas?: number): Value {
         bytecode: main.code,
         labels: main.labels,
         locals: new Map(),
+        callstack: []
+    };
+
+    let result: undefined | Value;
+    while (undefined === (result = step(prog, state))) {
+        if (gas && --gas == 0) throw new NonterminationError();
+    }
+    return result;
+}
+
+export function executeInstructions(
+    prog: Program,
+    locals: Map<string, Value>,
+    bytecode: Instruction[],
+    gas?: number
+) {
+    const labels = new Map<string, number>();
+    bytecode.forEach((instr, i) => (instr.tag === "LABEL" ? labels.set(instr.argument, i) : {}));
+    const state: State = {
+        stack: [],
+        pc: 0,
+        bytecode: bytecode,
+        labels: labels,
+        locals: locals,
         callstack: []
     };
 
@@ -92,7 +189,8 @@ export function step(prog: Program, state: State): undefined | number {
     state.pc += 1;
     switch (instr.tag) {
         case "RETURN": {
-            const result = state.stack.pop()!;
+            const result: Value | LocationValue =
+                state.stack.length === 0 ? { tag: "VOID" } : state.stack.pop()!;
             if (state.callstack.length === 0) {
                 return result as number;
             } else {

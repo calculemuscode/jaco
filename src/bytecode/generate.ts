@@ -264,7 +264,7 @@ const label = (() => {
     };
 })();
 
-function expression(exp: ast.Expression): Instruction[] {
+export function expression(exp: ast.Expression): Instruction[] {
     switch (exp.tag) {
         case "Identifier":
             return [{ tag: "VLOAD", argument: exp.name }];
@@ -396,7 +396,12 @@ function expression(exp: ast.Expression): Instruction[] {
     }
 }
 
-function statement(stm: ast.Statement, contracts: boolean, lBreak?: string, lCont?: string): Instruction[] {
+export function statement(
+    stm: ast.Statement,
+    contracts: boolean,
+    lBreak?: string,
+    lCont?: string
+): Instruction[] {
     switch (stm.tag) {
         case "ExpressionStatement":
             return expression(stm.expression).concat([{ tag: "POP" }]);
@@ -515,10 +520,9 @@ function statement(stm: ast.Statement, contracts: boolean, lBreak?: string, lCon
                 .concat([{ tag: "GOTO", argument: labelStart }])
                 .concat([{ tag: "LABEL", argument: labelExit }]);
         }
-        case "ReturnStatement":
-            return (stm.argument ? expression(stm.argument) : [{ tag: "ACONST_NULL" } as Instruction]).concat(
-                [{ tag: "RETURN" }]
-            );
+        case "ReturnStatement": {
+            return (stm.argument ? expression(stm.argument) : []).concat([{ tag: "RETURN" }]);
+        }
         case "BlockStatement":
             return stm.body.reduce<Instruction[]>(
                 (instrs, stm) => instrs.concat(statement(stm, contracts, lBreak, lCont)),

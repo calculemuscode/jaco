@@ -4,6 +4,7 @@ import { restrictExpression, restrictDeclaration, restrictStatement } from "./re
 import Lang from "../lang";
 import * as ast from "../ast";
 import * as parsed from "./parsedsyntax";
+import { ImpossibleError, IncompleteParseError } from "../error";
 
 const expressionRules = require("../../lib/expression-rules");
 const statementRules = require("../../lib/statement-rules");
@@ -16,32 +17,26 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
     parser.feed(str);
     const parsed: parsed.Expression[] = parser.finish();
     if (parsed.length > 1) {
-        throw new Error("Ambiguous parse!");
+        throw new ImpossibleError("Ambiguous parse!");
     } else if (parsed.length === 0) {
-        throw new Error("Incomplete parse");
+        throw new IncompleteParseError("Incomplete parse");
     } else {
         return restrictExpression(opt.lang || "C1", parsed[0]);
     }
 }
 
-export function parseStatement(
-    str: string,
-    options?: { lang?: Lang; types?: Set<string> }
-): { stms: ast.Statement[]; exp: null | ast.Expression } {
+export function parseStatement(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Statement[] {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(statementRules));
     parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || new Set());
     parser.feed(str);
     const parsed = parser.finish();
     if (parsed.length > 1) {
-        throw new Error("Ambiguous parse!");
+        throw new ImpossibleError("Ambiguous parse!");
     } else if (parsed.length === 0) {
-        throw new Error("Incomplete statment");
+        throw new IncompleteParseError("Incomplete statement");
     } else {
-        return {
-            stms: parsed[0].stms.map((x: parsed.Statement) => restrictStatement(opt.lang || "C1", x)),
-            exp: parsed[0].exp && restrictExpression(opt.lang || "C1", parsed[0].exp)
-        };
+        return parsed[0].map((x: parsed.Statement) => restrictStatement(opt.lang || "C1", x));
     }
 }
 
@@ -73,12 +68,10 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
             console.log(JSON.stringify(parsed[4]));
             console.log(JSON.stringify(parsed[5]));
             console.log(JSON.stringify(parsed[parsed.length - 1]));
-            throw new Error(
-                `Internal error, parse ambiguous (${parsed.length} parses) (this should not happen)`
-            );
+            throw new ImpossibleError(`Internal error, parse ambiguous (${parsed.length} parses)`);
         } else if (parsed.length === 0) {
             if (segment.last) {
-                throw new Error("Incomplete parse at the end of the file");
+                throw new IncompleteParseError("Incomplete parse at the end of the file");
             } else {
                 parser.feed(";");
             }

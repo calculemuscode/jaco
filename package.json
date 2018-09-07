@@ -1,6 +1,6 @@
 {
     "name": "@calculemus/jaco",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "description": "JavaScript C0 Parser & Tools",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -13,6 +13,7 @@
         "nearley:spec": "nearleyc tests/testspec.ne -o lib/spec-rules.js",
         "nearley": "npm-run-all --parallel nearley:expression nearley:statement nearley:program nearley:spec",
         "tsc": "tsc",
+        "watch": "tsc -w",
         "prewebpack": "tsc",
         "webpack": "webpack",
         "prettier": "prettier --write src/*.ts src/**/*.ts",

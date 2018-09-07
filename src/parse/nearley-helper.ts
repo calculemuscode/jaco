@@ -558,20 +558,32 @@ export function While([tWHILE, s1, l, s2, test, s3, r, s4]: [
     return { tag: "while", test: test, start: tokloc(tWHILE).start };
 }
 
-export function TopExpression([stms, annos, s1, exp, s2]: [
+export function TopSimple([stms, annos, s1, stm, s2]: [
     [WS, AnnosAndStm][],
     syn.AnnoStatement[],
     WS,
-    syn.Expression,
+    SimpleParsed,
     WS
-]) {
-    return {
-        stms: stms
-            .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
-            .concat([annos])
-            .reduce((collect, stms) => collect.concat(stms), []),
-        exp: exp
-    };
+]): syn.Statement[] {
+    const stmsyn = stms
+        .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
+        .concat([annos])
+        .reduce((collect, stms) => collect.concat(stms), []);
+
+    if (stm instanceof Array) {
+        const init = stm[3];
+        return stmsyn.concat([
+            {
+                tag: "VariableDeclaration",
+                kind: stm[0],
+                id: stm[2],
+                init: init === null ? null : init[3],
+                loc: { start: stm[0].loc.start, end: stm[2].loc.end }
+            }
+        ]);
+    } else {
+        return stmsyn.concat({ tag: "ExpressionStatement", expression: stm, loc: stm.loc });
+    }
 }
 
 export function TopStatement([stms, annos, s2]: [[WS, AnnosAndStm][], syn.AnnoStatement[], WS]) {

@@ -254,6 +254,8 @@ export function checkProgramFragment(libs: ast.Declaration[], decls: ast.Declara
                 throw new TypingError(def, `function ${name} is never defined`);
         }
     );
+
+    return genv;
 }
 
 export function checkProgram(libs: ast.Declaration[], decls: ast.Declaration[]) {
