@@ -586,14 +586,11 @@ export function TopSimple([stms, annos, s1, stm, s2]: [
     }
 }
 
-export function TopStatement([stms, annos, s2]: [[WS, AnnosAndStm][], syn.AnnoStatement[], WS]) {
-    return {
-        stms: stms
+export function TopStatement([stms, annos, s2]: [[WS, AnnosAndStm][], syn.AnnoStatement[], WS]): syn.Statement[]  {
+    return stms
             .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
             .concat([annos])
-            .reduce((collect, stms) => collect.concat(stms), []),
-        exp: null
-    };
+            .reduce((collect, stms) => collect.concat(stms), []);
 }
 
 export function Statement([wrappers, annos, stm]: [
