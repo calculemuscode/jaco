@@ -1,5 +1,5 @@
 import { states, Token, Lexer, LexerState } from "moo";
-import Lang from "./lang";
+import { Lang } from "./lang";
 import { impossible } from "@calculemus/impossible";
 
 /**

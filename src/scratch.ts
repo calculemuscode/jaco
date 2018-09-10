@@ -3,7 +3,7 @@ import { parseProgram } from "./parse/index";
 import { checkProgram } from "./typecheck/programs";
 import { program } from "./bytecode/generate";
 
-import Lang from "./lang";
+import { Lang } from "./lang";
 import { execute } from "./bytecode/execute";
 import { instructionToString } from "./bytecode/high-level";
 

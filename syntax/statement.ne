@@ -46,18 +46,9 @@ _Annos         -> (_ AnnoSet):*                             {% x => x[0].reduce(
 # when the grammar given says either is allowed.
 #
 # English specifications usually tell humans to associate the "else" with the "if" that is
-# closet to it, but that's not something that easily extends to EBNF grammars. We can get closer to
+# closest to it, but that's not an intuition that carries over to EBNF grammars. We can get closer to
 # a working definition if we say that when we write "if (e) S1 else S2", the S1 parse can only contain
-# an else-less if inside of curly braces.
-#
-# I originally used an approach I'm leaving in comments at the end of this file; I haven't
-# seen the approach below elsewhere. It achieves the "S1 can only contain else-less if" requirement
-# with less repitition of grammar productions by looking at the grammar fragments "if () {} else",
-# "while ()", and "for(;;)" as prefixes that can be puton a StatementEnd.
-#
-# For all I know it has worse performance than my previous attempt! However, it's shorter, and
-# the Nearly documentation claims that repetition primitives (like StatementPrefix:*) are good
-# for peformance.
+# an else-less if when the else-is if lives inside of curly braces.
 
 Statement         -> (Annos_ StatementPrefix):* Annos_ (StatementEnd | DanglingIf)  {% util.Statement %}
 StatementNoDangle -> (Annos_ StatementPrefix):* Annos_ (StatementEnd)               {% util.Statement %}
@@ -72,35 +63,3 @@ StatementEnd   -> Simple _ ";"                                   {% util.SimpleS
                 | BlockStatement                                 {% id %}
                 | "break" _ ";"                                  {% util.BreakStatement %}
                 | "continue" _ ";"                               {% util.ContinueStatement %}
-
-
-
-
-
-# Resolves if-then-else chaining with the approach from here:
-# https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else/12732388#12732388
-# The approach below is wrong and I should mention that if I ever get the SO reputation
-# https://stackoverflow.com/questions/12720219/bison-shift-reduce-conflict-unable-to-resolve/12720483#12720483
-# It ambiguously parses if (a) if (b) {} else if (c) {} if (d) {}
-# It seems like this should be handleable with a EBNF in a more nearely-friendly way
-
-#Statement      -> Annos_ DanglingIf
-#                | Annos_ NoDanglingIf
-#NoDanglingIf   -> Simple _ ";"                              {% util.SimpleStatement %}
-#                | "while" _ "(" _ Expression _ ")" _Annos _ NoDanglingIf
-#                                                            {% util.WhileStatement %}
-#                | "for" _ "(" (_ Simple):? _ ";" _ Expression _ ";" (_ Expression):? _ ")" _Annos _ NoDanglingIf
-#                                                            {% util.ForStatement %}
-#                | "if" _ "(" _ Expression _ ")" _Annos _ NoDanglingIf _ "else" _Annos _ NoDanglingIf
-#                                                            {% util.IfElseStatement %}
-#                | "return" (_ Expression):? _ ";"           {% util.ReturnStatement %}
-#                | StatementBlock                            {% id %}
-#                | "break" _ ";"                             {% util.BreakStatement %}
-#                | "continue" _ ";"                          {% util.ContinueStatement %}
-
-#DanglingIf     -> "while" _ "(" _ Expression _ ")" _Annos _ DanglingIf
-#                                                            {% util.WhileStatement %}
-#                | "for" _ "(" (_ Simple):? _ ";" _ Expression _ ";" (_ Expression):? _ ")" _Annos _ DanglingIf
-#                                                            {% util.ForStatement %}
-#                | "if" _ "(" _ Expression _ ")" _ Statement {% util.IfStatement %}
-#                | "if" _ "(" _ Expression _ ")" _Annos _ NoDanglingIf _ "else" _Annos _ DanglingIf

@@ -1,6 +1,11 @@
-import Lang from "../lang";
+/**
+ * Takes the overbroad syntax parsed by the Nearley parser (parsedsyntax.ts) and
+ * restricts it to the actual grammar of C0.
+ */
+
 import * as syn from "./parsedsyntax";
 import * as ast from "../ast";
+import { Lang } from "../lang";
 import { impossible } from "@calculemus/impossible";
 import { ParsingError, ImpossibleError } from "../error";
 
@@ -9,43 +14,55 @@ function standard(syn: syn.Syn, lang: Lang, allowed: Lang[], msg: string) {
     throw new ParsingError(syn, `${msg} not a part of the language '${lang}'`);
 }
 
+function atleast(syn: syn.Syn, lang: Lang, allowed: Lang, msg: string) {
+    switch (allowed) {
+        case "L1": standard(syn, lang, ["L1", "L2", "L3", "L4", "C0", "C1"], msg); break;
+        case "L2": standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], msg); break;
+        case "L3": standard(syn, lang, ["L3", "L4", "C0", "C1"], msg); break;
+        case "L4": standard(syn, lang, ["L4", "C0", "C1"], msg); break;
+        case "C0": standard(syn, lang, ["C0", "C1"], msg); break;
+        case "C1": standard(syn, lang, ["C1"], msg); break;
+        default: throw impossible(allowed);
+    }
+}
+
 export function restrictType(lang: Lang, syn: syn.Type): ast.Type {
     switch (syn.tag) {
         case "IntType":
             return syn;
         case "BoolType":
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "type 'bool'");
+            atleast(syn, lang, "L2", "type 'bool'");
             return syn;
         case "StringType":
-            standard(syn, lang, ["C0", "C1"], "type 'string");
+            atleast(syn, lang, "C0", "type 'string");
             return syn;
         case "CharType":
-            standard(syn, lang, ["C0", "C1"], "type 'char");
+            atleast(syn, lang, "C0", "type 'char");
             return syn;
         case "VoidType":
-            standard(syn, lang, ["L3", "L4", "C0", "C1"], "type 'void'");
+            atleast(syn, lang, "L3", "type 'void'");
             return syn;
         case "PointerType":
-            standard(syn, lang, ["L4", "C0", "C1"], "pointer types");
+            atleast(syn, lang, "L4", "pointer types");
             const argument = restrictType(lang, syn.argument);
-            if (argument.tag === "VoidType") standard(syn, lang, ["C1"], "type 'void*'");
+            if (argument.tag === "VoidType") atleast(syn, lang, "C1", "type 'void*'");
             return {
                 tag: "PointerType",
                 argument: argument,
                 loc: syn.loc
             };
         case "ArrayType":
-            standard(syn, lang, ["L4", "C0", "C1"], "array types");
+            atleast(syn, lang, "L4", "array types");
             return {
                 tag: "ArrayType",
                 argument: restrictType(lang, syn.argument),
                 loc: syn.loc
             };
         case "StructType":
-            standard(syn, lang, ["L4", "C0", "C1"], "struct types");
+            atleast(syn, lang, "L4", "struct types");
             return syn;
         case "Identifier":
-            standard(syn, lang, ["L3", "L4", "C0", "C1"], "defined types");
+            atleast(syn, lang, "L3", "defined types");
             return syn;
         default:
             return impossible(syn);
@@ -63,7 +80,7 @@ export function restrictValueType(lang: Lang, syn: syn.Type): ast.ValueType {
 export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Expression {
     switch (syn.tag) {
         case "StringLiteral": {
-            standard(syn, lang, ["C0", "C1"], "string literals");
+            atleast(syn, lang, "C0", "string literals");
             syn.raw.map(x => {
                 if (x.length === 2 && x[0] === "\\") {
                     if (!x.match(/\\[ntvbrfa\\'"]/))
@@ -81,7 +98,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "CharLiteral": {
-            standard(syn, lang, ["C0", "C1"], "character literals");
+            atleast(syn, lang, "C0", "character literals");
             if (syn.raw.length === 1) {
                 if (!syn.raw.match(/[ !#-~]/)) throw new ParsingError(syn, `Invalid character '${syn.raw}'`);
             } else {
@@ -131,10 +148,10 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "BoolLiteral":
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "'true' and 'false'");
+            atleast(syn, lang, "L2", "'true' and 'false'");
             return { tag: "BoolLiteral", value: syn.value, loc: syn.loc };
         case "NullLiteral":
-            standard(syn, lang, ["L4", "C0", "C1"], "'NULL'");
+            atleast(syn, lang, "L4", "'NULL'");
             return { tag: "NullLiteral", loc: syn.loc };
         case "Identifier":
             return syn;
@@ -182,7 +199,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 };
             }
         case "ArrayMemberExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "array access");
+            atleast(syn, lang, "L4", "array access");
             return {
                 tag: "ArrayMemberExpression",
                 object: restrictExpression(lang, syn.object),
@@ -191,7 +208,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "StructMemberExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "struct access");
+            atleast(syn, lang, "L4", "struct access");
             return {
                 tag: "StructMemberExpression",
                 deref: syn.deref,
@@ -201,7 +218,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "CallExpression": {
-            standard(syn, lang, ["L3", "L4", "C0", "C1"], "function calls");
+            atleast(syn, lang, "L3", "function calls");
             return {
                 tag: "CallExpression",
                 callee: syn.callee,
@@ -210,7 +227,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "IndirectCallExpression": {
-            standard(syn, lang, ["C1"], "function pointer calls");
+            atleast(syn, lang, "C1", "function pointer calls");
             return {
                 tag: "IndirectCallExpression",
                 callee: restrictExpression(lang, syn.callee),
@@ -219,7 +236,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "CastExpression": {
-            standard(syn, lang, ["C1"], "casts");
+            atleast(syn, lang, "C1", "casts");
             return {
                 tag: "CastExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -228,9 +245,9 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "UnaryExpression": {
-            if (syn.operator === "&") standard(syn, lang, ["C1"], "address-of");
-            if (syn.operator === "!") standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "boolean negation");
-            if (syn.operator === "*") standard(syn, lang, ["L4", "C0", "C1"], "pointer dereference");
+            if (syn.operator === "&") atleast(syn, lang, "C1", "address-of");
+            if (syn.operator === "!") atleast(syn, lang, "L2", "boolean negation");
+            if (syn.operator === "*") atleast(syn, lang, "L4", "pointer dereference");
 
             return {
                 tag: "UnaryExpression",
@@ -247,7 +264,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 syn.operator !== "+" &&
                 syn.operator !== "-"
             )
-                standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], `binary operation '${syn.operator}'`);
+                atleast(syn, lang, "L2", `binary operation '${syn.operator}'`);
             return {
                 tag: "BinaryExpression",
                 operator: syn.operator,
@@ -257,7 +274,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "LogicalExpression": {
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], `logical operation '${syn.operator}'`);
+            atleast(syn, lang, "L2", `logical operation '${syn.operator}'`);
             return {
                 tag: "LogicalExpression",
                 operator: syn.operator,
@@ -267,7 +284,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "ConditionalExpression": {
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "conditional expressions");
+            atleast(syn, lang, "L2", "conditional expressions");
             return {
                 tag: "ConditionalExpression",
                 test: restrictExpression(lang, syn.test),
@@ -277,7 +294,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "AllocExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "allocation");
+            atleast(syn, lang, "L4", "allocation");
             return {
                 tag: "AllocExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -285,7 +302,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "AllocArrayExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "array allocation");
+            atleast(syn, lang, "L4", "array allocation");
             return {
                 tag: "AllocArrayExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -294,14 +311,14 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "ResultExpression": {
-            standard(syn, lang, ["C0", "C1"], "'\\result'");
+            atleast(syn, lang, "C0", "'\\result'");
             return {
                 tag: "ResultExpression",
                 loc: syn.loc
             };
         }
         case "LengthExpression": {
-            standard(syn, lang, ["C0", "C1"], "'\\length'");
+            atleast(syn, lang, "C0", "'\\length'");
             return {
                 tag: "LengthExpression",
                 argument: restrictExpression(lang, syn.argument),
@@ -309,7 +326,7 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
             };
         }
         case "HasTagExpression": {
-            standard(syn, lang, ["C1"], "'\\hastag'");
+            atleast(syn, lang, "C1", "'\\hastag'");
             return {
                 tag: "HasTagExpression",
                 kind: restrictValueType(lang, syn.kind),
@@ -351,7 +368,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
         case "Identifier":
             return syn;
         case "StructMemberExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "struct access");
+            atleast(syn, lang, "L4", "struct access");
             return {
                 tag: "StructMemberExpression",
                 deref: syn.deref,
@@ -363,7 +380,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
         case "UnaryExpression": {
             if (syn.operator !== "*")
                 throw new ParsingError(syn, `Unary ${syn.operator} operator not valid in lvalues`);
-            standard(syn, lang, ["L4", "C0", "C1"], "pointer dereference");
+            atleast(syn, lang, "L4", "pointer dereference");
             return {
                 tag: "UnaryExpression",
                 operator: "*",
@@ -372,7 +389,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
             };
         }
         case "ArrayMemberExpression": {
-            standard(syn, lang, ["L4", "C0", "C1"], "array access");
+            atleast(syn, lang, "L4", "array access");
             return {
                 tag: "ArrayMemberExpression",
                 object: restrictLValue(lang, syn.object),
@@ -433,10 +450,10 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                         syn.expression.operator !== "+=" &&
                         syn.expression.operator !== "-="
                     )
-                        standard(
+                        atleast(
                             syn,
                             lang,
-                            ["L2", "L3", "L4", "C0", "C1"],
+                            "L2",
                             `assignment operator '${syn.expression.operator}'`
                         );
                     return {
@@ -448,10 +465,10 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                     };
                 }
                 case "UpdateExpression": {
-                    standard(
+                    atleast(
                         syn,
                         lang,
-                        ["L2", "L3", "L4", "C0", "C1"],
+                        "L2",
                         `postfix update 'x${syn.expression.operator}'`
                     );
                     return {
@@ -462,7 +479,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                     };
                 }
                 case "AssertExpression": {
-                    standard(syn, lang, ["L3", "L4", "C0", "C1"], "'assert()'");
+                    atleast(syn, lang, "L3", "'assert()'");
                     return {
                         tag: "AssertStatement",
                         contract: false,
@@ -471,7 +488,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                     };
                 }
                 case "ErrorExpression": {
-                    standard(syn, lang, ["C0", "C1"], "'error()'");
+                    atleast(syn, lang, "C0", "'error()'");
                     return {
                         tag: "ErrorStatement",
                         argument: restrictExpression(lang, syn.expression.argument),
@@ -497,7 +514,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             };
         }
         case "IfStatement": {
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "'if' and 'else'");
+            atleast(syn, lang, "L2", "'if' and 'else'");
             if (!syn.alternate) {
                 return {
                     tag: "IfStatement",
@@ -516,7 +533,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             }
         }
         case "WhileStatement": {
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "'while' loops");
+            atleast(syn, lang, "L2", "'while' loops");
             return {
                 tag: "WhileStatement",
                 invariants: restrictLoopInvariants(lang, syn.body[0]),
@@ -526,7 +543,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             };
         }
         case "ForStatement": {
-            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], "'for' loops");
+            atleast(syn, lang, "L2", "'for' loops");
             let init: ast.SimpleStatement | ast.VariableDeclaration | null;
             let update: ast.SimpleStatement | null;
 
@@ -596,11 +613,11 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
             };
         }
         case "BreakStatement": {
-            standard(syn, lang, ["C1"], "'break'");
+            atleast(syn, lang, "C1", "'break'");
             return syn;
         }
         case "ContinueStatement": {
-            standard(syn, lang, ["C1"], "'contine'");
+            atleast(syn, lang, "C1", "'contine'");
             return syn;
         }
         default:
@@ -677,9 +694,9 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
     if (typeof decl === "string") return decl;
     switch (decl.tag) {
         case "FunctionDeclaration": {
-            if (decl.body === null) standard(decl, lang, ["L3", "L4", "C0", "C1"], "function declarations");
+            if (decl.body === null) atleast(decl, lang, "L3", "function declarations");
             if (decl.id.name !== "main")
-                standard(decl, lang, ["L3", "L4", "C0", "C1"], "functions aside from 'main'");
+                atleast(decl, lang, "L3", "functions aside from 'main'");
 
             const annos = restrictFunctionAnnos(lang, decl.annos);
             return {
@@ -700,7 +717,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
             };
         }
         case "FunctionTypeDefinition": {
-            standard(decl, lang, ["C1"], "function types");
+            atleast(decl, lang, "C1", "function types");
 
             const annos = restrictFunctionAnnos(lang, decl.definition.annos);
             return {
@@ -719,7 +736,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
             };
         }
         case "StructDeclaration": {
-            standard(decl, lang, ["L4", "C0", "C1"], "structs");
+            atleast(decl, lang, "L4", "structs");
             return {
                 tag: "StructDeclaration",
                 id: decl.id,
@@ -728,7 +745,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
             };
         }
         case "TypeDefinition": {
-            standard(decl, lang, ["L3", "L4", "C0", "C1"], "typedefs");
+            atleast(decl, lang, "L3", "typedefs");
             return {
                 tag: "TypeDefinition",
                 definition: {

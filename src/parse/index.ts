@@ -1,7 +1,7 @@
 import { Grammar, Parser } from "nearley";
 import { TypeLexer } from "../lex";
 import { restrictExpression, restrictDeclaration, restrictStatement } from "./restrictsyntax";
-import Lang from "../lang";
+import { Lang } from "../lang";
 import * as ast from "../ast";
 import * as parsed from "./parsedsyntax";
 import { ImpossibleError, IncompleteParseError } from "../error";
@@ -10,11 +10,20 @@ const expressionRules = require("../../lib/expression-rules");
 const statementRules = require("../../lib/statement-rules");
 const programRules = require("../../lib/program-rules");
 
+/**
+ * Parses a string as a C0 expression. 
+ *
+ * @param str The string to parse as a C0 expression.
+ * @param options.lang The language standard to parse. (Default C1)
+ * @param options.types The set of strings to interpret as type identifiers.
+ * 
+ * @throws IncompleteParseError if the parse is not a valid C0 expression,
+ * but could be extended into a valid C0 expression. 
+ */
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(expressionRules));
     parser.lexer = new TypeLexer(opt.lang || "C1", opt.types || new Set());
-    parser.feed(str);
     const parsed: parsed.Expression[] = parser.finish();
     if (parsed.length > 1) {
         throw new ImpossibleError("Ambiguous parse!");
@@ -25,6 +34,17 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
     }
 }
 
+/**
+ * Parses a string as a sequence of C0 statements.
+ * NOTE: allows the final trailing semicolon to be present or absent.
+ * 
+ * @param str The string to parse as a sequence of C0 statements.
+ * @param options.lang The language standard to parse. (Default C1)
+ * @param options.types The set of strings to interpret as type identifiers.
+ * 
+ * @throws IncompleteParseError if the parse is not a valid C0 expression,
+ * but could be extended into a valid C0 expression. 
+ */
 export function parseStatement(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Statement[] {
     const opt = options ? options : {};
     const parser = new Parser(Grammar.fromCompiled(statementRules));
@@ -50,7 +70,10 @@ function* semicolonSplit(s: string) {
     yield { last: true, segment: s };
 }
 
-export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): parsed.Declaration[] {
+/**
+ * Parses a program into the raw syntax form.
+ */
+function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): parsed.Declaration[] {
     const parser = new Parser(Grammar.fromCompiled(programRules));
     const lexer: TypeLexer = (parser.lexer = new TypeLexer(lang, typedefs || new Set()));
     const segments = semicolonSplit(str);
@@ -60,7 +83,7 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
         parser.feed(segment.segment);
         const parsed = parser.finish();
         if (parsed.length > 1) {
-            console.log("Parse ambiguous");
+            console.log("Parse ambiguous:");
             console.log(JSON.stringify(parsed[0]));
             console.log(JSON.stringify(parsed[1]));
             console.log(JSON.stringify(parsed[2]));
@@ -119,10 +142,21 @@ export function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>)
         }
     }
 
-    // code quality: Rewrite to make this impossible; return in loop
+    // code quality: ought to to make this impossible; return in loop
     return decls;
 }
 
+/**
+ * Parses a program as a series of C0 statements.
+ * NOTE: allows the final trailing semicolon to be present or absent.
+ * 
+ * @param str The string to parse as a C0 program.
+ * @param options.lang The language standard to parse. (Default C1)
+ * @param options.types The set of strings to interpret as type identifiers.
+ * 
+ * @throws IncompleteParseError if the parse is not a valid C0 expression,
+ * but could be extended into a valid C0 expression. 
+ */
 export function parseProgram(lang: Lang, str: string, typedefs?: Set<string>): ast.Declaration[] {
     return parseProgramRaw(lang, str, typedefs).map(decl => {
         return restrictDeclaration(lang, decl);

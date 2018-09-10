@@ -2,7 +2,7 @@
  * Parse spec according to the grammar in tests/README.md
  */
 
-import Lang, { parse as parseLang } from "../lang";
+import { Lang, parse as parseLang } from "../lang";
 import { Parser, Grammar } from "nearley";
 const testSpecRules = require("../../lib/spec-rules");
 
