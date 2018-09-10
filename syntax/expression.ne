@@ -18,7 +18,7 @@ const util = require('./parse/nearley-helper');
 
 @lexer lexer
 
-Expression     -> Exp0 {% id %}
+Expression     -> ExpZ {% id %}
 
 Identifier     -> %identifier {% util.Identifier %}
 TypeIdentifier -> %type_identifier {% util.Identifier %}
@@ -74,6 +74,9 @@ Exp3           -> Exp4 {% id %} | Exp3 _ Binop3 _ Exp4                {% util.Bi
 Exp2           -> Exp3 {% id %} | Exp2 _ Binop2 _ Exp3                {% util.BinaryExpression %}
 Exp1           -> Exp2 {% id %} | Exp2 _ Binop1 _ Expression _ ":" _ Exp1 {% util.ConditionalExpression %}
 Exp0           -> Exp1 {% id %} | Exp1 _ Binop0 _ Exp0                {% util.BinaryExpression %}
+ExpZ           -> "\\" "forall" _ Exp0 _ ";" _ ExpZ                   {% util.QuantifiedExpression %}
+                | "\\" "exists" _ Exp0 _ ";" _ ExpZ                   {% util.QuantifiedExpression %}
+                | Exp0 {% id %}
 
 Funargs        -> _ (Expression (_ "," _ Expression):* _):?
 
