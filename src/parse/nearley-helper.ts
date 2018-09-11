@@ -416,7 +416,25 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
     };
 }
 
-export function QuantifiedExpression([b, quant, s1, lo, s2, l1, l2, s3, id, s4, l3, s5, hi, s6, semi, s7, test]: [
+export function QuantifiedExpression([
+    b,
+    quant,
+    s1,
+    lo,
+    s2,
+    l1,
+    l2,
+    s3,
+    id,
+    s4,
+    l3,
+    s5,
+    hi,
+    s6,
+    semi,
+    s7,
+    test
+]: [
     Token,
     Token,
     WS,
@@ -443,7 +461,7 @@ export function QuantifiedExpression([b, quant, s1, lo, s2, l1, l2, s3, id, s4, 
         upper: hi,
         test: test,
         loc: { start: tokloc(b).start, end: test.loc.end }
-    }
+    };
 }
 
 /**
@@ -616,11 +634,15 @@ export function TopSimple([stms, annos, s1, stm, s2]: [
     }
 }
 
-export function TopStatement([stms, annos, s2]: [[WS, AnnosAndStm][], syn.AnnoStatement[], WS]): syn.Statement[]  {
+export function TopStatement([stms, annos, s2]: [
+    [WS, AnnosAndStm][],
+    syn.AnnoStatement[],
+    WS
+]): syn.Statement[] {
     return stms
-            .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
-            .concat([annos])
-            .reduce((collect, stms) => collect.concat(stms), []);
+        .map(x => x[1][0].map<syn.Statement>(x => x).concat([x[1][1]]))
+        .concat([annos])
+        .reduce((collect, stms) => collect.concat(stms), []);
 }
 
 export function Statement([wrappers, annos, stm]: [

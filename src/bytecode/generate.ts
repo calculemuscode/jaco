@@ -174,21 +174,26 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
             const incr = label(`${exp.quantifier}_incr`);
 
             return expression(exp.lower) // S, i
-                .concat([{tag: "VSTORE", argument: exp.variable.name}])
-                .concat([{tag: "LABEL", argument: entry}])
+                .concat([{ tag: "VSTORE", argument: exp.variable.name }])
+                .concat([{ tag: "LABEL", argument: entry }])
                 .concat(expression(exp.upper)) // S, lower
-                .concat([{tag: "VLOAD", argument: exp.variable.name}]) // S, lower, i
-                .concat([{ tag: "IF_ICMPLE", argument: exp.quantifier === "forall" ? ifTrue : ifFalse }]) // S. If lower <= i, break. 
-                .concat(conditional(exp.test, exp.quantifier === "forall" ? incr : ifTrue, exp.quantifier === "forall" ? ifFalse : incr))
-                .concat([{tag: "LABEL", argument: incr}])
-                .concat([{tag: "VLOAD", argument: exp.variable.name}])
-                .concat([{tag: "IPUSH", argument: 1}])
-                .concat([{tag: "IADD"}])
-                .concat([{tag: "VSTORE", argument: exp.variable.name}])
-                .concat([{tag: "GOTO", argument: entry}]);
+                .concat([{ tag: "VLOAD", argument: exp.variable.name }]) // S, lower, i
+                .concat([{ tag: "IF_ICMPLE", argument: exp.quantifier === "forall" ? ifTrue : ifFalse }]) // S. If lower <= i, break.
+                .concat(
+                    conditional(
+                        exp.test,
+                        exp.quantifier === "forall" ? incr : ifTrue,
+                        exp.quantifier === "forall" ? ifFalse : incr
+                    )
+                )
+                .concat([{ tag: "LABEL", argument: incr }])
+                .concat([{ tag: "VLOAD", argument: exp.variable.name }])
+                .concat([{ tag: "IPUSH", argument: 1 }])
+                .concat([{ tag: "IADD" }])
+                .concat([{ tag: "VSTORE", argument: exp.variable.name }])
+                .concat([{ tag: "GOTO", argument: entry }]);
         }
     }
-       
 
     // Give-up instruction: put the boolean on the stack
     // (example: an identifier or bool-returning function)
@@ -412,7 +417,7 @@ export function expression(exp: ast.Expression): Instruction[] {
             return conditionalexpression(exp);
         case "QuantifiedExpression":
             return conditionalexpression(exp);
-        
+
         default:
             return impossible(exp);
     }

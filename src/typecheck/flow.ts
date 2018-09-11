@@ -48,7 +48,7 @@ export function expressionFreeVars(exp: ast.Expression): Set<string> {
         case "AllocArrayExpression":
             expressionFreeVars(exp.argument).forEach(x => freeVars.add(x));
             return freeVars;
-        case "QuantifiedExpression": 
+        case "QuantifiedExpression":
             expressionFreeVars(exp.lower).forEach(x => freeVars.add(x));
             expressionFreeVars(exp.upper).forEach(x => freeVars.add(x));
             expressionFreeVars(exp.test).forEach(x => freeVars.add(x));

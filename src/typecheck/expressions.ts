@@ -7,7 +7,15 @@ import {
     concreteType,
     fullTypeName
 } from "./globalenv";
-import { Env, Synthed, isSubtype, leastUpperBoundSynthedType, actualSynthed, ActualSynthed, copyEnv } from "./types";
+import {
+    Env,
+    Synthed,
+    isSubtype,
+    leastUpperBoundSynthedType,
+    actualSynthed,
+    ActualSynthed,
+    copyEnv
+} from "./types";
 //import { error } from "./error";
 import * as ast from "../ast";
 import { ImpossibleError, TypingError } from "../error";
@@ -527,9 +535,13 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 );
             checkExpression(genv, env, mode, exp.lower, { tag: "IntType" });
             checkExpression(genv, env, mode, exp.upper, { tag: "IntType" });
-            if (env.has(exp.variable.name)) throw new TypingError(exp.variable, `Quantified variable must not be in scope. ${exp.variable.name} is already defined`);
+            if (env.has(exp.variable.name))
+                throw new TypingError(
+                    exp.variable,
+                    `Quantified variable must not be in scope. ${exp.variable.name} is already defined`
+                );
             const newEnv = copyEnv(env);
-            newEnv.set(exp.variable.name, { tag: "IntType"});
+            newEnv.set(exp.variable.name, { tag: "IntType" });
             checkExpression(genv, newEnv, mode, exp.test, { tag: "BoolType" });
             return { tag: "BoolType" };
         }

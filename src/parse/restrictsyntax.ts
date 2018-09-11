@@ -16,14 +16,29 @@ function standard(syn: syn.Syn, lang: Lang, allowed: Lang[], msg: string) {
 
 function atleast(syn: syn.Syn, lang: Lang, allowed: Lang, msg: string) {
     switch (allowed) {
-        case "L1": standard(syn, lang, ["L1", "L2", "L3", "L4", "C0", "C1", "CNext"], msg); break;
-        case "L2": standard(syn, lang, ["L2", "L3", "L4", "C0", "C1", "CNext"], msg); break;
-        case "L3": standard(syn, lang, ["L3", "L4", "C0", "C1", "CNext"], msg); break;
-        case "L4": standard(syn, lang, ["L4", "C0", "C1", "CNext"], msg); break;
-        case "C0": standard(syn, lang, ["C0", "C1", "CNext"], msg); break;
-        case "C1": standard(syn, lang, ["C1", "CNext"], msg); break;
-        case "CNext": standard(syn, lang, ["CNext"], msg); break;
-        default: throw impossible(allowed);
+        case "L1":
+            standard(syn, lang, ["L1", "L2", "L3", "L4", "C0", "C1", "CNext"], msg);
+            break;
+        case "L2":
+            standard(syn, lang, ["L2", "L3", "L4", "C0", "C1", "CNext"], msg);
+            break;
+        case "L3":
+            standard(syn, lang, ["L3", "L4", "C0", "C1", "CNext"], msg);
+            break;
+        case "L4":
+            standard(syn, lang, ["L4", "C0", "C1", "CNext"], msg);
+            break;
+        case "C0":
+            standard(syn, lang, ["C0", "C1", "CNext"], msg);
+            break;
+        case "C1":
+            standard(syn, lang, ["C1", "CNext"], msg);
+            break;
+        case "CNext":
+            standard(syn, lang, ["CNext"], msg);
+            break;
+        default:
+            throw impossible(allowed);
     }
 }
 
@@ -342,10 +357,10 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 quantifier: syn.quantifier,
                 variable: syn.variable,
                 lower: restrictExpression(lang, syn.lower),
-                upper: restrictExpression(lang, syn.upper),                
+                upper: restrictExpression(lang, syn.upper),
                 test: restrictExpression(lang, syn.test),
                 loc: syn.loc
-            }
+            };
         }
         case "AssignmentExpression":
             throw new ParsingError(
@@ -464,12 +479,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                         syn.expression.operator !== "+=" &&
                         syn.expression.operator !== "-="
                     )
-                        atleast(
-                            syn,
-                            lang,
-                            "L2",
-                            `assignment operator '${syn.expression.operator}'`
-                        );
+                        atleast(syn, lang, "L2", `assignment operator '${syn.expression.operator}'`);
                     return {
                         tag: "AssignmentStatement",
                         operator: syn.expression.operator,
@@ -479,12 +489,7 @@ export function restrictStatement(lang: Lang, syn: syn.Statement): ast.Statement
                     };
                 }
                 case "UpdateExpression": {
-                    atleast(
-                        syn,
-                        lang,
-                        "L2",
-                        `postfix update 'x${syn.expression.operator}'`
-                    );
+                    atleast(syn, lang, "L2", `postfix update 'x${syn.expression.operator}'`);
                     return {
                         tag: "UpdateStatement",
                         operator: syn.expression.operator,
@@ -709,8 +714,7 @@ export function restrictDeclaration(lang: Lang, decl: syn.Declaration): ast.Decl
     switch (decl.tag) {
         case "FunctionDeclaration": {
             if (decl.body === null) atleast(decl, lang, "L3", "function declarations");
-            if (decl.id.name !== "main")
-                atleast(decl, lang, "L3", "functions aside from 'main'");
+            if (decl.id.name !== "main") atleast(decl, lang, "L3", "functions aside from 'main'");
 
             const annos = restrictFunctionAnnos(lang, decl.annos);
             return {

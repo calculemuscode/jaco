@@ -11,14 +11,14 @@ const statementRules = require("../../lib/statement-rules");
 const programRules = require("../../lib/program-rules");
 
 /**
- * Parses a string as a C0 expression. 
+ * Parses a string as a C0 expression.
  *
  * @param str The string to parse as a C0 expression.
  * @param options.lang The language standard to parse. (Default C1)
  * @param options.types The set of strings to interpret as type identifiers.
- * 
+ *
  * @throws IncompleteParseError if the parse is not a valid C0 expression,
- * but could be extended into a valid C0 expression. 
+ * but could be extended into a valid C0 expression.
  */
 export function parseExpression(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Expression {
     const opt = options ? options : {};
@@ -37,13 +37,13 @@ export function parseExpression(str: string, options?: { lang?: Lang; types?: Se
 /**
  * Parses a string as a sequence of C0 statements.
  * NOTE: allows the final trailing semicolon to be present or absent.
- * 
+ *
  * @param str The string to parse as a sequence of C0 statements.
  * @param options.lang The language standard to parse. (Default C1)
  * @param options.types The set of strings to interpret as type identifiers.
- * 
+ *
  * @throws IncompleteParseError if the parse is not a valid C0 expression,
- * but could be extended into a valid C0 expression. 
+ * but could be extended into a valid C0 expression.
  */
 export function parseStatement(str: string, options?: { lang?: Lang; types?: Set<string> }): ast.Statement[] {
     const opt = options ? options : {};
@@ -149,13 +149,13 @@ function parseProgramRaw(lang: Lang, str: string, typedefs?: Set<string>): parse
 /**
  * Parses a program as a series of C0 statements.
  * NOTE: allows the final trailing semicolon to be present or absent.
- * 
+ *
  * @param str The string to parse as a C0 program.
  * @param options.lang The language standard to parse. (Default C1)
  * @param options.types The set of strings to interpret as type identifiers.
- * 
+ *
  * @throws IncompleteParseError if the parse is not a valid C0 expression,
- * but could be extended into a valid C0 expression. 
+ * but could be extended into a valid C0 expression.
  */
 export function parseProgram(lang: Lang, str: string, typedefs?: Set<string>): ast.Declaration[] {
     return parseProgramRaw(lang, str, typedefs).map(decl => {
