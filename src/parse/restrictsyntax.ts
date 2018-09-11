@@ -16,12 +16,13 @@ function standard(syn: syn.Syn, lang: Lang, allowed: Lang[], msg: string) {
 
 function atleast(syn: syn.Syn, lang: Lang, allowed: Lang, msg: string) {
     switch (allowed) {
-        case "L1": standard(syn, lang, ["L1", "L2", "L3", "L4", "C0", "C1"], msg); break;
-        case "L2": standard(syn, lang, ["L2", "L3", "L4", "C0", "C1"], msg); break;
-        case "L3": standard(syn, lang, ["L3", "L4", "C0", "C1"], msg); break;
-        case "L4": standard(syn, lang, ["L4", "C0", "C1"], msg); break;
-        case "C0": standard(syn, lang, ["C0", "C1"], msg); break;
-        case "C1": standard(syn, lang, ["C1"], msg); break;
+        case "L1": standard(syn, lang, ["L1", "L2", "L3", "L4", "C0", "C1", "CNext"], msg); break;
+        case "L2": standard(syn, lang, ["L2", "L3", "L4", "C0", "C1", "CNext"], msg); break;
+        case "L3": standard(syn, lang, ["L3", "L4", "C0", "C1", "CNext"], msg); break;
+        case "L4": standard(syn, lang, ["L4", "C0", "C1", "CNext"], msg); break;
+        case "C0": standard(syn, lang, ["C0", "C1", "CNext"], msg); break;
+        case "C1": standard(syn, lang, ["C1", "CNext"], msg); break;
+        case "CNext": standard(syn, lang, ["CNext"], msg); break;
         default: throw impossible(allowed);
     }
 }
@@ -334,6 +335,18 @@ export function restrictExpression(lang: Lang, syn: syn.Expression): ast.Express
                 loc: syn.loc
             };
         }
+        case "QuantifiedExpression": {
+            atleast(syn, lang, "CNext", `\\${syn.quantifier}`);
+            return {
+                tag: "QuantifiedExpression",
+                quantifier: syn.quantifier,
+                variable: syn.variable,
+                lower: restrictExpression(lang, syn.lower),
+                upper: restrictExpression(lang, syn.upper),                
+                test: restrictExpression(lang, syn.test),
+                loc: syn.loc
+            }
+        }
         case "AssignmentExpression":
             throw new ParsingError(
                 syn,
@@ -418,6 +431,7 @@ export function restrictLValue(lang: Lang, syn: syn.Expression): ast.LValue {
         case "AssignmentExpression":
         case "AssertExpression":
         case "ErrorExpression":
+        case "QuantifiedExpression":
             throw new ParsingError(syn, `${syn.tag} is not a valid LValue`);
         default:
             return impossible(syn);

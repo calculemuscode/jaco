@@ -152,7 +152,8 @@ export type Expression =
     | AllocArrayExpression
     | ResultExpression
     | LengthExpression
-    | HasTagExpression;
+    | HasTagExpression
+    | QuantifiedExpression;
 
 export interface IntLiteral extends Syn {
     readonly tag: "IntLiteral";
@@ -333,6 +334,18 @@ export interface HasTagExpression extends Syn {
     readonly kind: ValueType;
     readonly argument: Expression;
     typename?: string;
+}
+
+/**
+ * `\forall x <= i < n; e`
+ */
+export interface QuantifiedExpression extends Syn {
+    readonly tag: "QuantifiedExpression";
+    readonly quantifier: "forall" | "exists";
+    readonly variable: Identifier;
+    readonly lower: Expression;
+    readonly upper: Expression;
+    readonly test: Expression;
 }
 
 /**

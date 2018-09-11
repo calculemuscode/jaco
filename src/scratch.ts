@@ -9,10 +9,10 @@ import { instructionToString } from "./bytecode/high-level";
 
 function testfile(lang: Lang, filepath: string) {
     const contents = readFileSync(filepath, { encoding: "binary" });
-    let lib = parseProgram("C1", readFileSync("./stdlib/15411.h0", { encoding: "binary" }));
+    let lib = parseProgram(lang, readFileSync("./stdlib/15411.h0", { encoding: "binary" }));
     let ast = parseProgram(lang, contents, new Set(["fpt", "dub"]));
     checkProgram(lib, ast);
-    const bytecode = program(lib, ast, false);
+    const bytecode = program(lib, ast, true);
     bytecode.function_pool.get("main")!.code.forEach(instr => console.log(instructionToString(instr)));
     const result = execute(bytecode);
     console.log(result);
@@ -20,4 +20,4 @@ function testfile(lang: Lang, filepath: string) {
 }
 
 console.log(process.argv);
-testfile("C1", process.argv[2]);
+testfile("CNext", process.argv[2]);

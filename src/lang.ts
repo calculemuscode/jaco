@@ -1,7 +1,7 @@
 /**
  * Enumerates valid C0 standards
  */
-export type Lang = "L1" | "L2" | "L3" | "L4" | "C0" | "C1";
+export type Lang = "L1" | "L2" | "L3" | "L4" | "C0" | "C1" | "CNext";
 
 /**
  * Accept strings like ".L1", "l1", "L1", and ".l1" and turn them into "L1"

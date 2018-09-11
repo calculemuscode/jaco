@@ -1,0 +1,9 @@
+bool p(int x) {
+    print_int(x);
+    return true;
+}
+
+int main() {
+    //@assert \forall 4 <= x < 12; !p(x);
+    return 4;
+}

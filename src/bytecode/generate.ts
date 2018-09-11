@@ -44,6 +44,13 @@ function store(kind: ast.ConcreteType): Instruction {
     }
 }
 
+const label = (() => {
+    let n = 0;
+    return (x: string) => {
+        return `${x}_${++n}`;
+    };
+})();
+
 /**
  * Input: Well-typed Boolean expression
  * Output: Instruction sequence that jumps unconditionally to ifTrue or ifFalse
@@ -162,7 +169,26 @@ function conditional(exp: ast.Expression, ifTrue: string, ifFalse: string): Inst
                 .concat([{ tag: "IF_TAGEQ", cast: exp.typename!, argument: ifTrue }])
                 .concat([{ tag: "GOTO", argument: ifFalse }]);
         }
+        case "QuantifiedExpression": {
+            const entry = label(`${exp.quantifier}_entry`);
+            const incr = label(`${exp.quantifier}_incr`);
+
+            return expression(exp.lower) // S, i
+                .concat([{tag: "VSTORE", argument: exp.variable.name}])
+                .concat([{tag: "LABEL", argument: entry}])
+                .concat(expression(exp.upper)) // S, lower
+                .concat([{tag: "VLOAD", argument: exp.variable.name}]) // S, lower, i
+                .concat([{ tag: "IF_ICMPLE", argument: exp.quantifier === "forall" ? ifTrue : ifFalse }]) // S. If lower <= i, break. 
+                .concat(conditional(exp.test, exp.quantifier === "forall" ? incr : ifTrue, exp.quantifier === "forall" ? ifFalse : incr))
+                .concat([{tag: "LABEL", argument: incr}])
+                .concat([{tag: "VLOAD", argument: exp.variable.name}])
+                .concat([{tag: "IPUSH", argument: 1}])
+                .concat([{tag: "IADD"}])
+                .concat([{tag: "VSTORE", argument: exp.variable.name}])
+                .concat([{tag: "GOTO", argument: entry}]);
+        }
     }
+       
 
     // Give-up instruction: put the boolean on the stack
     // (example: an identifier or bool-returning function)
@@ -256,13 +282,6 @@ function lvalue(exp: ast.LValue): Instruction[] {
             return impossible(exp);
     }
 }
-
-const label = (() => {
-    let n = 0;
-    return (x: string) => {
-        return `${x}_${++n}`;
-    };
-})();
 
 export function expression(exp: ast.Expression): Instruction[] {
     switch (exp.tag) {
@@ -391,6 +410,9 @@ export function expression(exp: ast.Expression): Instruction[] {
             return expression(exp.argument).concat([{ tag: "ARRAYLENGTH" }]);
         case "HasTagExpression":
             return conditionalexpression(exp);
+        case "QuantifiedExpression":
+            return conditionalexpression(exp);
+        
         default:
             return impossible(exp);
     }

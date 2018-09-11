@@ -76,7 +76,8 @@ export type Expression =
     | AssignmentExpression
     | UpdateExpression
     | AssertExpression
-    | ErrorExpression;
+    | ErrorExpression
+    | QuantifiedExpression;
 
 export interface IntLiteral extends Syn {
     readonly tag: "IntLiteral";
@@ -220,6 +221,15 @@ export interface AssertExpression extends Syn {
 export interface ErrorExpression extends Syn {
     readonly tag: "ErrorExpression";
     readonly argument: Expression;
+}
+
+export interface QuantifiedExpression extends Syn {
+    readonly tag: "QuantifiedExpression";
+    readonly quantifier: "forall" | "exists";
+    readonly variable: Identifier;
+    readonly lower: Expression;
+    readonly upper: Expression;
+    readonly test: Expression;
 }
 
 export type BreakStatement = ast.BreakStatement & Syn;

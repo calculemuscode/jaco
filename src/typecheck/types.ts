@@ -5,6 +5,12 @@ import { TypingError } from "../error";
 
 export type Env = Map<string, ast.Type>;
 
+export function copyEnv(env: Env) {
+    const envCopy = new Map<string, ast.Type>();
+    env.forEach((v, k) => envCopy.set(k, v));
+    return envCopy;
+}
+
 /**
  * Valid types for synthesis
  */

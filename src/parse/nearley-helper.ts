@@ -14,7 +14,7 @@
 import { Token } from "moo";
 import { impossible } from "@calculemus/impossible";
 import * as syn from "./parsedsyntax";
-import { Position } from "../ast";
+import { Position, Identifier } from "../ast";
 import { ImpossibleError, ParsingError } from "../error";
 
 // This is incorrect, but Typescript doesn't check anyway
@@ -414,6 +414,36 @@ export function HasTagExpression([b, hastag, s1, l, s2, typ, s3, c, s4, argument
         argument: argument,
         loc: { start: tokloc(b).start, end: tokloc(r).end }
     };
+}
+
+export function QuantifiedExpression([b, quant, s1, lo, s2, l1, l2, s3, id, s4, l3, s5, hi, s6, semi, s7, test]: [
+    Token,
+    Token,
+    WS,
+    syn.Expression,
+    WS,
+    Token,
+    Token,
+    WS,
+    syn.Identifier,
+    WS,
+    Token,
+    WS,
+    syn.Expression,
+    WS,
+    Token,
+    WS,
+    syn.Expression
+]): syn.QuantifiedExpression {
+    return {
+        tag: "QuantifiedExpression",
+        quantifier: quant.text === "forall" ? "forall" : "exists",
+        variable: id,
+        lower: lo,
+        upper: hi,
+        test: test,
+        loc: { start: tokloc(b).start, end: test.loc.end }
+    }
 }
 
 /**

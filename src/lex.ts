@@ -173,7 +173,8 @@ export class TypeLexer {
                 break;
             }
             case "C0":
-            case "C1": {
+            case "C1":
+            case "CNext": {
                 this.coreLexer = createAnnoLexer();
                 break;
             }

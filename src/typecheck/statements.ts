@@ -1,7 +1,7 @@
 import { impossible } from "@calculemus/impossible";
 import * as ast from "../ast";
 import { GlobalEnv, concreteType } from "./globalenv";
-import { Env, checkTypeInDeclaration, actualSynthed } from "./types";
+import { Env, checkTypeInDeclaration, actualSynthed, copyEnv } from "./types";
 import { checkExpression, synthExpression, synthLValue } from "./expressions";
 import { TypingError } from "../error";
 import { typeToString } from "../print";
@@ -14,12 +14,6 @@ function checkStatements(
     inLoop: boolean
 ) {
     stms.forEach(stm => checkStatement(genv, env, stm, returning, inLoop));
-}
-
-function copyEnv(env: Env) {
-    const envCopy = new Map<string, ast.Type>();
-    env.forEach((v, k) => envCopy.set(k, v));
-    return envCopy;
 }
 
 export function checkStatement(
