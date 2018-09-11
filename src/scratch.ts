@@ -12,8 +12,11 @@ function testfile(lang: Lang, filepath: string) {
     let lib = parseProgram("C1", readFileSync("./stdlib/15411.h0", { encoding: "binary" }));
     let ast = parseProgram(lang, contents, new Set(["fpt", "dub"]));
     checkProgram(lib, ast);
-    const bytecode = program(lib, ast, false);
-    bytecode.function_pool.get("main")!.code.forEach(instr => console.log(instructionToString(instr)));
+    const bytecode = program(lib, ast, true);
+    bytecode.function_pool.forEach((code, f) => {
+        console.log(f);
+        code.code.forEach(instr => console.log(instructionToString(instr)));
+    });
     const result = execute(bytecode);
     console.log(result);
     return true;

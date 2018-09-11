@@ -521,7 +521,14 @@ export function statement(
                 .concat([{ tag: "LABEL", argument: labelExit }]);
         }
         case "ReturnStatement": {
-            return (stm.argument ? expression(stm.argument) : []).concat([{ tag: "RETURN" }]);
+            if (!contracts) {
+                return (stm.argument ? expression(stm.argument) : []).concat([{ tag: "RETURN" }]);
+            } else {
+                return (stm.argument
+                    ? expression(stm.argument).concat([{ tag: "VSTORE", argument: "\\result" }])
+                    : []
+                ).concat([{ tag: "GOTO", argument: "return" }]);
+            }
         }
         case "BlockStatement":
             return stm.body.reduce<Instruction[]>(
@@ -564,8 +571,50 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
     for (let decl of decls) {
         switch (decl.tag) {
             case "FunctionDeclaration": {
+                const f = decl.id.name;
                 if (decl.body !== null) {
-                    const code = statement(decl.body, contracts);
+                    const preconditions = contracts
+                        ? decl.preconditions.reduce<Instruction[]>((instrs, exp, i) => {
+                              const labelInvariantGood = label(`precondition_${i}_ok`);
+                              const labelInvariantFail = label(`precondition_${i}_fail`);
+                              return instrs
+                                  .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                                  .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                                  .concat([
+                                      { tag: "SPUSH", argument: `postcondition ${i + 1} of ${f} failed` }
+                                  ])
+                                  .concat([{ tag: "ABORT", argument: "requires" }])
+                                  .concat([{ tag: "LABEL", argument: labelInvariantGood }]);
+                          }, [])
+                        : [];
+                    const postconditions = contracts
+                        ? decl.postconditions
+                              .reduce<Instruction[]>(
+                                  (instrs, exp, i) => {
+                                      const labelInvariantGood = label(`postcondition_${i}_ok`);
+                                      const labelInvariantFail = label(`postcondition_${i}_fail`);
+                                      return instrs
+                                          .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
+                                          .concat([{ tag: "LABEL", argument: labelInvariantFail }])
+                                          .concat([
+                                              {
+                                                  tag: "SPUSH",
+                                                  argument: `postcondition ${i + 1} of ${f} failed`
+                                              }
+                                          ])
+                                          .concat([{ tag: "ABORT", argument: "requires" }])
+                                          .concat([{ tag: "LABEL", argument: labelInvariantGood }]);
+                                  },
+                                  [{ tag: "LABEL", argument: "return" }]
+                              )
+                              .concat(
+                                  decl.returns.tag === "VoidType"
+                                      ? []
+                                      : [{ tag: "VLOAD", argument: "\\result" }, { tag: "RETURN" }]
+                              )
+                        : [];
+                    const code = preconditions.concat(statement(decl.body, contracts)).concat(postconditions);
+
                     const args = decl.params.map(param => param.id.name);
                     const labels = new Map<string, number>();
                     code.forEach((instr, i) => {
