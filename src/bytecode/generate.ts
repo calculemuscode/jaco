@@ -608,7 +608,7 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
                                   .concat(conditional(exp, labelInvariantGood, labelInvariantFail))
                                   .concat([{ tag: "LABEL", argument: labelInvariantFail }])
                                   .concat([
-                                      { tag: "SPUSH", argument: `postcondition ${i + 1} of ${f} failed` }
+                                      { tag: "SPUSH", argument: `precondition ${i + 1} of ${f}() failed` }
                                   ])
                                   .concat([{ tag: "ABORT", argument: "requires" }])
                                   .concat([{ tag: "LABEL", argument: labelInvariantGood }]);
@@ -626,7 +626,7 @@ export function program(libs: ast.Declaration[], decls: ast.Declaration[], contr
                                           .concat([
                                               {
                                                   tag: "SPUSH",
-                                                  argument: `postcondition ${i + 1} of ${f} failed`
+                                                  argument: `postcondition ${i + 1} of ${f}() failed`
                                               }
                                           ])
                                           .concat([{ tag: "ABORT", argument: "requires" }])
