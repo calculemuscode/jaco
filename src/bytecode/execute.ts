@@ -47,7 +47,7 @@ export function valueToString(v: Value | LocationValue, stop?: boolean): string 
     if (typeof v === "number") {
         if (-0x80000000 <= v && v < 0x80000000) {
             const hex = v < 0 ? (v + 0x100000000).toString(16) : v.toString(16);
-            return stop ? `${v}` : `${v} (0x${hex})`;
+            return `${v}`; // stop ? `${v}` : `${v} (0x${hex})`;
         } else if (v === -Infinity) {
             return "false";
         } else if (v === Infinity) {
@@ -135,6 +135,7 @@ export function executeInstructions(
     bytecode: Instruction[],
     gas?: number
 ) {
+    const start = performance.now();
     const labels = new Map<string, number>();
     bytecode.forEach((instr, i) => (instr.tag === "LABEL" ? labels.set(instr.argument, i) : {}));
     const state: State = {
@@ -150,6 +151,7 @@ export function executeInstructions(
     while (undefined === (result = step(prog, state))) {
         if (gas && --gas == 0) throw new NonterminationError();
     }
+    console.log(`Finished in ${performance.now() - start} with ${gas} left.`)
     return result;
 }
 
