@@ -666,23 +666,34 @@ export function Statement([wrappers, annos, stm]: [
                     ];
                 case "while":
                     return [
-                        newannos,
+                        [],
                         {
                             tag: "WhileStatement",
                             test: wrap.test,
-                            body: stm,
+                            body: [newannos, {
+                                tag: "BlockStatement",
+                                body: stm[0].map<syn.Statement>(x => x).concat([stm[1]]),
+                                loc: { start: stm[0].length > 0 ? stm[0][0].loc.start : stm[1].loc.start,
+                                end: stm[1].loc.end }
+                            }],
                             loc: { start: wrap.start, end: stm[1].loc.end }
                         }
                     ];
                 case "for":
                     return [
-                        newannos,
+                        [],
                         {
                             tag: "ForStatement",
                             init: wrap.init,
                             test: wrap.test,
                             update: wrap.update,
-                            body: stm,
+                            body: [newannos, {
+                                tag: "BlockStatement",
+                                body: stm[0].map<syn.Statement>(x => x).concat([stm[1]]),
+                                loc: { start: stm[0].length > 0 ? stm[0][0].loc.start : stm[1].loc.start,
+                                    end: stm[1].loc.end }
+    
+                            }],
                             loc: { start: wrap.start, end: stm[1].loc.end }
                         }
                     ];
@@ -725,6 +736,8 @@ export function ReturnStatement([r, argument, s1, semi]: [
         loc: { start: tokloc(r).start, end: tokloc(semi).end }
     };
 }
+
+
 
 export function BlockStatement([l, stms, annos, s, r]: [
     Token,
@@ -909,7 +922,8 @@ export function FunctionTypeDefinition([typedef, s1, ty, s2, f, s3, l, args, r, 
     };
 }
 
-export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]: [
+export function FunctionDeclaration([annos, ty, s1, f, s2, l, args, r, s3, def]: [
+    syn.AnnoStatement[],
     syn.Type,
     WS,
     syn.Identifier,
@@ -917,10 +931,11 @@ export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]:
     Token,
     syn.VariableDeclarationOnly[],
     Token,
-    syn.AnnoStatement[],
     WS,
     null | syn.BlockStatement
 ]): syn.FunctionDeclaration {
+    const start =
+        annos.length > 0 ? annos[0].loc.start : ty.loc.start;
     const end =
         def !== null ? def.loc.end : annos.length === 0 ? tokloc(r).end : annos[annos.length - 1].loc.end;
     return {
@@ -930,6 +945,6 @@ export function FunctionDeclaration([ty, s1, f, s2, l, args, r, annos, s3, def]:
         params: args,
         annos: annos,
         body: def,
-        loc: { start: ty.loc.start, end: end }
+        loc: { start: start, end: end }
     };
 }

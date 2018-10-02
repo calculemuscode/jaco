@@ -10,12 +10,12 @@ _GlobalDecl -> _ GlobalDecl {% x => x[1] %}
 GlobalDecl  -> %pragma
              | "struct" _ StructName _ ";" {% util.StructDeclaration %}
              | "struct" _ StructName _ "{" _ (Tp _ FieldName _ ";" _):* "}" _ ";"
-                                           {% util.StructDefinition %}
-             | Tp _ Identifier _ "(" FunDeclArgs ")" _Annos _ FunDeclEnd
+                                         {% util.StructDefinition %}
+             | Annos_ Tp _ Identifier _ "(" FunDeclArgs ")" _ FunDeclEnd
                                            {% util.FunctionDeclaration %}
              | "typedef" _ Tp _ Identifier # Omits trailing semicolon
                                            {% util.TypeDefinition %}
-             | "typedef" _ Tp _ Identifier _ "(" FunDeclArgs ")" _Annos # Also omits trailing semicolon
+             | "typedef" _ Tp _ Identifier  _Annos _ "(" FunDeclArgs ")" # Also omits trailing semicolon
                                            {% util.FunctionTypeDefinition %}
 
 FunDeclArgs -> _ (Tp _ Identifier _ ("," _ Tp _ Identifier _):*):? {% util.FunctionDeclarationArgs %}

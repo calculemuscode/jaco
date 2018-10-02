@@ -46,7 +46,7 @@ export function valueToString(v: Value | LocationValue, stop?: boolean): string 
     if (typeof v === "string") return `"${v}"`;
     if (typeof v === "number") {
         if (-0x80000000 <= v && v < 0x80000000) {
-            const hex = v < 0 ? (v + 0x100000000).toString(16) : v.toString(16);
+            //const hex = v < 0 ? (v + 0x100000000).toString(16) : v.toString(16);
             return `${v}`; // stop ? `${v}` : `${v} (0x${hex})`;
         } else if (v === -Infinity) {
             return "false";
