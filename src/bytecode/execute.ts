@@ -27,12 +27,9 @@ export type Value =
     | { tag: "VOID" };
 
 function heapValueToString(v: HeapValue): string {
-    console.log(v);
     if (v !== null && typeof v === "object" && v.tag === "Struct") {
         const strs = [];
         for (let [f, obj] of v.value.entries()) {
-            console.log(f);
-            console.log(obj);
             strs.push(`${f}: {${heapValueToString(obj)}}`);
         }
         return strs.join(", ");
@@ -339,9 +336,6 @@ export function step(prog: Program, state: State): undefined | number {
             return undefined;
         }
         case "CPUSH": {
-            console.log(instr.argument);
-            console.log(instr.argument.charCodeAt(0));
-            console.log(instr.argument.charCodeAt(0) + 0x80000000);
             state.stack.push(instr.argument.charCodeAt(0) + 0x80000000);
             return undefined;
         }

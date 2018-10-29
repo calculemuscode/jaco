@@ -246,7 +246,6 @@ export function synthExpression(genv: GlobalEnv, env: Env, mode: mode, exp: ast.
                 );
 
             const argumentType = actualSynthed(genv, synthExpression(genv, env, mode, exp.argument));
-            console.log(argumentType);
             if (argumentType.tag === "AmbiguousNullPointer") {
                 // NULL cast always ok
                 // We don't know (or care) if it's to or from void*

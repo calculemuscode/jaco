@@ -193,8 +193,7 @@ export class TypeLexer {
             this.parsePragma(tok.text).forEach(x => this.typeIds.add(x));
             return tok;
         } else if (tok["type"] === "identifier" && this.typeIds.has(tok.value)) {
-            tok["type"] = "type_identifier";
-            return tok;
+            return { ...tok, type: "type_identifier" };
         } else if (tok["type"] === "identifier") {
             return tok;
         } else {
