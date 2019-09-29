@@ -209,7 +209,7 @@ function checkDeclaration(library: boolean, genv: GlobalEnv, decl: ast.Declarati
             });
 
             checkStatement(genv, env, decl.body, decl.returns, false);
-            let constants = new Set();
+            let constants: Set<string> = new Set();
             decl.postconditions.forEach(anno => {
                 expressionFreeVars(anno).forEach(x => {
                     if (defined.has(x)) constants.add(x);
