@@ -222,8 +222,15 @@ export interface ErrorExpression extends Syn {
     readonly argument: Expression;
 }
 
-export type BreakStatement = ast.BreakStatement & Syn;
-export type ContinueStatement = ast.ContinueStatement & Syn;
+export interface BreakStatement extends Syn {
+    readonly tag: "BreakStatement";
+    readonly missingsemi: boolean;
+}
+
+export interface ContinueStatement extends Syn {
+    readonly tag: "ContinueStatement";
+    readonly missingsemi: boolean;
+}
 
 export type Statement =
     | AnnoStatement
@@ -246,6 +253,7 @@ export interface AnnoStatement extends Syn {
 export interface ExpressionStatement extends Syn {
     readonly tag: "ExpressionStatement";
     readonly expression: Expression;
+    readonly missingsemi: boolean;
 }
 
 export interface VariableDeclaration extends Syn {
@@ -253,6 +261,7 @@ export interface VariableDeclaration extends Syn {
     readonly kind: Type;
     readonly id: Identifier;
     readonly init: Expression | null;
+    readonly missingsemi: boolean;
 }
 
 export interface IfStatement extends Syn {

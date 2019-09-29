@@ -58,8 +58,8 @@ StatementPrefix -> "if" _ "(" _ Expression _ ")" _ StatementNoDangle _ "else" _ 
                  | "for" _ "(" (_ Simple):? _ ";" _ Expression _ ";" (_ Expression):? _ ")" _ {% util.For %}
 
 DanglingIf     -> "if" _ "(" _ Expression _ ")" _ Statement      {% util.IfStatement %}
-StatementEnd   -> Simple _ ";"                                   {% util.SimpleStatement %}
+StatementEnd   -> Simple (_ ";"):?                                {% util.SimpleStatement %}
                 | "return" (_ Expression):? _ ";"                {% util.ReturnStatement %}
                 | BlockStatement                                 {% id %}
-                | "break" _ ";"                                  {% util.BreakStatement %}
-                | "continue" _ ";"                               {% util.ContinueStatement %}
+                | "break" (_ ";"):?                               {% util.BreakStatement %}
+                | "continue" (_ ";"):?                            {% util.ContinueStatement %}

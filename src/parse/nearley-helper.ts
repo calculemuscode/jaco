@@ -464,7 +464,7 @@ export function ErrorExpression([error, s1, l, s2, argument, s3, r]: [
 export type SimpleParsed =
     | syn.Expression
     | [syn.Type, WS, syn.Identifier, null | [WS, Token, WS, syn.Expression]];
-export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
+export function SimpleStatement([stm, ssemi]: [SimpleParsed, null | [WS, Token]):
     | syn.VariableDeclaration
     | syn.ExpressionStatement {
     if (stm instanceof Array) {
@@ -474,13 +474,15 @@ export function SimpleStatement([stm, s, semi]: [SimpleParsed, WS, Token]):
             kind: stm[0],
             id: stm[2],
             init: init === null ? null : init[3],
-            loc: { start: stm[0].loc.start, end: tokloc(semi).end }
+            loc: { start: stm[0].loc.start, end: ssemi !== null ? tokloc(ssemi[1]).end : init === null ? stm[2].loc.end : init[3].loc.end  },
+            missingsemi: ssemi !== null
         };
     } else {
         return {
             tag: "ExpressionStatement",
             expression: stm,
-            loc: { start: stm.loc.start, end: tokloc(semi).end }
+            loc: { start: stm.loc.start, end: ssemi === null ? stm.loc.end : tokloc(ssemi[1]).end },
+            missingsemi: ssemi !== null
         };
     }
 }
@@ -538,7 +540,7 @@ export function For([tFOR, s1, l, init, s2, semi1, s3, test, s4, semi2, update, 
 ]): Wrapper {
     return {
         tag: "for",
-        init: init === null ? null : SimpleStatement([init[1], s2, semi1]),
+        init: init === null ? null : SimpleStatement([init[1], [s2, semi1]]),
         test: test,
         update: update === null ? null : update[1],
         start: tokloc(tFOR).start
@@ -697,15 +699,20 @@ export function BlockStatement([l, stms, annos, s, r]: [
     };
 }
 
-export function BreakStatement([stm, s1, semi]: [Token, WS, Token]): syn.BreakStatement {
+export function BreakStatement([stm, ssemi]: [Token, null | [WS, Token]]): syn.BreakStatement {
     return {
         tag: "BreakStatement",
-        loc: { start: tokloc(stm).start, end: tokloc(semi).end }
+        loc: { start: tokloc(stm).start, end: ssemi === null ? tokloc(stm).end : tokloc(ssemi[1]).end },
+        missingsemi: ssemi !== null
     };
 }
 
-export function ContinueStatement([stm, s1, semi]: [Token, WS, Token]): syn.ContinueStatement {
-    return { tag: "ContinueStatement", loc: { start: tokloc(stm).start, end: tokloc(semi).end } };
+export function ContinueStatement([stm, ssemi]: [Token, null | [WS, Token]]): syn.ContinueStatement {
+    return { 
+        tag: "ContinueStatement", 
+        loc: { start: tokloc(stm).start, end: ssemi === null ? toklok(stm).end : tokloc(ssemi[1]).end },
+        missingsemi: ssemi !== null
+    };
 }
 
 export function Anno([anno, s1, test, s2, semi, s3]: [
