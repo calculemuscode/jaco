@@ -1,7 +1,7 @@
 import * as ast from "../ast";
 import { Instruction, instructionToString, Function, Program } from "./high-level";
 import { ImpossibleError } from "../error";
-import { impossible } from "../../node_modules/@calculemus/impossible";
+import { impossible } from "@calculemus/impossible";
 import { computeStructMap } from "../typecheck/structs";
 
 function load(kind: ast.ConcreteType): Instruction {
